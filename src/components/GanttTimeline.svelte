@@ -421,9 +421,9 @@
   
   /* セクションバーのアウトライン部分（名前幅以降） */
   :global(.gantt-section-bar-outline) {
-    fill: none;
     cursor: pointer;
     transition: opacity 0.2s;
+    stroke: none;
   }
   
   :global(.gantt-section-bar-outline:hover) {
@@ -431,18 +431,15 @@
   }
   
   :global(.gantt-section-bar-outline--section) {
-    stroke: #3a9c5e;
-    stroke-width: 2;
+    fill: rgba(80, 200, 120, 0.2);
   }
   
   :global(.gantt-section-bar-outline--subsection) {
-    stroke: #d68a1a;
-    stroke-width: 2;
+    fill: rgba(245, 166, 35, 0.2);
   }
   
   :global(.gantt-section-bar-outline--project) {
-    stroke: #3a7bc8;
-    stroke-width: 2;
+    fill: rgba(74, 144, 226, 0.2);
   }
   
   :global(.gantt-bar--task) {
