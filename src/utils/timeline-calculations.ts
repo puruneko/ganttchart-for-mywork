@@ -1,13 +1,22 @@
 /**
- * Pure functions for timeline calculations
- * No Svelte dependencies - can be tested independently
+ * タイムライン計算用の純粋関数群
+ * 
+ * Svelte依存なし - 独立してテスト可能
+ * すべての関数は副作用がなく、同じ入力に対して常に同じ出力を返す。
  */
 
 import type { DateTime } from 'luxon';
 import type { DateRange } from '../types';
 
 /**
- * Calculate X position for a date on the timeline
+ * タイムライン上の日付のX座標を計算
+ * 
+ * 開始日からの経過日数に基づいて、SVG上のX座標を算出する。
+ * 
+ * @param date - X座標を求める日付
+ * @param dateRange - タイムラインの日付範囲
+ * @param dayWidth - 1日あたりの幅（ピクセル）
+ * @returns X座標（ピクセル）
  */
 export function dateToX(date: DateTime, dateRange: DateRange, dayWidth: number): number {
   const diffDays = date.diff(dateRange.start, 'days').days;
@@ -15,22 +24,42 @@ export function dateToX(date: DateTime, dateRange: DateRange, dayWidth: number):
 }
 
 /**
- * Calculate Y position for a row index
+ * 行インデックスからY座標を計算
+ * 
+ * 0始まりの行番号から、SVG上のY座標を算出する。
+ * 
+ * @param rowIndex - 行インデックス（0始まり）
+ * @param rowHeight - 各行の高さ（ピクセル）
+ * @returns Y座標（ピクセル）
  */
 export function rowToY(rowIndex: number, rowHeight: number): number {
   return rowIndex * rowHeight;
 }
 
 /**
- * Calculate width for a date span
+ * 日付範囲から幅を計算
+ * 
+ * 開始日と終了日の差分から、タスクバーの幅を算出する。
+ * 最小幅は2pxとして、極端に短い期間でも視認できるようにする。
+ * 
+ * @param start - 開始日時
+ * @param end - 終了日時
+ * @param dayWidth - 1日あたりの幅（ピクセル）
+ * @returns バーの幅（ピクセル、最小2px）
  */
 export function durationToWidth(start: DateTime, end: DateTime, dayWidth: number): number {
   const diffDays = end.diff(start, 'days').days;
-  return Math.max(diffDays * dayWidth, 2); // Minimum 2px width
+  return Math.max(diffDays * dayWidth, 2); // 最小2pxの幅
 }
 
 /**
- * Generate array of dates for timeline header
+ * タイムラインヘッダー用の日付配列を生成
+ * 
+ * 開始日から終了日まで、1日ごとの日付配列を作成する。
+ * ヘッダーに日付ラベルを表示するために使用。
+ * 
+ * @param dateRange - タイムラインの日付範囲
+ * @returns 日付の配列（1日刻み）
  */
 export function generateDateTicks(dateRange: DateRange): DateTime[] {
   const ticks: DateTime[] = [];
@@ -45,7 +74,13 @@ export function generateDateTicks(dateRange: DateRange): DateTime[] {
 }
 
 /**
- * Calculate total width of timeline
+ * タイムライン全体の幅を計算
+ * 
+ * 日付範囲の総日数から、SVG全体の幅を算出する。
+ * 
+ * @param dateRange - タイムラインの日付範囲
+ * @param dayWidth - 1日あたりの幅（ピクセル）
+ * @returns タイムライン全体の幅（ピクセル）
  */
 export function calculateTimelineWidth(dateRange: DateRange, dayWidth: number): number {
   const days = dateRange.end.diff(dateRange.start, 'days').days;
@@ -53,14 +88,27 @@ export function calculateTimelineWidth(dateRange: DateRange, dayWidth: number): 
 }
 
 /**
- * Calculate total height of timeline
+ * タイムライン全体の高さを計算
+ * 
+ * 表示される行数から、SVG全体の高さを算出する。
+ * 
+ * @param visibleRowCount - 表示される行の数
+ * @param rowHeight - 各行の高さ（ピクセル）
+ * @returns タイムライン全体の高さ（ピクセル）
  */
 export function calculateTimelineHeight(visibleRowCount: number, rowHeight: number): number {
   return visibleRowCount * rowHeight;
 }
 
 /**
- * Get bar style based on node type
+ * ノードタイプに基づいてバーのCSSクラスを取得
+ * 
+ * ノードタイプと設定されたプレフィックスから、
+ * CSSクラス名を生成する。
+ * 
+ * @param nodeType - ノードのタイプ（'project', 'section', 'task'など）
+ * @param classPrefix - CSSクラスのプレフィックス
+ * @returns CSSクラス文字列（例: "gantt-bar gantt-bar--task"）
  */
 export function getBarClass(nodeType: string, classPrefix: string): string {
   return `${classPrefix}-bar ${classPrefix}-bar--${nodeType}`;

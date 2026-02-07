@@ -1,14 +1,14 @@
 /**
- * Public API for svelte-gantt-lib
+ * svelte-gantt-lib のパブリックAPI
  * 
- * This is the main entry point for the library.
- * Only exports what consumers need.
+ * ライブラリのメインエントリーポイント。
+ * 利用者が必要とするもののみをエクスポートする。
  */
 
-// Main component
+// メインコンポーネント
 export { default as GanttChart } from './components/GanttChart.svelte';
 
-// Type definitions
+// 型定義
 export type {
   GanttNode,
   GanttNodeType,
@@ -18,7 +18,7 @@ export type {
   DateRange
 } from './types';
 
-// Utility functions (for advanced usage)
+// ユーティリティ関数（高度な使用法向け）
 export {
   buildHierarchyMap,
   buildNodeMap,
@@ -28,6 +28,6 @@ export {
   updateNode
 } from './core/data-manager';
 
-// Store factory (for advanced usage or testing)
+// ストアファクトリー（高度な使用法やテスト向け）
 export { createGanttStore } from './core/gantt-store';
 export type { GanttStore } from './core/gantt-store';

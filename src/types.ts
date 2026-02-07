@@ -1,131 +1,167 @@
 /**
- * Core type definitions for the Gantt chart library
+ * ガントチャートライブラリのコア型定義
  * 
- * Design principles:
- * - Minimal coupling to implementation
- * - Easy to extend without breaking changes
- * - Explicit over implicit
+ * 設計原則:
+ * - 実装との結合を最小限にする
+ * - 破壊的変更なしで拡張可能にする
+ * - 暗黙的より明示的を優先する
  */
 
 import type { DateTime } from 'luxon';
 
 /**
- * Node type discriminator
+ * ノードタイプ識別子
+ * 
+ * ガントチャート内のノードの種類を示す文字列リテラル型。
+ * 各タイプは異なる描画スタイルと動作を持つ。
  */
 export type GanttNodeType = 'project' | 'section' | 'subsection' | 'task';
 
 /**
- * Core data structure for a single Gantt chart node
+ * ガントチャートノードのコアデータ構造
  * 
- * This represents the fundamental unit in the hierarchy.
- * All fields are immutable from the library's perspective.
+ * 階層構造における基本単位を表す。
+ * ライブラリの観点では全フィールドがイミュータブル（不変）として扱われる。
+ * 
+ * @property id - 全ノード間で一意な識別子（必須）
+ * @property parentId - 親ノードのID。ルートレベルのノードの場合はnull
+ * @property type - 描画と動作を決定するノードタイプ
+ * @property name - 表示名
+ * @property start - 開始日時（luxon DateTimeオブジェクト）
+ * @property end - 終了日時（luxon DateTimeオブジェクト）
+ * @property isCollapsed - UI状態: このノードの子要素を非表示にするかどうか
+ * @property metadata - 任意のメタデータ。ライブラリは無視するが、イベント経由で渡される
  */
 export interface GanttNode {
-  /** Unique identifier - must be unique across all nodes */
+  /** 全ノード間で一意でなければならない識別子 */
   id: string;
   
-  /** Parent node ID - null for root-level nodes */
+  /** 親ノードのID - ルートレベルのノードの場合はnull */
   parentId: string | null;
   
-  /** Type discriminator for rendering and behavior */
+  /** 描画と動作を決定するノードタイプ識別子 */
   type: GanttNodeType;
   
-  /** Display name */
+  /** 表示名 */
   name: string;
   
-  /** Start date/time (luxon DateTime) */
+  /** 開始日時（luxon DateTimeオブジェクト） */
   start: DateTime;
   
-  /** End date/time (luxon DateTime) */
+  /** 終了日時（luxon DateTimeオブジェクト） */
   end: DateTime;
   
-  /** UI state: whether this node's children are hidden */
+  /** UI状態: このノードの子要素が非表示かどうか */
   isCollapsed?: boolean;
   
-  /** Optional metadata - library ignores this, but passes through events */
+  /** 任意のメタデータ - ライブラリは無視するが、イベント経由で渡される */
   metadata?: Record<string, unknown>;
 }
 
 /**
- * Event handler type definitions
- * All handlers are optional and registered externally
+ * イベントハンドラー型定義
+ * 
+ * すべてのハンドラーはオプショナルで、外部から登録される。
+ * イベント駆動設計により、ライブラリは状態変更を外部に通知するだけで、
+ * 実際の処理は利用者側で実装する。
  */
 export interface GanttEventHandlers {
-  /** Fired when a node is clicked */
+  /** ノードがクリックされたときに発火 */
   onNodeClick?: (node: GanttNode) => void;
   
-  /** Fired when collapse/expand is toggled */
+  /** 折り畳み/展開が切り替えられたときに発火 */
   onToggleCollapse?: (nodeId: string, newCollapsedState: boolean) => void;
   
-  /** Fired when internal data changes (uncontrolled mode only) */
+  /** 内部データが変更されたときに発火（uncontrolledモードのみ） */
   onDataChange?: (nodes: GanttNode[]) => void;
   
-  /** Fired when a bar is clicked in the timeline */
+  /** タイムライン上のバーがクリックされたときに発火 */
   onBarClick?: (node: GanttNode, event: MouseEvent) => void;
   
-  /** Fired when a node name is clicked in the tree */
+  /** ツリー内のノード名がクリックされたときに発火 */
   onNameClick?: (node: GanttNode, event: MouseEvent) => void;
 }
 
 /**
- * Configuration options for the Gantt chart
+ * ガントチャートの設定オプション
+ * 
+ * ライブラリの動作と見た目をカスタマイズするための設定。
+ * すべてのフィールドはオプショナルで、デフォルト値が提供される。
  */
 export interface GanttConfig {
-  /** Controlled mode: data managed externally. Uncontrolled: managed internally */
+  /** 
+   * データ管理モード
+   * - 'controlled': 外部でデータ管理（推奨）
+   * - 'uncontrolled': 内部でデータ管理
+   */
   mode?: 'controlled' | 'uncontrolled';
   
-  /** Height of each row in pixels */
+  /** 各行の高さ（ピクセル） */
   rowHeight?: number;
   
-  /** Width of a single day in pixels */
+  /** 1日あたりの幅（ピクセル） */
   dayWidth?: number;
   
-  /** Width of the left tree pane in pixels */
+  /** 左側ツリーペインの幅（ピクセル） */
   treePaneWidth?: number;
   
-  /** Indent per hierarchy level in pixels */
+  /** 階層レベルごとのインデント幅（ピクセル） */
   indentSize?: number;
   
-  /** CSS class prefix for custom styling */
+  /** カスタムスタイリング用のCSSクラスプレフィックス */
   classPrefix?: string;
 }
 
 /**
- * Internal computed node with rendering metadata
- * (Not exposed in public API)
+ * レンダリング用メタデータを含む内部計算済みノード
+ * 
+ * パブリックAPIには公開されない内部型。
+ * GanttNodeを拡張し、描画に必要な計算済み情報を追加する。
+ * 
+ * @property depth - 階層の深さレベル（0 = ルート）
+ * @property isVisible - このノードが表示されるかどうか（親が折り畳まれていないか）
+ * @property visualIndex - フラット化された表示リスト内のインデックス
+ * @property childrenIds - 直接の子要素のIDリスト
  */
 export interface ComputedGanttNode extends GanttNode {
-  /** Depth level in hierarchy (0 = root) */
+  /** 階層の深さレベル（0 = ルート） */
   depth: number;
   
-  /** Whether this node is visible (parent not collapsed) */
+  /** このノードが表示されるかどうか（親が折り畳まれていない） */
   isVisible: boolean;
   
-  /** Index in flattened visible list */
+  /** フラット化された表示リスト内のインデックス */
   visualIndex: number;
   
-  /** Direct children IDs */
+  /** 直接の子要素のIDリスト */
   childrenIds: string[];
 }
 
 /**
- * Props for the main Gantt component
+ * メインガントチャートコンポーネントのプロパティ
+ * 
+ * GanttChartコンポーネントに渡されるプロパティの型定義。
  */
 export interface GanttChartProps {
-  /** Array of nodes to display */
+  /** 表示するノードの配列 */
   nodes: GanttNode[];
   
-  /** Event handlers */
+  /** イベントハンドラー */
   handlers?: GanttEventHandlers;
   
-  /** Configuration options */
+  /** 設定オプション */
   config?: GanttConfig;
 }
 
 /**
- * Date range for timeline rendering
+ * タイムライン描画用の日付範囲
+ * 
+ * タイムラインの開始日と終了日を表す。
+ * すべてのノードを包含する範囲が自動計算される。
  */
 export interface DateRange {
+  /** 開始日時 */
   start: DateTime;
+  /** 終了日時 */
   end: DateTime;
 }
