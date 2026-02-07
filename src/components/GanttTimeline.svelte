@@ -167,7 +167,7 @@
       {@const x = dateToX(node.start, dateRange, dayWidth)}
       {@const y = rowToY(node.visualIndex, rowHeight)}
       {@const barWidth = durationToWidth(node.start, node.end, dayWidth)}
-      {@const barHeight = rowHeight - 8}
+      {@const barHeight = Math.round((rowHeight - 8) * 0.6)}
       {@const barClass = getBarClass(node.type, classPrefix)}
       {@const handleSize = 8}
       
