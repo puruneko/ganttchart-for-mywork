@@ -213,35 +213,15 @@
       {#if node.type === 'section' || node.type === 'subsection' || node.type === 'project'}
         {@const sectionBarHeight = 20}
         {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
-        
-        <!-- リサイズハンドル（左） - セクション/サブセクションのみ -->
-        {#if node.type === 'section' || node.type === 'subsection'}
-          <rect
-            x={x}
-            y={sectionBarY}
-            width={handleSize}
-            height={sectionBarHeight}
-            class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
-            data-node-id={node.id}
-            on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
-            role="button"
-            tabindex="0"
-          >
-            <title>開始日をリサイズ: {node.name}</title>
-          </rect>
-        {/if}
-        
-        {@const barStartX = node.type === 'section' || node.type === 'subsection' ? x + handleSize : x}
-        {@const barTotalWidth = node.type === 'section' || node.type === 'subsection' ? barWidth - handleSize * 2 : barWidth}
         <!-- 名前の推定幅（12pxフォント × 文字数 × 0.6 + パディング16px） -->
         {@const estimatedLabelWidth = node.name.length * 12 * 0.6 + 16}
-        {@const filledWidth = Math.min(estimatedLabelWidth, barTotalWidth)}
+        {@const filledWidth = Math.min(estimatedLabelWidth, barWidth)}
         
         <!-- セクションバー全体：角丸の長方形（薄い色） -->
         <rect
-          x={barStartX}
+          x={x}
           y={sectionBarY}
-          width={barTotalWidth}
+          width={barWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar-bg {classPrefix}-section-bar-bg--{node.type}"
           rx="4"
@@ -256,7 +236,7 @@
         
         <!-- セクションバー：名前部分だけ濃い塗りつぶし（左端の角丸を含む） -->
         <rect
-          x={barStartX}
+          x={x}
           y={sectionBarY}
           width={filledWidth}
           height={sectionBarHeight}
@@ -274,7 +254,7 @@
         
         <!-- セクション/プロジェクト名のラベル -->
         <text
-          x={barStartX + 8}
+          x={x + 8}
           y={sectionBarY + sectionBarHeight / 2}
           dominant-baseline="middle"
           class="{classPrefix}-section-label"
@@ -283,7 +263,24 @@
           {node.name}
         </text>
         
-        <!-- リサイズハンドル（右） - セクション/サブセクションのみ -->
+        <!-- リサイズハンドル（左） - セクション/サブセクションのみ、バーの上に重ねて配置 -->
+        {#if node.type === 'section' || node.type === 'subsection'}
+          <rect
+            x={x}
+            y={sectionBarY}
+            width={handleSize}
+            height={sectionBarHeight}
+            class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
+            data-node-id={node.id}
+            on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
+            role="button"
+            tabindex="0"
+          >
+            <title>開始日をリサイズ: {node.name}</title>
+          </rect>
+        {/if}
+        
+        <!-- リサイズハンドル（右） - セクション/サブセクションのみ、バーの上に重ねて配置 -->
         {#if node.type === 'section' || node.type === 'subsection'}
           <rect
             x={x + barWidth - handleSize}
