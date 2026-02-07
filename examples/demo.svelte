@@ -196,6 +196,39 @@
         );
         console.debug('📊 Gantt data updated after drag:', nodes);
       }
+    },
+    
+    onGroupDrag: (nodeId, daysDelta) => {
+      logEvent(`🔄 Group dragged: ${nodeId} -> ${daysDelta > 0 ? '+' : ''}${daysDelta} days`);
+      
+      if (mode === 'controlled') {
+        // グループ（セクション/プロジェクト）とその子孫すべてを移動
+        const updateNodeAndDescendants = (nodes: GanttNode[], targetId: string): GanttNode[] => {
+          const descendants = new Set<string>();
+          
+          // 子孫を再帰的に収集
+          const collectDescendants = (id: string) => {
+            descendants.add(id);
+            nodes.filter(n => n.parentId === id).forEach(child => collectDescendants(child.id));
+          };
+          collectDescendants(targetId);
+          
+          // 該当ノードとその子孫の日付を更新
+          return nodes.map(n => {
+            if (descendants.has(n.id)) {
+              return {
+                ...n,
+                start: n.start.plus({ days: daysDelta }),
+                end: n.end.plus({ days: daysDelta })
+              };
+            }
+            return n;
+          });
+        };
+        
+        nodes = updateNodeAndDescendants(nodes, nodeId);
+        console.debug('📊 Gantt data updated after group drag:', nodes);
+      }
     }
   };
   

@@ -94,6 +94,16 @@
   }
   
   /**
+   * グループドラッグハンドラー
+   * グループ全体を移動する際のハンドラー
+   */
+  function handleGroupDrag(nodeId: string, daysDelta: number) {
+    if (handlers.onGroupDrag) {
+      handlers.onGroupDrag(nodeId, daysDelta);
+    }
+  }
+  
+  /**
    * 折り畳み切り替えハンドラー
    * Controlledモードでは外部に通知のみ、Uncontrolledモードでは内部状態も更新
    */
@@ -160,6 +170,7 @@
           {classPrefix}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
+          onGroupDrag={handleGroupDrag}
         />
       </div>
     </div>

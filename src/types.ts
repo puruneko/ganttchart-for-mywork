@@ -83,6 +83,9 @@ export interface GanttEventHandlers {
   
   /** バーがドラッグされたときに発火（controlled モードでは必須） */
   onBarDrag?: (nodeId: string, newStart: DateTime, newEnd: DateTime) => void;
+  
+  /** グループ全体がドラッグされたときに発火 */
+  onGroupDrag?: (nodeId: string, daysDelta: number) => void;
 }
 
 /**

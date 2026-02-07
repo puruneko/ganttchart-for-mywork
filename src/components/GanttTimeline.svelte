@@ -38,6 +38,8 @@
   export let onBarClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
   /** バードラッグ時のハンドラー */
   export let onBarDrag: ((nodeId: string, newStart: DateTime, newEnd: DateTime) => void) | undefined = undefined;
+  /** グループドラッグ時のハンドラー */
+  export let onGroupDrag: ((nodeId: string, daysDelta: number) => void) | undefined = undefined;
   
   // 計算値 - Svelte 5では$derivedに変換される
   $: width = calculateTimelineWidth(dateRange, dayWidth);
@@ -47,7 +49,7 @@
   // ドラッグ状態
   let dragState: {
     nodeId: string;
-    mode: 'move' | 'resize-start' | 'resize-end';
+    mode: 'move' | 'resize-start' | 'resize-end' | 'group-move';
     originalStart: DateTime;
     originalEnd: DateTime;
     startX: number;
@@ -65,7 +67,7 @@
   /**
    * ドラッグ開始ハンドラー
    */
-  function handleMouseDown(node: ComputedGanttNode, mode: 'move' | 'resize-start' | 'resize-end', event: MouseEvent) {
+  function handleMouseDown(node: ComputedGanttNode, mode: 'move' | 'resize-start' | 'resize-end' | 'group-move', event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     
@@ -85,32 +87,40 @@
    * ドラッグ中のハンドラー
    */
   function handleMouseMove(event: MouseEvent) {
-    if (!dragState || !onBarDrag) return;
+    if (!dragState) return;
     
     const deltaX = event.clientX - dragState.startX;
     const snapUnit = dayWidth / dragSnapDivision;
     const snappedDelta = Math.round(deltaX / snapUnit) * snapUnit;
     const daysDelta = snappedDelta / dayWidth;
     
-    let newStart = dragState.originalStart;
-    let newEnd = dragState.originalEnd;
-    
-    if (dragState.mode === 'move') {
-      newStart = dragState.originalStart.plus({ days: daysDelta });
-      newEnd = dragState.originalEnd.plus({ days: daysDelta });
-    } else if (dragState.mode === 'resize-start') {
-      newStart = dragState.originalStart.plus({ days: daysDelta });
-      if (newStart >= newEnd) {
-        newStart = newEnd.minus({ days: 1 });
+    if (dragState.mode === 'group-move') {
+      // グループ全体移動
+      if (onGroupDrag) {
+        onGroupDrag(dragState.nodeId, daysDelta);
       }
-    } else if (dragState.mode === 'resize-end') {
-      newEnd = dragState.originalEnd.plus({ days: daysDelta });
-      if (newEnd <= newStart) {
-        newEnd = newStart.plus({ days: 1 });
+    } else if (onBarDrag) {
+      // 個別ノード移動/リサイズ
+      let newStart = dragState.originalStart;
+      let newEnd = dragState.originalEnd;
+      
+      if (dragState.mode === 'move') {
+        newStart = dragState.originalStart.plus({ days: daysDelta });
+        newEnd = dragState.originalEnd.plus({ days: daysDelta });
+      } else if (dragState.mode === 'resize-start') {
+        newStart = dragState.originalStart.plus({ days: daysDelta });
+        if (newStart >= newEnd) {
+          newStart = newEnd.minus({ days: 1 });
+        }
+      } else if (dragState.mode === 'resize-end') {
+        newEnd = dragState.originalEnd.plus({ days: daysDelta });
+        if (newEnd <= newStart) {
+          newEnd = newStart.plus({ days: 1 });
+        }
       }
+      
+      onBarDrag(dragState.nodeId, newStart, newEnd);
     }
-    
-    onBarDrag(dragState.nodeId, newStart, newEnd);
   }
   
   /**
@@ -158,7 +168,7 @@
       {@const handleSize = 8}
       
       <!-- セクション/サブセクションのグループ背景 -->
-      {#if (node.type === 'section' || node.type === 'subsection') && node.childrenIds.length > 0}
+      {#if (node.type === 'section' || node.type === 'subsection' || node.type === 'project') && node.childrenIds.length > 0}
         {@const childNodes = visibleNodes.filter(n => {
           // このノードの子孫かどうかを確認
           let current = n;
@@ -170,17 +180,16 @@
           return false;
         })}
         {#if childNodes.length > 0}
-          {@const firstChild = childNodes[0]}
           {@const lastChild = childNodes[childNodes.length - 1]}
-          {@const groupY = y + rowHeight}
-          {@const groupHeight = (lastChild.visualIndex - node.visualIndex) * rowHeight}
+          {@const groupY = y}
+          {@const groupHeight = (lastChild.visualIndex - node.visualIndex + 1) * rowHeight}
           {@const groupX = dateToX(dateRange.start, dateRange, dayWidth)}
           {@const groupWidth = Math.max(
             ...childNodes.map(c => dateToX(c.end, dateRange, dayWidth)),
             dateToX(node.end, dateRange, dayWidth)
           ) - groupX}
           
-          <!-- グループ背景矩形（配下のタスクのみを囲む） -->
+          <!-- グループ背景矩形（セクション自体と配下のタスクを囲む） -->
           <rect
             x={groupX}
             y={groupY}
@@ -188,12 +197,14 @@
             height={groupHeight}
             class="{classPrefix}-group-bg {classPrefix}-group-bg--{node.type}"
             rx="6"
+            on:mousedown={(e) => handleMouseDown(node, 'group-move', e)}
+            style="cursor: move;"
           />
         {/if}
       {/if}
       
-      <!-- セクション/サブセクションバーは小さく表示 -->
-      {#if node.type === 'section' || node.type === 'subsection'}
+      <!-- セクション/サブセクション/プロジェクトバーは小さく表示 -->
+      {#if node.type === 'section' || node.type === 'subsection' || node.type === 'project'}
         {@const sectionBarHeight = 20}
         {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
         
@@ -208,11 +219,23 @@
           data-node-id={node.id}
           data-node-type={node.type}
           on:click={(e) => handleBarClick(node, e)}
+          on:mousedown={(e) => handleMouseDown(node, 'move', e)}
           role="button"
           tabindex="0"
         >
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
         </rect>
+        
+        <!-- セクション/プロジェクト名のラベル -->
+        <text
+          x={x + 8}
+          y={sectionBarY + sectionBarHeight / 2}
+          dominant-baseline="middle"
+          class="{classPrefix}-section-label"
+          pointer-events="none"
+        >
+          {node.name}
+        </text>
       {:else}
         <!-- 通常のタスクバー（リサイズハンドル付き） -->
         <!-- リサイズハンドル（左） -->
@@ -317,6 +340,12 @@
     stroke-width: 2;
   }
   
+  :global(.gantt-section-bar--project) {
+    fill: #4a90e2;
+    stroke: #3a7bc8;
+    stroke-width: 2;
+  }
+  
   :global(.gantt-bar--task) {
     fill: #9b59b6;
   }
@@ -336,7 +365,6 @@
     fill: rgba(0, 0, 0, 0.02);
     stroke: rgba(0, 0, 0, 0.15);
     stroke-width: 1.5;
-    pointer-events: none;
   }
   
   :global(.gantt-group-bg--section) {
@@ -347,5 +375,18 @@
   :global(.gantt-group-bg--subsection) {
     fill: rgba(245, 166, 35, 0.05);
     stroke: rgba(245, 166, 35, 0.4);
+  }
+  
+  :global(.gantt-group-bg--project) {
+    fill: rgba(74, 144, 226, 0.05);
+    stroke: rgba(74, 144, 226, 0.4);
+  }
+  
+  /* セクション/プロジェクト名ラベル */
+  :global(.gantt-section-label) {
+    fill: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    user-select: none;
   }
 </style>
