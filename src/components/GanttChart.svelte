@@ -45,13 +45,6 @@
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
-  // dateRangeとvisibleNodesが存在することを保証
-  $: hasData = dateRange && visibleNodes;
-  
-  // デバッグ: ストアの値を確認
-  $: console.debug('🔍 [GanttChart] visibleNodes:', visibleNodes ? `${visibleNodes.length} nodes` : 'undefined');
-  $: console.debug('🔍 [GanttChart] dateRange:', dateRange ? `${dateRange.start.toISODate()} → ${dateRange.end.toISODate()}` : 'undefined');
-  
   // 重要なデータ変更を監視してログ出力
   $: {
     if (visibleNodes) {
@@ -147,53 +140,41 @@
           <span class="{classPrefix}-tree-header-label">タスク</span>
         </div>
         <div class="{classPrefix}-tree-wrapper">
-          {#if visibleNodes}
-            <GanttTree
-              {visibleNodes}
-              rowHeight={chartConfig.rowHeight}
-              indentSize={chartConfig.indentSize}
-              treePaneWidth={chartConfig.treePaneWidth}
-              {classPrefix}
-              onNameClick={handleNameClick}
-              onToggleCollapse={handleToggleCollapse}
-            />
-          {:else}
-            <div style="padding: 16px; color: #999;">Loading tree...</div>
-          {/if}
+          <GanttTree
+            {visibleNodes}
+            rowHeight={chartConfig.rowHeight}
+            indentSize={chartConfig.indentSize}
+            treePaneWidth={chartConfig.treePaneWidth}
+            {classPrefix}
+            onNameClick={handleNameClick}
+            onToggleCollapse={handleToggleCollapse}
+          />
         </div>
       </div>
     {/if}
     
     <!-- 右ペイン: タイムライン -->
     <div class="{classPrefix}-right-pane">
-      {#if dateRange && visibleNodes}
-        <div class="{classPrefix}-timeline-header-wrapper">
-          <GanttHeader
-            {dateRange}
-            dayWidth={chartConfig.dayWidth}
-            {classPrefix}
-          />
-        </div>
-        <div class="{classPrefix}-timeline-wrapper">
-          <GanttTimeline
-            {visibleNodes}
-            {dateRange}
-            dayWidth={chartConfig.dayWidth}
-            rowHeight={chartConfig.rowHeight}
-            dragSnapDivision={chartConfig.dragSnapDivision}
-            {classPrefix}
-            onBarClick={handleBarClick}
-            onBarDrag={handleBarDrag}
-            onGroupDrag={handleGroupDrag}
-          />
-        </div>
-      {:else}
-        <div style="padding: 16px; color: #999;">
-          Loading timeline... 
-          <br>dateRange: {dateRange ? 'OK' : 'undefined'}
-          <br>visibleNodes: {visibleNodes ? visibleNodes.length + ' nodes' : 'undefined'}
-        </div>
-      {/if}
+      <div class="{classPrefix}-timeline-header-wrapper">
+        <GanttHeader
+          {dateRange}
+          dayWidth={chartConfig.dayWidth}
+          {classPrefix}
+        />
+      </div>
+      <div class="{classPrefix}-timeline-wrapper">
+        <GanttTimeline
+          {visibleNodes}
+          {dateRange}
+          dayWidth={chartConfig.dayWidth}
+          rowHeight={chartConfig.rowHeight}
+          dragSnapDivision={chartConfig.dragSnapDivision}
+          {classPrefix}
+          onBarClick={handleBarClick}
+          onBarDrag={handleBarDrag}
+          onGroupDrag={handleGroupDrag}
+        />
+      </div>
     </div>
   </div>
 </div>
