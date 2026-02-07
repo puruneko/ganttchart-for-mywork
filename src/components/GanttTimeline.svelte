@@ -1,12 +1,12 @@
 <script lang="ts">
   /**
-   * Timeline component - renders SVG gantt bars
+   * タイムラインコンポーネント - SVGガントバーを描画
    * 
-   * Svelte 5 ready:
-   * - Uses explicit props (not $$props)
-   * - Minimal reactive statements
-   * - No lifecycle hooks
-   * - Event handlers passed as props
+   * Svelte 5対応:
+   * - 明示的なpropsを使用（$$propsは不使用）
+   * - 最小限のリアクティブ文
+   * - ライフサイクルフックなし
+   * - イベントハンドラーはpropsとして渡される
    */
   
   import type { ComputedGanttNode, DateRange } from '../types';
@@ -20,19 +20,28 @@
     getBarClass
   } from '../utils/timeline-calculations';
   
-  // Props - explicit for Svelte 5 compatibility
+  // Props - Svelte 5互換性のため明示的
+  /** 表示される（可視な）ノードの配列 */
   export let visibleNodes: ComputedGanttNode[];
+  /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
+  /** 1日あたりの幅（ピクセル） */
   export let dayWidth: number;
+  /** 各行の高さ（ピクセル） */
   export let rowHeight: number;
+  /** CSSクラスのプレフィックス */
   export let classPrefix: string;
+  /** バークリック時のハンドラー */
   export let onBarClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
   
-  // Computed values - will convert to $derived in Svelte 5
+  // 計算値 - Svelte 5では$derivedに変換される
   $: width = calculateTimelineWidth(dateRange, dayWidth);
   $: height = calculateTimelineHeight(visibleNodes.length, rowHeight);
   $: dateTicks = generateDateTicks(dateRange);
   
+  /**
+   * バークリックハンドラー
+   */
   function handleBarClick(node: ComputedGanttNode, event: MouseEvent) {
     if (onBarClick) {
       onBarClick(node, event);
@@ -46,7 +55,7 @@
   {height}
   xmlns="http://www.w3.org/2000/svg"
 >
-  <!-- Background grid -->
+  <!-- 背景グリッド -->
   <g class="{classPrefix}-grid">
     {#each dateTicks as date}
       <line
@@ -61,7 +70,7 @@
     {/each}
   </g>
   
-  <!-- Gantt bars -->
+  <!-- ガントバー -->
   <g class="{classPrefix}-bars">
     {#each visibleNodes as node (node.id)}
       {@const x = dateToX(node.start, dateRange, dayWidth)}
@@ -90,7 +99,7 @@
 </svg>
 
 <style>
-  /* Scoped styles - library provides minimal styling */
+  /* スコープスタイル - ライブラリは最小限のスタイルを提供 */
   :global(.gantt-timeline) {
     display: block;
   }

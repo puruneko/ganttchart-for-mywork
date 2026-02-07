@@ -1,14 +1,14 @@
 <script lang="ts">
   /**
-   * Main Gantt Chart component
+   * メインガントチャートコンポーネント
    * 
-   * This is the primary public API.
+   * ライブラリの主要なパブリックAPI。
    * 
-   * Svelte 5 migration strategy:
-   * - Store subscriptions will convert to $state
-   * - Reactive statements will convert to $derived
-   * - Event handlers are already explicit props
-   * - No lifecycle hooks used
+   * Svelte 5移行戦略:
+   * - ストアサブスクリプションは$stateに変換される
+   * - リアクティブ文は$derivedに変換される
+   * - イベントハンドラーは既に明示的なprops
+   * - ライフサイクルフック不使用
    */
   
   import type { GanttNode, GanttEventHandlers, GanttConfig, ComputedGanttNode } from '../types';
@@ -17,31 +17,36 @@
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
   
-  // Public props
+  // パブリックprops
+  /** 表示するノードの配列 */
   export let nodes: GanttNode[];
+  /** イベントハンドラー群 */
   export let handlers: GanttEventHandlers = {};
+  /** 設定オプション */
   export let config: GanttConfig = {};
   
-  // Create store instance
-  // In Svelte 5, this entire store could be replaced with $state and $derived
+  // ストアインスタンスを作成
+  // Svelte 5では、このストア全体を$stateと$derivedに置き換え可能
   const store = createGanttStore(nodes, config);
   
-  // Subscribe to store values
-  // These will become simple $state references in Svelte 5
-  $: store.setNodes(nodes); // Update when external nodes change (controlled mode)
+  // ストアの値を購読
+  // これらはSvelte 5でシンプルな$state参照になる
+  $: store.setNodes(nodes); // 外部ノード変更時に更新（controlledモード）
   $: store.updateConfig(config);
   
-  // Extract individual stores for subscription
+  // 購読用に個別ストアを抽出
   const { visibleNodes: visibleNodesStore, dateRange: dateRangeStore, config: configStore } = store;
   
-  // Subscribe using $ syntax
+  // $構文で購読
   $: visibleNodes = $visibleNodesStore;
   $: dateRange = $dateRangeStore;
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
-  // Event handler wrappers
-  // These bridge internal events to external handlers
+  /**
+   * ノード名クリックハンドラー
+   * 内部イベントを外部ハンドラーに橋渡し
+   */
   function handleNameClick(node: ComputedGanttNode, event: MouseEvent) {
     if (handlers.onNodeClick) {
       handlers.onNodeClick(node);
@@ -51,6 +56,10 @@
     }
   }
   
+  /**
+   * バークリックハンドラー
+   * 内部イベントを外部ハンドラーに橋渡し
+   */
   function handleBarClick(node: ComputedGanttNode, event: MouseEvent) {
     if (handlers.onNodeClick) {
       handlers.onNodeClick(node);
@@ -60,21 +69,25 @@
     }
   }
   
+  /**
+   * 折り畳み切り替えハンドラー
+   * Controlledモードでは外部に通知のみ、Uncontrolledモードでは内部状態も更新
+   */
   function handleToggleCollapse(nodeId: string) {
     const node = store.getNodeById(nodeId);
     if (!node) return;
     
     const newCollapsedState = !node.isCollapsed;
     
-    // Notify external handler
+    // 外部ハンドラーに通知
     if (handlers.onToggleCollapse) {
       handlers.onToggleCollapse(nodeId, newCollapsedState);
     }
     
-    // Toggle in store (will only apply in uncontrolled mode)
+    // ストアで切り替え（uncontrolledモードの場合のみ適用される）
     const newNodes = store.toggleCollapse(nodeId);
     
-    // Notify data change handler if in uncontrolled mode
+    // uncontrolledモードの場合、データ変更ハンドラーに通知
     if (chartConfig.mode === 'uncontrolled' && handlers.onDataChange) {
       handlers.onDataChange(newNodes);
     }
@@ -83,13 +96,13 @@
 
 <div class="{classPrefix}-container">
   <div class="{classPrefix}-layout">
-    <!-- Left pane: Tree -->
+    <!-- 左ペイン: ツリー -->
     <div class="{classPrefix}-left-pane">
       <div 
         class="{classPrefix}-tree-header"
         style="width: {chartConfig.treePaneWidth}px; height: 50px;"
       >
-        <span class="{classPrefix}-tree-header-label">Tasks</span>
+        <span class="{classPrefix}-tree-header-label">タスク</span>
       </div>
       <div class="{classPrefix}-tree-wrapper">
         <GanttTree
@@ -104,7 +117,7 @@
       </div>
     </div>
     
-    <!-- Right pane: Timeline -->
+    <!-- 右ペイン: タイムライン -->
     <div class="{classPrefix}-right-pane">
       <div class="{classPrefix}-timeline-header-wrapper">
         <GanttHeader
@@ -181,7 +194,7 @@
     overflow: auto;
   }
   
-  /* Scrollbar sync styling */
+  /* スクロールバー同期スタイリング */
   :global(.gantt-tree-wrapper),
   :global(.gantt-timeline-wrapper) {
     scrollbar-width: thin;

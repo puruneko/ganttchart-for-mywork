@@ -1,13 +1,16 @@
 <script lang="ts">
   /**
-   * Timeline header component - displays date labels
+   * タイムラインヘッダーコンポーネント - 日付ラベルを表示
    */
   
   import type { DateRange } from '../types';
   import { generateDateTicks, dateToX } from '../utils/timeline-calculations';
   
+  /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
+  /** 1日あたりの幅（ピクセル） */
   export let dayWidth: number;
+  /** CSSクラスのプレフィックス */
   export let classPrefix: string;
   
   $: dateTicks = generateDateTicks(dateRange);

@@ -1,30 +1,44 @@
 <script lang="ts">
   /**
-   * Tree pane component - displays hierarchical node list
+   * ツリーペインコンポーネント - 階層的なノードリストを表示
    * 
-   * Svelte 5 ready:
-   * - Explicit props
-   * - No reactive dependencies on external state
-   * - Events passed as props
+   * Svelte 5対応:
+   * - 明示的なprops
+   * - 外部状態へのリアクティブ依存なし
+   * - イベントはpropsとして渡される
    */
   
   import type { ComputedGanttNode } from '../types';
   
   // Props
+  /** 表示される（可視な）ノードの配列 */
   export let visibleNodes: ComputedGanttNode[];
+  /** 各行の高さ（ピクセル） */
   export let rowHeight: number;
+  /** 階層レベルごとのインデント幅（ピクセル） */
   export let indentSize: number;
+  /** ツリーペインの幅（ピクセル） */
   export let treePaneWidth: number;
+  /** CSSクラスのプレフィックス */
   export let classPrefix: string;
+  /** ノード名クリック時のハンドラー */
   export let onNameClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
+  /** 折り畳み切り替え時のハンドラー */
   export let onToggleCollapse: ((nodeId: string) => void) | undefined = undefined;
   
+  /**
+   * ノード名クリックハンドラー
+   */
   function handleNameClick(node: ComputedGanttNode, event: MouseEvent) {
     if (onNameClick) {
       onNameClick(node, event);
     }
   }
   
+  /**
+   * 折り畳みトグルクリックハンドラー
+   * イベントの伝播を止めて、親要素のクリックイベントを防ぐ
+   */
   function handleToggleClick(node: ComputedGanttNode, event: MouseEvent) {
     event.stopPropagation();
     if (onToggleCollapse) {
@@ -32,10 +46,16 @@
     }
   }
   
+  /**
+   * ノードが子要素を持つかチェック
+   */
   function hasChildren(node: ComputedGanttNode): boolean {
     return node.childrenIds.length > 0;
   }
   
+  /**
+   * 階層の深さに応じたインデントスタイルを取得
+   */
   function getIndentStyle(depth: number): string {
     return `padding-left: ${depth * indentSize}px;`;
   }
@@ -58,7 +78,7 @@
             class="{classPrefix}-toggle"
             class:collapsed={node.isCollapsed}
             on:click={(e) => handleToggleClick(node, e)}
-            aria-label={node.isCollapsed ? 'Expand' : 'Collapse'}
+            aria-label={node.isCollapsed ? '展開' : '折り畳み'}
           >
             {node.isCollapsed ? '▶' : '▼'}
           </button>
