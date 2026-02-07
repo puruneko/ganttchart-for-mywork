@@ -237,13 +237,30 @@
         {@const estimatedLabelWidth = node.name.length * 12 * 0.6 + 16}
         {@const filledWidth = Math.min(estimatedLabelWidth, barTotalWidth)}
         
-        <!-- セクションバー：名前幅まで塗りつぶし -->
+        <!-- セクションバー全体：角丸の長方形（薄い色） -->
+        <rect
+          x={barStartX}
+          y={sectionBarY}
+          width={barTotalWidth}
+          height={sectionBarHeight}
+          class="{classPrefix}-section-bar-bg {classPrefix}-section-bar-bg--{node.type}"
+          rx="4"
+          data-node-id={node.id}
+          on:click={(e) => handleBarClick(node, e)}
+          on:mousedown={(e) => handleMouseDown(node, 'move', e)}
+          role="button"
+          tabindex="0"
+        >
+          <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
+        </rect>
+        
+        <!-- セクションバー：名前部分だけ濃い塗りつぶし（角丸なし） -->
         <rect
           x={barStartX}
           y={sectionBarY}
           width={filledWidth}
           height={sectionBarHeight}
-          class="{classPrefix}-section-bar {classPrefix}-section-bar--{node.type}"
+          class="{classPrefix}-section-bar-fill {classPrefix}-section-bar-fill--{node.type}"
           rx="0"
           data-node-id={node.id}
           data-node-type={node.type}
@@ -254,25 +271,6 @@
         >
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
         </rect>
-        
-        <!-- セクションバー：名前幅以降は枠線のみ -->
-        {#if barTotalWidth > filledWidth}
-          <rect
-            x={barStartX + filledWidth}
-            y={sectionBarY}
-            width={barTotalWidth - filledWidth}
-            height={sectionBarHeight}
-            class="{classPrefix}-section-bar-outline {classPrefix}-section-bar-outline--{node.type}"
-            rx="0"
-            data-node-id={node.id}
-            on:click={(e) => handleBarClick(node, e)}
-            on:mousedown={(e) => handleMouseDown(node, 'move', e)}
-            role="button"
-            tabindex="0"
-          >
-            <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
-          </rect>
-        {/if}
         
         <!-- セクション/プロジェクト名のラベル -->
         <text
