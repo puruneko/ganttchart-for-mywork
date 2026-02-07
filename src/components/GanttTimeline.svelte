@@ -336,7 +336,7 @@
         <rect
           x={x}
           y={y + 4}
-          width={barWidth / 2}
+          width={handleSize}
           height={barHeight}
           class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
           data-node-id={node.id}
@@ -349,9 +349,9 @@
         
         <!-- リサイズハンドル（右） - バーの上に重ねて配置 -->
         <rect
-          x={x + barWidth / 2}
+          x={x + barWidth - handleSize}
           y={y + 4}
-          width={barWidth / 2}
+          width={handleSize}
           height={barHeight}
           class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
           data-node-id={node.id}
