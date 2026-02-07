@@ -189,14 +189,9 @@
           {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
           {@const groupY = sectionBarY}
           {@const groupHeight = (lastChild.visualIndex - node.visualIndex + 1) * rowHeight - (rowHeight - sectionBarHeight) / 2}
-          {@const minStartDate = DateTime.min(
-            node.start,
-            ...childNodes.map(c => c.start)
-          )}
-          {@const maxEndDate = DateTime.max(
-            node.end,
-            ...childNodes.map(c => c.end)
-          )}
+          {@const allDates = [node.start, node.end, ...childNodes.map(c => c.start), ...childNodes.map(c => c.end)].filter(d => d !== undefined)}
+          {@const minStartDate = allDates.length > 0 ? DateTime.min(...allDates) : node.start}
+          {@const maxEndDate = allDates.length > 0 ? DateTime.max(...allDates) : node.end}
           {@const groupX = dateToX(minStartDate, dateRange, dayWidth)}
           {@const groupWidth = dateToX(maxEndDate, dateRange, dayWidth) - groupX}
           

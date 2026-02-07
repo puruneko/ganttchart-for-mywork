@@ -45,6 +45,9 @@
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
+  // dateRangeとvisibleNodesが存在することを保証
+  $: hasData = dateRange && visibleNodes;
+  
   // 重要なデータ変更を監視してログ出力
   $: {
     if (visibleNodes) {
@@ -131,7 +134,7 @@
 <div class="{classPrefix}-container">
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
-    {#if chartConfig.showTreePane}
+    {#if chartConfig.showTreePane && visibleNodes}
       <div class="{classPrefix}-left-pane">
         <div 
           class="{classPrefix}-tree-header"
@@ -155,26 +158,28 @@
     
     <!-- 右ペイン: タイムライン -->
     <div class="{classPrefix}-right-pane">
-      <div class="{classPrefix}-timeline-header-wrapper">
-        <GanttHeader
-          {dateRange}
-          dayWidth={chartConfig.dayWidth}
-          {classPrefix}
-        />
-      </div>
-      <div class="{classPrefix}-timeline-wrapper">
-        <GanttTimeline
-          {visibleNodes}
-          {dateRange}
-          dayWidth={chartConfig.dayWidth}
-          rowHeight={chartConfig.rowHeight}
-          dragSnapDivision={chartConfig.dragSnapDivision}
-          {classPrefix}
-          onBarClick={handleBarClick}
-          onBarDrag={handleBarDrag}
-          onGroupDrag={handleGroupDrag}
-        />
-      </div>
+      {#if dateRange && visibleNodes}
+        <div class="{classPrefix}-timeline-header-wrapper">
+          <GanttHeader
+            {dateRange}
+            dayWidth={chartConfig.dayWidth}
+            {classPrefix}
+          />
+        </div>
+        <div class="{classPrefix}-timeline-wrapper">
+          <GanttTimeline
+            {visibleNodes}
+            {dateRange}
+            dayWidth={chartConfig.dayWidth}
+            rowHeight={chartConfig.rowHeight}
+            dragSnapDivision={chartConfig.dragSnapDivision}
+            {classPrefix}
+            onBarClick={handleBarClick}
+            onBarDrag={handleBarDrag}
+            onGroupDrag={handleGroupDrag}
+          />
+        </div>
+      {/if}
     </div>
   </div>
 </div>
