@@ -1,0 +1,34 @@
+{
+    "name": "svelte-gantt-lib",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Generic, environment-agnostic Gantt chart library for TypeScript/Svelte",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "mydev": "vite --port 5174",
+        "dev": "vite",
+        "build": "vite build && tsc --emitDeclarationOnly",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "check": "svelte-check --tsconfig ./tsconfig.json"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^3.0.0",
+        "@testing-library/svelte": "^4.0.5",
+        "@types/luxon": "^3.4.2",
+        "jsdom": "^23.0.0",
+        "svelte": "^4.2.8",
+        "svelte-check": "^3.6.0",
+        "tslib": "^2.6.2",
+        "typescript": "^5.3.3",
+        "vite": "^5.0.0",
+        "vitest": "^1.0.0"
+    },
+    "dependencies": {
+        "luxon": "^3.4.4"
+    },
+    "peerDependencies": {
+        "svelte": "^4.0.0 || ^5.0.0"
+    }
+}
