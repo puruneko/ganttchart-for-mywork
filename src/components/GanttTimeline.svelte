@@ -254,14 +254,14 @@
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
         </rect>
         
-        <!-- セクションバー：名前部分だけ濃い塗りつぶし（角丸なし） -->
+        <!-- セクションバー：名前部分だけ濃い塗りつぶし（左端の角丸を含む） -->
         <rect
           x={barStartX}
           y={sectionBarY}
           width={filledWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar-fill {classPrefix}-section-bar-fill--{node.type}"
-          rx="0"
+          rx="4"
           data-node-id={node.id}
           data-node-type={node.type}
           on:click={(e) => handleBarClick(node, e)}
