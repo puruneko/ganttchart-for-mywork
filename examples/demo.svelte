@@ -199,11 +199,11 @@
     },
     
     onGroupDrag: (nodeId, daysDelta) => {
-      logEvent(`🔄 Group dragged: ${nodeId} -> ${daysDelta > 0 ? '+' : ''}${daysDelta} days`);
+      logEvent(`🔄 Group dragged: ${nodeId} -> ${daysDelta > 0 ? '+' : ''}${daysDelta.toFixed(2)} days`);
       
-      if (mode === 'controlled') {
+      if (mode === 'controlled' && daysDelta !== 0) {
         // グループ（セクション/プロジェクト）とその子孫すべてを移動
-        const updateNodeAndDescendants = (nodes: GanttNode[], targetId: string): GanttNode[] => {
+        const updateNodeAndDescendants = (nodes: GanttNode[], targetId: string, delta: number): GanttNode[] => {
           const descendants = new Set<string>();
           
           // 子孫を再帰的に収集
@@ -218,15 +218,15 @@
             if (descendants.has(n.id)) {
               return {
                 ...n,
-                start: n.start.plus({ days: daysDelta }),
-                end: n.end.plus({ days: daysDelta })
+                start: n.start.plus({ days: delta }),
+                end: n.end.plus({ days: delta })
               };
             }
             return n;
           });
         };
         
-        nodes = updateNodeAndDescendants(nodes, nodeId);
+        nodes = updateNodeAndDescendants(nodes, nodeId, daysDelta);
         console.debug('📊 Gantt data updated after group drag:', nodes);
       }
     }
@@ -276,7 +276,7 @@
         {handlers}
         config={{
           mode,
-          rowHeight: 40,
+          rowHeight: 32,
           dayWidth: 30,
           treePaneWidth: 300,
           indentSize: 20,

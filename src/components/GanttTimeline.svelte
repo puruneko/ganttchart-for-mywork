@@ -53,6 +53,7 @@
     originalStart: DateTime;
     originalEnd: DateTime;
     startX: number;
+    lastAppliedDelta: number; // グループ移動用：最後に適用したdelta
   } | null = null;
   
   /**
@@ -76,7 +77,8 @@
       mode,
       originalStart: node.start,
       originalEnd: node.end,
-      startX: event.clientX
+      startX: event.clientX,
+      lastAppliedDelta: 0
     };
     
     window.addEventListener('mousemove', handleMouseMove);
@@ -95,9 +97,11 @@
     const daysDelta = snappedDelta / dayWidth;
     
     if (dragState.mode === 'group-move') {
-      // グループ全体移動
-      if (onGroupDrag) {
-        onGroupDrag(dragState.nodeId, daysDelta);
+      // グループ全体移動：差分のみを適用
+      if (onGroupDrag && daysDelta !== dragState.lastAppliedDelta) {
+        const deltaDiff = daysDelta - dragState.lastAppliedDelta;
+        onGroupDrag(dragState.nodeId, deltaDiff);
+        dragState.lastAppliedDelta = daysDelta;
       }
     } else if (onBarDrag) {
       // 個別ノード移動/リサイズ
@@ -109,13 +113,13 @@
         newEnd = dragState.originalEnd.plus({ days: daysDelta });
       } else if (dragState.mode === 'resize-start') {
         newStart = dragState.originalStart.plus({ days: daysDelta });
-        if (newStart >= newEnd) {
-          newStart = newEnd.minus({ days: 1 });
+        if (newStart >= dragState.originalEnd) {
+          newStart = dragState.originalEnd.minus({ days: 1 });
         }
       } else if (dragState.mode === 'resize-end') {
         newEnd = dragState.originalEnd.plus({ days: daysDelta });
-        if (newEnd <= newStart) {
-          newEnd = newStart.plus({ days: 1 });
+        if (newEnd <= dragState.originalStart) {
+          newEnd = dragState.originalStart.plus({ days: 1 });
         }
       }
       
@@ -181,13 +185,20 @@
         })}
         {#if childNodes.length > 0}
           {@const lastChild = childNodes[childNodes.length - 1]}
-          {@const groupY = y}
-          {@const groupHeight = (lastChild.visualIndex - node.visualIndex + 1) * rowHeight}
-          {@const groupX = dateToX(dateRange.start, dateRange, dayWidth)}
-          {@const groupWidth = Math.max(
-            ...childNodes.map(c => dateToX(c.end, dateRange, dayWidth)),
-            dateToX(node.end, dateRange, dayWidth)
-          ) - groupX}
+          {@const sectionBarHeight = 20}
+          {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
+          {@const groupY = sectionBarY}
+          {@const groupHeight = (lastChild.visualIndex - node.visualIndex + 1) * rowHeight - (rowHeight - sectionBarHeight) / 2}
+          {@const minStartDate = DateTime.min(
+            node.start,
+            ...childNodes.map(c => c.start)
+          )}
+          {@const maxEndDate = DateTime.max(
+            node.end,
+            ...childNodes.map(c => c.end)
+          )}
+          {@const groupX = dateToX(minStartDate, dateRange, dayWidth)}
+          {@const groupWidth = dateToX(maxEndDate, dateRange, dayWidth) - groupX}
           
           <!-- グループ背景矩形（セクション自体と配下のタスクを囲む） -->
           <rect
@@ -270,6 +281,17 @@
         >
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
         </rect>
+        
+        <!-- タスク名のラベル -->
+        <text
+          x={x + handleSize + 8}
+          y={y + 4 + barHeight / 2}
+          dominant-baseline="middle"
+          class="{classPrefix}-task-label"
+          pointer-events="none"
+        >
+          {node.name}
+        </text>
         
         <!-- リサイズハンドル（右） -->
         <rect
@@ -387,6 +409,14 @@
     fill: #fff;
     font-size: 12px;
     font-weight: 600;
+    user-select: none;
+  }
+  
+  /* タスク名ラベル */
+  :global(.gantt-task-label) {
+    fill: #fff;
+    font-size: 11px;
+    font-weight: 500;
     user-select: none;
   }
 </style>
