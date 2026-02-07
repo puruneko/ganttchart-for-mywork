@@ -189,11 +189,8 @@
           {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
           {@const groupY = sectionBarY}
           {@const groupHeight = (lastChild.visualIndex - node.visualIndex + 1) * rowHeight - (rowHeight - sectionBarHeight) / 2}
-          {@const allDates = [node.start, node.end, ...childNodes.map(c => c.start), ...childNodes.map(c => c.end)].filter(d => d !== undefined)}
-          {@const minStartDate = allDates.length > 0 ? DateTime.min(...allDates) : node.start}
-          {@const maxEndDate = allDates.length > 0 ? DateTime.max(...allDates) : node.end}
-          {@const groupX = dateToX(minStartDate, dateRange, dayWidth)}
-          {@const groupWidth = dateToX(maxEndDate, dateRange, dayWidth) - groupX}
+          {@const groupX = x}
+          {@const groupWidth = barWidth}
           
           <!-- グループ背景矩形（セクション自体と配下のタスクを囲む） -->
           <rect
@@ -224,7 +221,7 @@
           width={barWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar-bg {classPrefix}-section-bar-bg--{node.type}"
-          rx="4"
+          rx="2"
           data-node-id={node.id}
           on:click={(e) => handleBarClick(node, e)}
           on:mousedown={(e) => handleMouseDown(node, 'move', e)}
@@ -241,7 +238,7 @@
           width={filledWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar-fill {classPrefix}-section-bar-fill--{node.type}"
-          rx="4"
+          rx="2"
           data-node-id={node.id}
           data-node-type={node.type}
           on:click={(e) => handleBarClick(node, e)}
@@ -298,14 +295,16 @@
         {/if}
       {:else}
         <!-- 通常のタスクバー（リサイズハンドル付き） -->
+        {@const variant = node.designVariant || 0}
+        
         <!-- メインバー -->
         <rect
           x={x}
           y={y + 4}
           width={barWidth}
           height={barHeight}
-          class="{barClass} {node.isDateUnset ? classPrefix + '-bar--unset' : ''}"
-          rx="4"
+          class="{barClass} {node.isDateUnset ? classPrefix + '-bar--unset' : ''} {variant > 0 ? classPrefix + '-bar--variant-' + variant : ''}"
+          rx="6"
           data-node-id={node.id}
           data-node-type={node.type}
           on:click={(e) => handleBarClick(node, e)}
@@ -315,6 +314,24 @@
         >
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}{node.isDateUnset ? ' (日時未設定)' : ''}</title>
         </rect>
+        
+        <!-- Design 5: Striped Pattern -->
+        {#if variant === 5}
+          <defs>
+            <pattern id="stripes-{node.id}" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="8" stroke="#8e44ad" stroke-width="4" />
+            </pattern>
+          </defs>
+          <rect
+            x={x}
+            y={y + 4}
+            width={barWidth}
+            height={barHeight}
+            fill="url(#stripes-{node.id})"
+            rx="6"
+            pointer-events="none"
+          />
+        {/if}
         
         <!-- タスク名のラベル -->
         <text

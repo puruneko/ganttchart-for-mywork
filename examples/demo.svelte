@@ -18,7 +18,7 @@
       type: 'project',
       name: 'Website Redesign Project',
       start: DateTime.fromISO('2024-01-01'),
-      end: DateTime.fromISO('2024-02-29'),
+      end: DateTime.fromISO('2024-03-10'),
       isCollapsed: false
     },
     {
@@ -62,12 +62,75 @@
       end: DateTime.fromISO('2024-01-15')
     },
     {
+      id: 'sec-test',
+      parentId: 'proj-1',
+      type: 'section',
+      name: 'Test - Task Design Variations',
+      start: DateTime.fromISO('2024-01-16'),
+      end: DateTime.fromISO('2024-01-25'),
+      isCollapsed: false
+    },
+    {
+      id: 'task-design-1',
+      parentId: 'sec-test',
+      type: 'task',
+      name: 'Design 1: Default (Control)',
+      start: DateTime.fromISO('2024-01-16'),
+      end: DateTime.fromISO('2024-01-18'),
+      designVariant: 1
+    },
+    {
+      id: 'task-design-2',
+      parentId: 'sec-test',
+      type: 'task',
+      name: 'Design 2: Gradient Fill',
+      start: DateTime.fromISO('2024-01-17'),
+      end: DateTime.fromISO('2024-01-19'),
+      designVariant: 2
+    },
+    {
+      id: 'task-design-3',
+      parentId: 'sec-test',
+      type: 'task',
+      name: 'Design 3: Thick Border',
+      start: DateTime.fromISO('2024-01-18'),
+      end: DateTime.fromISO('2024-01-20'),
+      designVariant: 3
+    },
+    {
+      id: 'task-design-4',
+      parentId: 'sec-test',
+      type: 'task',
+      name: 'Design 4: Shadow + Flat',
+      start: DateTime.fromISO('2024-01-19'),
+      end: DateTime.fromISO('2024-01-21'),
+      designVariant: 4
+    },
+    {
+      id: 'task-design-5',
+      parentId: 'sec-test',
+      type: 'task',
+      name: 'Design 5: Striped Pattern',
+      start: DateTime.fromISO('2024-01-20'),
+      end: DateTime.fromISO('2024-01-22'),
+      designVariant: 5
+    },
+    {
+      id: 'task-design-6',
+      parentId: 'sec-test',
+      type: 'task',
+      name: 'Design 6: Double Border',
+      start: DateTime.fromISO('2024-01-21'),
+      end: DateTime.fromISO('2024-01-23'),
+      designVariant: 6
+    },
+    {
       id: 'sec-2',
       parentId: 'proj-1',
       type: 'section',
       name: 'Design Phase',
-      start: DateTime.fromISO('2024-01-16'),
-      end: DateTime.fromISO('2024-02-05'),
+      start: DateTime.fromISO('2024-01-26'),
+      end: DateTime.fromISO('2024-02-15'),
       isCollapsed: false
     },
     {
@@ -75,8 +138,8 @@
       parentId: 'sec-2',
       type: 'subsection',
       name: 'UI/UX Design',
-      start: DateTime.fromISO('2024-01-16'),
-      end: DateTime.fromISO('2024-01-28'),
+      start: DateTime.fromISO('2024-01-26'),
+      end: DateTime.fromISO('2024-02-07'),
       isCollapsed: false
     },
     {
@@ -84,16 +147,16 @@
       parentId: 'subsec-1',
       type: 'task',
       name: 'Wireframes',
-      start: DateTime.fromISO('2024-01-16'),
-      end: DateTime.fromISO('2024-01-22')
+      start: DateTime.fromISO('2024-01-26'),
+      end: DateTime.fromISO('2024-02-01')
     },
     {
       id: 'task-5',
       parentId: 'subsec-1',
       type: 'task',
       name: 'High-fidelity mockups',
-      start: DateTime.fromISO('2024-01-23'),
-      end: DateTime.fromISO('2024-01-28')
+      start: DateTime.fromISO('2024-02-02'),
+      end: DateTime.fromISO('2024-02-07')
     },
     {
       id: 'task-unset-2',
@@ -107,16 +170,16 @@
       parentId: 'sec-2',
       type: 'task',
       name: 'Design system creation',
-      start: DateTime.fromISO('2024-01-29'),
-      end: DateTime.fromISO('2024-02-05')
+      start: DateTime.fromISO('2024-02-08'),
+      end: DateTime.fromISO('2024-02-15')
     },
     {
       id: 'sec-3',
       parentId: 'proj-1',
       type: 'section',
       name: 'Development',
-      start: DateTime.fromISO('2024-02-06'),
-      end: DateTime.fromISO('2024-02-25'),
+      start: DateTime.fromISO('2024-02-16'),
+      end: DateTime.fromISO('2024-03-05'),
       isCollapsed: false
     },
     {
@@ -124,16 +187,16 @@
       parentId: 'sec-3',
       type: 'task',
       name: 'Frontend development',
-      start: DateTime.fromISO('2024-02-06'),
-      end: DateTime.fromISO('2024-02-20')
+      start: DateTime.fromISO('2024-02-16'),
+      end: DateTime.fromISO('2024-03-01')
     },
     {
       id: 'task-8',
       parentId: 'sec-3',
       type: 'task',
       name: 'Backend integration',
-      start: DateTime.fromISO('2024-02-12'),
-      end: DateTime.fromISO('2024-02-25')
+      start: DateTime.fromISO('2024-02-22'),
+      end: DateTime.fromISO('2024-03-05')
     },
     {
       id: 'task-unset-3',
@@ -147,8 +210,8 @@
       parentId: 'proj-1',
       type: 'section',
       name: 'Testing & Launch',
-      start: DateTime.fromISO('2024-02-26'),
-      end: DateTime.fromISO('2024-02-29'),
+      start: DateTime.fromISO('2024-03-06'),
+      end: DateTime.fromISO('2024-03-10'),
       isCollapsed: false
     },
     {
@@ -156,16 +219,16 @@
       parentId: 'sec-4',
       type: 'task',
       name: 'QA Testing',
-      start: DateTime.fromISO('2024-02-26'),
-      end: DateTime.fromISO('2024-02-28')
+      start: DateTime.fromISO('2024-03-06'),
+      end: DateTime.fromISO('2024-03-08')
     },
     {
       id: 'task-10',
       parentId: 'sec-4',
       type: 'task',
       name: 'Production deployment',
-      start: DateTime.fromISO('2024-02-29'),
-      end: DateTime.fromISO('2024-02-29')
+      start: DateTime.fromISO('2024-03-10'),
+      end: DateTime.fromISO('2024-03-10')
     },
     {
       id: 'task-unset-4',
