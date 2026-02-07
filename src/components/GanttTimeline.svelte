@@ -172,15 +172,15 @@
         {#if childNodes.length > 0}
           {@const firstChild = childNodes[0]}
           {@const lastChild = childNodes[childNodes.length - 1]}
-          {@const groupY = y}
-          {@const groupHeight = (lastChild.visualIndex - node.visualIndex + 1) * rowHeight}
-          {@const groupX = x}
+          {@const groupY = y + rowHeight}
+          {@const groupHeight = (lastChild.visualIndex - node.visualIndex) * rowHeight}
+          {@const groupX = dateToX(dateRange.start, dateRange, dayWidth)}
           {@const groupWidth = Math.max(
-            ...childNodes.map(c => dateToX(c.end, dateRange, dayWidth) - groupX),
-            barWidth
-          )}
+            ...childNodes.map(c => dateToX(c.end, dateRange, dayWidth)),
+            dateToX(node.end, dateRange, dayWidth)
+          ) - groupX}
           
-          <!-- グループ背景矩形 -->
+          <!-- グループ背景矩形（配下のタスクのみを囲む） -->
           <rect
             x={groupX}
             y={groupY}
@@ -192,53 +192,77 @@
         {/if}
       {/if}
       
-      <!-- リサイズハンドル（左） -->
-      <rect
-        x={x}
-        y={y + 4}
-        width={handleSize}
-        height={barHeight}
-        class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
-        data-node-id={node.id}
-        on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
-        role="button"
-        tabindex="0"
-      >
-        <title>Resize start: {node.name}</title>
-      </rect>
-      
-      <!-- メインバー -->
-      <rect
-        x={x + handleSize}
-        y={y + 4}
-        width={barWidth - handleSize * 2}
-        height={barHeight}
-        class={barClass}
-        rx="4"
-        data-node-id={node.id}
-        data-node-type={node.type}
-        on:click={(e) => handleBarClick(node, e)}
-        on:mousedown={(e) => handleMouseDown(node, 'move', e)}
-        role="button"
-        tabindex="0"
-      >
-        <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
-      </rect>
-      
-      <!-- リサイズハンドル（右） -->
-      <rect
-        x={x + barWidth - handleSize}
-        y={y + 4}
-        width={handleSize}
-        height={barHeight}
-        class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
-        data-node-id={node.id}
-        on:mousedown={(e) => handleMouseDown(node, 'resize-end', e)}
-        role="button"
-        tabindex="0"
-      >
-        <title>Resize end: {node.name}</title>
-      </rect>
+      <!-- セクション/サブセクションバーは小さく表示 -->
+      {#if node.type === 'section' || node.type === 'subsection'}
+        {@const sectionBarHeight = 20}
+        {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
+        
+        <!-- セクション名のコンパクトバー -->
+        <rect
+          x={x}
+          y={sectionBarY}
+          width={barWidth}
+          height={sectionBarHeight}
+          class="{classPrefix}-section-bar {classPrefix}-section-bar--{node.type}"
+          rx="4"
+          data-node-id={node.id}
+          data-node-type={node.type}
+          on:click={(e) => handleBarClick(node, e)}
+          role="button"
+          tabindex="0"
+        >
+          <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
+        </rect>
+      {:else}
+        <!-- 通常のタスクバー（リサイズハンドル付き） -->
+        <!-- リサイズハンドル（左） -->
+        <rect
+          x={x}
+          y={y + 4}
+          width={handleSize}
+          height={barHeight}
+          class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
+          data-node-id={node.id}
+          on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
+          role="button"
+          tabindex="0"
+        >
+          <title>開始日をリサイズ: {node.name}</title>
+        </rect>
+        
+        <!-- メインバー -->
+        <rect
+          x={x + handleSize}
+          y={y + 4}
+          width={barWidth - handleSize * 2}
+          height={barHeight}
+          class={barClass}
+          rx="4"
+          data-node-id={node.id}
+          data-node-type={node.type}
+          on:click={(e) => handleBarClick(node, e)}
+          on:mousedown={(e) => handleMouseDown(node, 'move', e)}
+          role="button"
+          tabindex="0"
+        >
+          <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
+        </rect>
+        
+        <!-- リサイズハンドル（右） -->
+        <rect
+          x={x + barWidth - handleSize}
+          y={y + 4}
+          width={handleSize}
+          height={barHeight}
+          class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
+          data-node-id={node.id}
+          on:mousedown={(e) => handleMouseDown(node, 'resize-end', e)}
+          role="button"
+          tabindex="0"
+        >
+          <title>終了日をリサイズ: {node.name}</title>
+        </rect>
+      {/if}
     {/each}
   </g>
 </svg>
@@ -265,11 +289,29 @@
   
   :global(.gantt-bar--section) {
     fill: #50c878;
+  }
+  
+  :global(.gantt-bar--subsection) {
+    fill: #f5a623;
+  }
+  
+  /* セクション専用のコンパクトバー */
+  :global(.gantt-section-bar) {
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  
+  :global(.gantt-section-bar:hover) {
+    opacity: 0.9;
+  }
+  
+  :global(.gantt-section-bar--section) {
+    fill: #50c878;
     stroke: #3a9c5e;
     stroke-width: 2;
   }
   
-  :global(.gantt-bar--subsection) {
+  :global(.gantt-section-bar--subsection) {
     fill: #f5a623;
     stroke: #d68a1a;
     stroke-width: 2;
@@ -289,22 +331,21 @@
     fill: rgba(0, 0, 0, 0.3);
   }
   
-  /* グループ背景 */
+  /* グループ背景（markwenスタイル） */
   :global(.gantt-group-bg) {
-    fill: rgba(0, 0, 0, 0.03);
-    stroke: rgba(0, 0, 0, 0.1);
-    stroke-width: 1;
-    stroke-dasharray: 4 2;
+    fill: rgba(0, 0, 0, 0.02);
+    stroke: rgba(0, 0, 0, 0.15);
+    stroke-width: 1.5;
     pointer-events: none;
   }
   
   :global(.gantt-group-bg--section) {
-    fill: rgba(80, 200, 120, 0.08);
-    stroke: rgba(80, 200, 120, 0.3);
+    fill: rgba(80, 200, 120, 0.05);
+    stroke: rgba(80, 200, 120, 0.4);
   }
   
   :global(.gantt-group-bg--subsection) {
-    fill: rgba(245, 166, 35, 0.08);
-    stroke: rgba(245, 166, 35, 0.3);
+    fill: rgba(245, 166, 35, 0.05);
+    stroke: rgba(245, 166, 35, 0.4);
   }
 </style>
