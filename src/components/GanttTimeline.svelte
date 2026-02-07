@@ -392,52 +392,47 @@
     fill: #f5a623;
   }
   
-  /* セクション専用のコンパクトバー */
-  :global(.gantt-section-bar) {
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  
-  :global(.gantt-section-bar:hover) {
-    opacity: 0.9;
-  }
-  
-  :global(.gantt-section-bar--section) {
-    fill: #50c878;
-    stroke: none;
-  }
-  
-  :global(.gantt-section-bar--subsection) {
-    fill: #f5a623;
-    stroke: none;
-  }
-  
-  :global(.gantt-section-bar--project) {
-    fill: #4a90e2;
-    stroke: none;
-  }
-  
-  /* セクションバーのアウトライン部分（名前幅以降） */
-  :global(.gantt-section-bar-outline) {
+  /* セクションバーの背景（角丸の長方形、薄い色） */
+  :global(.gantt-section-bar-bg) {
     cursor: pointer;
     transition: opacity 0.2s;
     stroke: none;
   }
   
-  :global(.gantt-section-bar-outline:hover) {
+  :global(.gantt-section-bar-bg:hover) {
     opacity: 0.9;
   }
   
-  :global(.gantt-section-bar-outline--section) {
+  :global(.gantt-section-bar-bg--section) {
     fill: rgba(80, 200, 120, 0.2);
   }
   
-  :global(.gantt-section-bar-outline--subsection) {
+  :global(.gantt-section-bar-bg--subsection) {
     fill: rgba(245, 166, 35, 0.2);
   }
   
-  :global(.gantt-section-bar-outline--project) {
+  :global(.gantt-section-bar-bg--project) {
     fill: rgba(74, 144, 226, 0.2);
+  }
+  
+  /* セクションバーの名前部分の塗りつぶし（濃い色） */
+  :global(.gantt-section-bar-fill) {
+    cursor: pointer;
+    transition: opacity 0.2s;
+    stroke: none;
+    pointer-events: none;
+  }
+  
+  :global(.gantt-section-bar-fill--section) {
+    fill: #50c878;
+  }
+  
+  :global(.gantt-section-bar-fill--subsection) {
+    fill: #f5a623;
+  }
+  
+  :global(.gantt-section-bar-fill--project) {
+    fill: #4a90e2;
   }
   
   :global(.gantt-bar--task) {
