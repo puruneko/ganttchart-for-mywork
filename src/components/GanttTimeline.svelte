@@ -397,53 +397,32 @@
     fill: #f5a623;
   }
   
-  /* セクションバーの背景（角丸の長方形、薄い色） */
-  :global(.gantt-section-bar-bg) {
+  /* セクションバー：全体を濃い色で塗りつぶし */
+  :global(.gantt-section-bar-full) {
     cursor: pointer;
     transition: opacity 0.2s;
     stroke: none;
   }
   
-  :global(.gantt-section-bar-bg:hover) {
+  :global(.gantt-section-bar-full:hover) {
     opacity: 0.9;
   }
   
-  :global(.gantt-section-bar-bg--section) {
-    fill: rgba(80, 200, 120, 0.2);
-  }
-  
-  :global(.gantt-section-bar-bg--subsection) {
-    fill: rgba(245, 166, 35, 0.2);
-  }
-  
-  :global(.gantt-section-bar-bg--project) {
-    fill: rgba(74, 144, 226, 0.2);
-  }
-  
-  /* セクションバーの名前部分の塗りつぶし（濃い色） */
-  :global(.gantt-section-bar-fill) {
-    cursor: pointer;
-    transition: opacity 0.2s;
-    stroke: none;
-    pointer-events: none;
-  }
-  
-  :global(.gantt-section-bar-fill--section) {
+  :global(.gantt-section-bar-full--section) {
     fill: #50c878;
   }
   
-  :global(.gantt-section-bar-fill--subsection) {
+  :global(.gantt-section-bar-full--subsection) {
     fill: #f5a623;
   }
   
-  :global(.gantt-section-bar-fill--project) {
+  :global(.gantt-section-bar-full--project) {
     fill: #4a90e2;
   }
   
   :global(.gantt-bar--task) {
-    fill: #9b59b6;
-    stroke: #7d3c98;
-    stroke-width: 1.5;
+    fill: #d6e9f8;
+    stroke: none;
   }
   
   /* 日時未設定のタスクバー */
@@ -505,7 +484,7 @@
   
   /* タスク名ラベル */
   :global(.gantt-task-label) {
-    fill: #fff;
+    fill: #2c3e50;
     font-size: 11px;
     font-weight: 500;
     user-select: none;

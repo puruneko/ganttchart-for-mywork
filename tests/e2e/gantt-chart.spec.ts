@@ -46,8 +46,8 @@ test.describe('ガントチャート', () => {
   });
 
   test('セクショングループが表示されること', async ({ page }) => {
-    // セクションバーの背景が存在することを確認
-    const sectionBars = page.locator('.gantt-section-bar-bg--section');
+    // セクションバー（全塗りつぶし）が存在することを確認
+    const sectionBars = page.locator('.gantt-section-bar-full--section');
     const count = await sectionBars.count();
     expect(count).toBeGreaterThan(0);
     
