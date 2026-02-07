@@ -12,7 +12,8 @@
         "test:watch": "vitest",
         "check": "svelte-check --tsconfig ./tsconfig.json",
         "demo": "vite --open",
-        "example:demo": "vite --open"
+        "example:demo": "vite --open",
+        "allowedCommit": "git commit -m "
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^3.0.0",

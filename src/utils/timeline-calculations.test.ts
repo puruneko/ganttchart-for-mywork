@@ -53,7 +53,7 @@ describe('durationToWidth', () => {
     const start = DateTime.fromISO('2024-01-01');
     const end = DateTime.fromISO('2024-01-01'); // same day
     
-    expect(durationToWidth(start, end, 30)).toBe(2); // minimum 2px
+    expect(durationToWidth(start, end, 30)).toBe(30); // minimum 1セル分
   });
 });
 

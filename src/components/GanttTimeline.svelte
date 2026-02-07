@@ -236,11 +236,17 @@
           </rect>
         {/if}
         
-        <!-- セクション名のコンパクトバー -->
+        {@const barStartX = node.type === 'section' || node.type === 'subsection' ? x + handleSize : x}
+        {@const barTotalWidth = node.type === 'section' || node.type === 'subsection' ? barWidth - handleSize * 2 : barWidth}
+        <!-- 名前の推定幅（12pxフォント × 文字数 × 0.6 + パディング16px） -->
+        {@const estimatedLabelWidth = node.name.length * 12 * 0.6 + 16}
+        {@const filledWidth = Math.min(estimatedLabelWidth, barTotalWidth)}
+        
+        <!-- セクションバー：名前幅まで塗りつぶし -->
         <rect
-          x={node.type === 'section' || node.type === 'subsection' ? x + handleSize : x}
+          x={barStartX}
           y={sectionBarY}
-          width={node.type === 'section' || node.type === 'subsection' ? barWidth - handleSize * 2 : barWidth}
+          width={filledWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar {classPrefix}-section-bar--{node.type}"
           rx="4"
@@ -254,9 +260,28 @@
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
         </rect>
         
+        <!-- セクションバー：名前幅以降は枠線のみ -->
+        {#if barTotalWidth > filledWidth}
+          <rect
+            x={barStartX + filledWidth}
+            y={sectionBarY}
+            width={barTotalWidth - filledWidth}
+            height={sectionBarHeight}
+            class="{classPrefix}-section-bar-outline {classPrefix}-section-bar-outline--{node.type}"
+            rx="4"
+            data-node-id={node.id}
+            on:click={(e) => handleBarClick(node, e)}
+            on:mousedown={(e) => handleMouseDown(node, 'move', e)}
+            role="button"
+            tabindex="0"
+          >
+            <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
+          </rect>
+        {/if}
+        
         <!-- セクション/プロジェクト名のラベル -->
         <text
-          x={(node.type === 'section' || node.type === 'subsection' ? x + handleSize : x) + 8}
+          x={barStartX + 8}
           y={sectionBarY + sectionBarHeight / 2}
           dominant-baseline="middle"
           class="{classPrefix}-section-label"
@@ -398,6 +423,32 @@
   
   :global(.gantt-section-bar--project) {
     fill: #4a90e2;
+    stroke: #3a7bc8;
+    stroke-width: 2;
+  }
+  
+  /* セクションバーのアウトライン部分（名前幅以降） */
+  :global(.gantt-section-bar-outline) {
+    fill: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  
+  :global(.gantt-section-bar-outline:hover) {
+    opacity: 0.9;
+  }
+  
+  :global(.gantt-section-bar-outline--section) {
+    stroke: #3a9c5e;
+    stroke-width: 2;
+  }
+  
+  :global(.gantt-section-bar-outline--subsection) {
+    stroke: #d68a1a;
+    stroke-width: 2;
+  }
+  
+  :global(.gantt-section-bar-outline--project) {
     stroke: #3a7bc8;
     stroke-width: 2;
   }

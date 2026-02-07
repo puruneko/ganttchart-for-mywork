@@ -47,6 +47,13 @@
       end: DateTime.fromISO('2024-01-12')
     },
     {
+      id: 'task-unset-1',
+      parentId: 'sec-1',
+      type: 'task',
+      name: 'TBD Task (No dates)'
+      // start/end未設定
+    },
+    {
       id: 'task-3',
       parentId: 'sec-1',
       type: 'task',
@@ -89,6 +96,13 @@
       end: DateTime.fromISO('2024-01-28')
     },
     {
+      id: 'task-unset-2',
+      parentId: 'subsec-1',
+      type: 'task',
+      name: 'Prototype (TBD)'
+      // start/end未設定
+    },
+    {
       id: 'task-6',
       parentId: 'sec-2',
       type: 'task',
@@ -122,6 +136,13 @@
       end: DateTime.fromISO('2024-02-25')
     },
     {
+      id: 'task-unset-3',
+      parentId: 'sec-3',
+      type: 'task',
+      name: 'Code review (Pending)'
+      // start/end未設定
+    },
+    {
       id: 'sec-4',
       parentId: 'proj-1',
       type: 'section',
@@ -145,6 +166,13 @@
       name: 'Production deployment',
       start: DateTime.fromISO('2024-02-29'),
       end: DateTime.fromISO('2024-02-29')
+    },
+    {
+      id: 'task-unset-4',
+      parentId: 'sec-4',
+      type: 'task',
+      name: 'Post-launch monitoring (TBD)'
+      // start/end未設定
     }
   ];
   
@@ -213,9 +241,9 @@
           };
           collectDescendants(targetId);
           
-          // 該当ノードとその子孫の日付を更新
+          // 該当ノードとその子孫の日付を更新（日時未設定のノードは除外）
           return nodes.map(n => {
-            if (descendants.has(n.id)) {
+            if (descendants.has(n.id) && n.start && n.end) {
               return {
                 ...n,
                 start: n.start.plus({ days: delta }),

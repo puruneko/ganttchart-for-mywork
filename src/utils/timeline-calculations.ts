@@ -40,16 +40,16 @@ export function rowToY(rowIndex: number, rowHeight: number): number {
  * 日付範囲から幅を計算
  * 
  * 開始日と終了日の差分から、タスクバーの幅を算出する。
- * 最小幅は2pxとして、極端に短い期間でも視認できるようにする。
+ * 最小幅は1セル分として、極端に短い期間でも視認できるようにする。
  * 
  * @param start - 開始日時
  * @param end - 終了日時
  * @param dayWidth - 1日あたりの幅（ピクセル）
- * @returns バーの幅（ピクセル、最小2px）
+ * @returns バーの幅（ピクセル、最小1セル分）
  */
 export function durationToWidth(start: DateTime, end: DateTime, dayWidth: number): number {
   const diffDays = end.diff(start, 'days').days;
-  return Math.max(diffDays * dayWidth, 2); // 最小2pxの幅
+  return Math.max(diffDays * dayWidth, dayWidth); // 最小1セル分の幅
 }
 
 /**
