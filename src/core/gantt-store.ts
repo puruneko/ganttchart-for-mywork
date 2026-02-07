@@ -30,7 +30,8 @@ const DEFAULT_CONFIG: Required<GanttConfig> = {
   dayWidth: 30,
   treePaneWidth: 300,
   indentSize: 20,
-  classPrefix: 'gantt'
+  classPrefix: 'gantt',
+  dragSnapDivision: 4
 };
 
 /**
@@ -85,6 +86,7 @@ export function createGanttStore(
    */
   function setNodes(newNodes: GanttNode[]) {
     nodes.set(newNodes);
+    console.debug('📊 [GanttStore] Nodes updated:', newNodes.length, 'nodes');
   }
   
   /**
@@ -116,6 +118,7 @@ export function createGanttStore(
     const currentConfig = get(config);
     if (currentConfig.mode === 'uncontrolled') {
       nodes.set(newNodes);
+      console.debug('🔄 [GanttStore] Node collapsed toggled:', nodeId);
     }
     
     return newNodes; // イベント通知用に返す

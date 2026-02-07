@@ -6,6 +6,7 @@
    */
   
   import GanttChart from '../src/components/GanttChart.svelte';
+  import GanttDebugPanel from '../src/components/GanttDebugPanel.svelte';
   import { DateTime } from 'luxon';
   import type { GanttNode, GanttEventHandlers } from '../src/types';
   
@@ -184,6 +185,17 @@
     
     onNameClick: (node, event) => {
       logEvent(`📝 Name clicked: ${node.name}`);
+    },
+    
+    onBarDrag: (nodeId, newStart, newEnd) => {
+      logEvent(`🔄 Dragged: ${nodeId} -> ${newStart.toFormat('MM/dd')} - ${newEnd.toFormat('MM/dd')}`);
+      
+      if (mode === 'controlled') {
+        nodes = nodes.map(n => 
+          n.id === nodeId ? { ...n, start: newStart, end: newEnd } : n
+        );
+        console.debug('📊 Gantt data updated after drag:', nodes);
+      }
     }
   };
   
@@ -235,7 +247,8 @@
           dayWidth: 30,
           treePaneWidth: 300,
           indentSize: 20,
-          classPrefix: 'gantt'
+          classPrefix: 'gantt',
+          dragSnapDivision: 4
         }}
       />
     </div>
@@ -252,6 +265,9 @@
       </div>
     </div>
   </div>
+  
+  <!-- Debug Panel -->
+  <GanttDebugPanel {nodes} classPrefix="gantt" />
 </div>
 
 <style>

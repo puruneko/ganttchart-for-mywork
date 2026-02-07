@@ -31,7 +31,9 @@
   
   // ストアの値を購読
   // これらはSvelte 5でシンプルな$state参照になる
-  $: store.setNodes(nodes); // 外部ノード変更時に更新（controlledモード）
+  $: {
+    store.setNodes(nodes); // 外部ノード変更時に更新（controlledモード）
+  }
   $: store.updateConfig(config);
   
   // 購読用に個別ストアを抽出
@@ -42,6 +44,18 @@
   $: dateRange = $dateRangeStore;
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
+  
+  // 重要なデータ変更を監視してログ出力
+  $: {
+    if (visibleNodes) {
+      console.debug('👁️ [GanttChart] Visible nodes updated:', visibleNodes.length, 'visible');
+    }
+  }
+  $: {
+    if (dateRange) {
+      console.debug('📅 [GanttChart] Date range:', dateRange.start.toISODate(), '→', dateRange.end.toISODate());
+    }
+  }
   
   /**
    * ノード名クリックハンドラー
@@ -66,6 +80,16 @@
     }
     if (handlers.onBarClick) {
       handlers.onBarClick(node, event);
+    }
+  }
+  
+  /**
+   * バードラッグハンドラー
+   * 内部イベントを外部ハンドラーに橋渡し
+   */
+  function handleBarDrag(nodeId: string, newStart: any, newEnd: any) {
+    if (handlers.onBarDrag) {
+      handlers.onBarDrag(nodeId, newStart, newEnd);
     }
   }
   
@@ -132,8 +156,10 @@
           {dateRange}
           dayWidth={chartConfig.dayWidth}
           rowHeight={chartConfig.rowHeight}
+          dragSnapDivision={chartConfig.dragSnapDivision}
           {classPrefix}
           onBarClick={handleBarClick}
+          onBarDrag={handleBarDrag}
         />
       </div>
     </div>

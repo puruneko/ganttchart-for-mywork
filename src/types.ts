@@ -80,6 +80,9 @@ export interface GanttEventHandlers {
   
   /** ツリー内のノード名がクリックされたときに発火 */
   onNameClick?: (node: GanttNode, event: MouseEvent) => void;
+  
+  /** バーがドラッグされたときに発火（controlled モードでは必須） */
+  onBarDrag?: (nodeId: string, newStart: DateTime, newEnd: DateTime) => void;
 }
 
 /**
@@ -110,6 +113,9 @@ export interface GanttConfig {
   
   /** カスタムスタイリング用のCSSクラスプレフィックス */
   classPrefix?: string;
+  
+  /** ドラッグ時のスナップ単位（1セルの何分の1か、デフォルト: 4） */
+  dragSnapDivision?: number;
 }
 
 /**
