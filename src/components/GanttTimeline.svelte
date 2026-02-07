@@ -244,7 +244,7 @@
           width={filledWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar {classPrefix}-section-bar--{node.type}"
-          rx="4"
+          rx="0"
           data-node-id={node.id}
           data-node-type={node.type}
           on:click={(e) => handleBarClick(node, e)}
@@ -263,7 +263,7 @@
             width={barTotalWidth - filledWidth}
             height={sectionBarHeight}
             class="{classPrefix}-section-bar-outline {classPrefix}-section-bar-outline--{node.type}"
-            rx="4"
+            rx="0"
             data-node-id={node.id}
             on:click={(e) => handleBarClick(node, e)}
             on:mousedown={(e) => handleMouseDown(node, 'move', e)}
@@ -303,26 +303,11 @@
         {/if}
       {:else}
         <!-- 通常のタスクバー（リサイズハンドル付き） -->
-        <!-- リサイズハンドル（左） -->
+        <!-- メインバー -->
         <rect
           x={x}
           y={y + 4}
-          width={handleSize}
-          height={barHeight}
-          class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
-          data-node-id={node.id}
-          on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
-          role="button"
-          tabindex="0"
-        >
-          <title>開始日をリサイズ: {node.name}</title>
-        </rect>
-        
-        <!-- メインバー -->
-        <rect
-          x={x + handleSize}
-          y={y + 4}
-          width={barWidth - handleSize * 2}
+          width={barWidth}
           height={barHeight}
           class="{barClass} {node.isDateUnset ? classPrefix + '-bar--unset' : ''}"
           rx="4"
@@ -338,20 +323,35 @@
         
         <!-- タスク名のラベル -->
         <text
-          x={x + handleSize + 8}
+          x={x + 8}
           y={y + 4 + barHeight / 2}
           dominant-baseline="middle"
-          class="{classPrefix}-task-label"
+          class="{classPrefix}-task-label {node.isDateUnset ? classPrefix + '-task-label--unset' : ''}"
           pointer-events="none"
         >
           {node.name}
         </text>
         
-        <!-- リサイズハンドル（右） -->
+        <!-- リサイズハンドル（左） - バーの上に重ねて配置 -->
         <rect
-          x={x + barWidth - handleSize}
+          x={x}
           y={y + 4}
-          width={handleSize}
+          width={barWidth / 2}
+          height={barHeight}
+          class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
+          data-node-id={node.id}
+          on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
+          role="button"
+          tabindex="0"
+        >
+          <title>開始日をリサイズ: {node.name}</title>
+        </rect>
+        
+        <!-- リサイズハンドル（右） - バーの上に重ねて配置 -->
+        <rect
+          x={x + barWidth / 2}
+          y={y + 4}
+          width={barWidth / 2}
           height={barHeight}
           class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
           data-node-id={node.id}
@@ -406,20 +406,17 @@
   
   :global(.gantt-section-bar--section) {
     fill: #50c878;
-    stroke: #3a9c5e;
-    stroke-width: 2;
+    stroke: none;
   }
   
   :global(.gantt-section-bar--subsection) {
     fill: #f5a623;
-    stroke: #d68a1a;
-    stroke-width: 2;
+    stroke: none;
   }
   
   :global(.gantt-section-bar--project) {
     fill: #4a90e2;
-    stroke: #3a7bc8;
-    stroke-width: 2;
+    stroke: none;
   }
   
   /* セクションバーのアウトライン部分（名前幅以降） */
@@ -465,12 +462,20 @@
   
   :global(.gantt-resize-handle) {
     cursor: ew-resize;
-    fill: rgba(0, 0, 0, 0.1);
+    fill: transparent;
     transition: fill 0.2s;
   }
   
   :global(.gantt-resize-handle:hover) {
-    fill: rgba(0, 0, 0, 0.3);
+    fill: rgba(0, 0, 0, 0.1);
+  }
+  
+  :global(.gantt-resize-handle--start) {
+    cursor: w-resize;
+  }
+  
+  :global(.gantt-resize-handle--end) {
+    cursor: e-resize;
   }
   
   /* グループ背景（markwenスタイル） */
@@ -509,5 +514,10 @@
     font-size: 11px;
     font-weight: 500;
     user-select: none;
+  }
+  
+  /* 日時未設定タスクのラベルは黒色 */
+  :global(.gantt-task-label--unset) {
+    fill: #2c3e50;
   }
 </style>
