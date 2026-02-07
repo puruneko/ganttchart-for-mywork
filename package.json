@@ -6,7 +6,6 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {
-        "mydev": "vite --port 5174",
         "dev": "vite",
         "build": "vite build && tsc --emitDeclarationOnly",
         "test": "vitest run",
