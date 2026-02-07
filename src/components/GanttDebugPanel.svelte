@@ -46,7 +46,14 @@
     const indent = '  '.repeat(depth);
     const icon = treeNode.children.length > 0 ? '📁' : '📄';
     let result = `${indent}${icon} ${treeNode.node.name} [${treeNode.node.type}]\n`;
-    result += `${indent}   ID: ${treeNode.node.id} | ${treeNode.node.start.toFormat('yyyy-MM-dd')} → ${treeNode.node.end.toFormat('yyyy-MM-dd')}`;
+    
+    // 日時が設定されている場合のみ表示
+    if (treeNode.node.start && treeNode.node.end) {
+      result += `${indent}   ID: ${treeNode.node.id} | ${treeNode.node.start.toFormat('yyyy-MM-dd')} → ${treeNode.node.end.toFormat('yyyy-MM-dd')}`;
+    } else {
+      result += `${indent}   ID: ${treeNode.node.id} | 日時未設定`;
+    }
+    
     if (treeNode.node.isCollapsed) {
       result += ' | COLLAPSED';
     }

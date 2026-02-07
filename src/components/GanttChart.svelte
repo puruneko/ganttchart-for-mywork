@@ -48,6 +48,10 @@
   // dateRangeとvisibleNodesが存在することを保証
   $: hasData = dateRange && visibleNodes;
   
+  // デバッグ: ストアの値を確認
+  $: console.debug('🔍 [GanttChart] visibleNodes:', visibleNodes ? `${visibleNodes.length} nodes` : 'undefined');
+  $: console.debug('🔍 [GanttChart] dateRange:', dateRange ? `${dateRange.start.toISODate()} → ${dateRange.end.toISODate()}` : 'undefined');
+  
   // 重要なデータ変更を監視してログ出力
   $: {
     if (visibleNodes) {
@@ -134,7 +138,7 @@
 <div class="{classPrefix}-container">
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
-    {#if chartConfig.showTreePane && visibleNodes}
+    {#if chartConfig.showTreePane}
       <div class="{classPrefix}-left-pane">
         <div 
           class="{classPrefix}-tree-header"
@@ -143,15 +147,19 @@
           <span class="{classPrefix}-tree-header-label">タスク</span>
         </div>
         <div class="{classPrefix}-tree-wrapper">
-          <GanttTree
-            {visibleNodes}
-            rowHeight={chartConfig.rowHeight}
-            indentSize={chartConfig.indentSize}
-            treePaneWidth={chartConfig.treePaneWidth}
-            {classPrefix}
-            onNameClick={handleNameClick}
-            onToggleCollapse={handleToggleCollapse}
-          />
+          {#if visibleNodes}
+            <GanttTree
+              {visibleNodes}
+              rowHeight={chartConfig.rowHeight}
+              indentSize={chartConfig.indentSize}
+              treePaneWidth={chartConfig.treePaneWidth}
+              {classPrefix}
+              onNameClick={handleNameClick}
+              onToggleCollapse={handleToggleCollapse}
+            />
+          {:else}
+            <div style="padding: 16px; color: #999;">Loading tree...</div>
+          {/if}
         </div>
       </div>
     {/if}
@@ -178,6 +186,12 @@
             onBarDrag={handleBarDrag}
             onGroupDrag={handleGroupDrag}
           />
+        </div>
+      {:else}
+        <div style="padding: 16px; color: #999;">
+          Loading timeline... 
+          <br>dateRange: {dateRange ? 'OK' : 'undefined'}
+          <br>visibleNodes: {visibleNodes ? visibleNodes.length + ' nodes' : 'undefined'}
         </div>
       {/if}
     </div>
