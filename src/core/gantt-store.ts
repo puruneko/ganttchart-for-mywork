@@ -31,7 +31,8 @@ const DEFAULT_CONFIG: Required<GanttConfig> = {
   treePaneWidth: 300,
   indentSize: 20,
   classPrefix: 'gantt',
-  dragSnapDivision: 4
+  dragSnapDivision: 4,
+  showTreePane: true
 };
 
 /**

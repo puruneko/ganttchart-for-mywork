@@ -131,25 +131,27 @@
 <div class="{classPrefix}-container">
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
-    <div class="{classPrefix}-left-pane">
-      <div 
-        class="{classPrefix}-tree-header"
-        style="width: {chartConfig.treePaneWidth}px; height: 50px;"
-      >
-        <span class="{classPrefix}-tree-header-label">タスク</span>
+    {#if chartConfig.showTreePane}
+      <div class="{classPrefix}-left-pane">
+        <div 
+          class="{classPrefix}-tree-header"
+          style="width: {chartConfig.treePaneWidth}px; height: 50px;"
+        >
+          <span class="{classPrefix}-tree-header-label">タスク</span>
+        </div>
+        <div class="{classPrefix}-tree-wrapper">
+          <GanttTree
+            {visibleNodes}
+            rowHeight={chartConfig.rowHeight}
+            indentSize={chartConfig.indentSize}
+            treePaneWidth={chartConfig.treePaneWidth}
+            {classPrefix}
+            onNameClick={handleNameClick}
+            onToggleCollapse={handleToggleCollapse}
+          />
+        </div>
       </div>
-      <div class="{classPrefix}-tree-wrapper">
-        <GanttTree
-          {visibleNodes}
-          rowHeight={chartConfig.rowHeight}
-          indentSize={chartConfig.indentSize}
-          treePaneWidth={chartConfig.treePaneWidth}
-          {classPrefix}
-          onNameClick={handleNameClick}
-          onToggleCollapse={handleToggleCollapse}
-        />
-      </div>
-    </div>
+    {/if}
     
     <!-- 右ペイン: タイムライン -->
     <div class="{classPrefix}-right-pane">

@@ -126,6 +126,8 @@ export function isNodeVisible(
  * - isVisible: 表示されるべきか
  * - visualIndex: 表示リスト内のインデックス
  * - childrenIds: 直接の子要素のIDリスト
+ * - start/end: 未設定の場合は親から計算
+ * - isDateUnset: 元のデータで日時が未設定だったか
  * 
  * @param nodes - 元のノード配列
  * @returns 計算済みメタデータを含むノード配列（表示順）
@@ -136,6 +138,17 @@ export function computeNodes(nodes: GanttNode[]): ComputedGanttNode[] {
   const depthCache = new Map<string, number>();
   const result: ComputedGanttNode[] = [];
   
+  // 親の開始日時を取得（未設定タスク用）
+  function getParentStartDate(nodeId: string): DateTime | undefined {
+    const node = nodeMap.get(nodeId);
+    if (!node || !node.parentId) return undefined;
+    
+    const parent = nodeMap.get(node.parentId);
+    if (!parent) return undefined;
+    
+    return parent.start ?? getParentStartDate(node.parentId);
+  }
+  
   // ルートノードから深さ優先探索
   function traverse(nodeId: string) {
     const node = nodeMap.get(nodeId);
@@ -145,12 +158,31 @@ export function computeNodes(nodes: GanttNode[]): ComputedGanttNode[] {
     const visible = isNodeVisible(nodeId, nodeMap);
     const childrenIds = hierarchyMap.get(nodeId) ?? [];
     
+    // 日時未設定の処理
+    const isDateUnset = !node.start || !node.end;
+    let start: DateTime;
+    let end: DateTime;
+    
+    if (isDateUnset) {
+      // 親の開始日時から設定（親も未設定なら現在日時）
+      const parentStart = getParentStartDate(nodeId);
+      start = parentStart ?? DateTime.now().startOf('day');
+      // 終了日は開始日の1日後（1セル分）
+      end = start.plus({ days: 1 });
+    } else {
+      start = node.start!;
+      end = node.end!;
+    }
+    
     const computed: ComputedGanttNode = {
       ...node,
+      start,
+      end,
       depth,
       isVisible: visible,
       visualIndex: -1, // 後で設定
-      childrenIds
+      childrenIds,
+      isDateUnset
     };
     
     result.push(computed);
@@ -209,12 +241,23 @@ export function calculateDateRange(nodes: GanttNode[]): DateRange {
     };
   }
   
-  let minStart = nodes[0].start;
-  let maxEnd = nodes[0].end;
+  // 日時が設定されているノードのみを対象
+  const nodesWithDates = nodes.filter(n => n.start && n.end);
   
-  for (const node of nodes) {
-    if (node.start < minStart) minStart = node.start;
-    if (node.end > maxEnd) maxEnd = node.end;
+  if (nodesWithDates.length === 0) {
+    const now = DateTime.now().startOf('day');
+    return {
+      start: now,
+      end: now.plus({ days: 30 })
+    };
+  }
+  
+  let minStart = nodesWithDates[0].start!;
+  let maxEnd = nodesWithDates[0].end!;
+  
+  for (const node of nodesWithDates) {
+    if (node.start! < minStart) minStart = node.start!;
+    if (node.end! > maxEnd) maxEnd = node.end!;
   }
   
   // 余白を追加

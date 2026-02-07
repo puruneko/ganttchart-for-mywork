@@ -171,8 +171,8 @@
       {@const barClass = getBarClass(node.type, classPrefix)}
       {@const handleSize = 8}
       
-      <!-- セクション/サブセクションのグループ背景 -->
-      {#if (node.type === 'section' || node.type === 'subsection' || node.type === 'project') && node.childrenIds.length > 0}
+      <!-- セクション/サブセクションのグループ背景（プロジェクトは除外） -->
+      {#if (node.type === 'section' || node.type === 'subsection') && node.childrenIds.length > 0}
         {@const childNodes = visibleNodes.filter(n => {
           // このノードの子孫かどうかを確認
           let current = n;
@@ -219,11 +219,28 @@
         {@const sectionBarHeight = 20}
         {@const sectionBarY = y + (rowHeight - sectionBarHeight) / 2}
         
+        <!-- リサイズハンドル（左） - セクション/サブセクションのみ -->
+        {#if node.type === 'section' || node.type === 'subsection'}
+          <rect
+            x={x}
+            y={sectionBarY}
+            width={handleSize}
+            height={sectionBarHeight}
+            class="{classPrefix}-resize-handle {classPrefix}-resize-handle--start"
+            data-node-id={node.id}
+            on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
+            role="button"
+            tabindex="0"
+          >
+            <title>開始日をリサイズ: {node.name}</title>
+          </rect>
+        {/if}
+        
         <!-- セクション名のコンパクトバー -->
         <rect
-          x={x}
+          x={node.type === 'section' || node.type === 'subsection' ? x + handleSize : x}
           y={sectionBarY}
-          width={barWidth}
+          width={node.type === 'section' || node.type === 'subsection' ? barWidth - handleSize * 2 : barWidth}
           height={sectionBarHeight}
           class="{classPrefix}-section-bar {classPrefix}-section-bar--{node.type}"
           rx="4"
@@ -239,7 +256,7 @@
         
         <!-- セクション/プロジェクト名のラベル -->
         <text
-          x={x + 8}
+          x={(node.type === 'section' || node.type === 'subsection' ? x + handleSize : x) + 8}
           y={sectionBarY + sectionBarHeight / 2}
           dominant-baseline="middle"
           class="{classPrefix}-section-label"
@@ -247,6 +264,23 @@
         >
           {node.name}
         </text>
+        
+        <!-- リサイズハンドル（右） - セクション/サブセクションのみ -->
+        {#if node.type === 'section' || node.type === 'subsection'}
+          <rect
+            x={x + barWidth - handleSize}
+            y={sectionBarY}
+            width={handleSize}
+            height={sectionBarHeight}
+            class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
+            data-node-id={node.id}
+            on:mousedown={(e) => handleMouseDown(node, 'resize-end', e)}
+            role="button"
+            tabindex="0"
+          >
+            <title>終了日をリサイズ: {node.name}</title>
+          </rect>
+        {/if}
       {:else}
         <!-- 通常のタスクバー（リサイズハンドル付き） -->
         <!-- リサイズハンドル（左） -->
@@ -270,7 +304,7 @@
           y={y + 4}
           width={barWidth - handleSize * 2}
           height={barHeight}
-          class={barClass}
+          class="{barClass} {node.isDateUnset ? classPrefix + '-bar--unset' : ''}"
           rx="4"
           data-node-id={node.id}
           data-node-type={node.type}
@@ -279,7 +313,7 @@
           role="button"
           tabindex="0"
         >
-          <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}</title>
+          <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}{node.isDateUnset ? ' (日時未設定)' : ''}</title>
         </rect>
         
         <!-- タスク名のラベル -->
@@ -370,6 +404,17 @@
   
   :global(.gantt-bar--task) {
     fill: #9b59b6;
+    stroke: #7d3c98;
+    stroke-width: 1.5;
+  }
+  
+  /* 日時未設定のタスクバー */
+  :global(.gantt-bar--task.gantt-bar--unset) {
+    fill: #bdc3c7;
+    stroke: #95a5a6;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 2;
+    opacity: 0.7;
   }
   
   :global(.gantt-resize-handle) {

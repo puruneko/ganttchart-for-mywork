@@ -27,8 +27,8 @@ export type GanttNodeType = 'project' | 'section' | 'subsection' | 'task';
  * @property parentId - 親ノードのID。ルートレベルのノードの場合はnull
  * @property type - 描画と動作を決定するノードタイプ
  * @property name - 表示名
- * @property start - 開始日時（luxon DateTimeオブジェクト）
- * @property end - 終了日時（luxon DateTimeオブジェクト）
+ * @property start - 開始日時（luxon DateTimeオブジェクト、未設定の場合はundefined）
+ * @property end - 終了日時（luxon DateTimeオブジェクト、未設定の場合はundefined）
  * @property isCollapsed - UI状態: このノードの子要素を非表示にするかどうか
  * @property metadata - 任意のメタデータ。ライブラリは無視するが、イベント経由で渡される
  */
@@ -45,11 +45,11 @@ export interface GanttNode {
   /** 表示名 */
   name: string;
   
-  /** 開始日時（luxon DateTimeオブジェクト） */
-  start: DateTime;
+  /** 開始日時（luxon DateTimeオブジェクト、未設定の場合はundefined） */
+  start?: DateTime;
   
-  /** 終了日時（luxon DateTimeオブジェクト） */
-  end: DateTime;
+  /** 終了日時（luxon DateTimeオブジェクト、未設定の場合はundefined） */
+  end?: DateTime;
   
   /** UI状態: このノードの子要素が非表示かどうか */
   isCollapsed?: boolean;
@@ -119,6 +119,9 @@ export interface GanttConfig {
   
   /** ドラッグ時のスナップ単位（1セルの何分の1か、デフォルト: 4） */
   dragSnapDivision?: number;
+  
+  /** 左側のツリーペインを表示するかどうか */
+  showTreePane?: boolean;
 }
 
 /**
@@ -131,8 +134,11 @@ export interface GanttConfig {
  * @property isVisible - このノードが表示されるかどうか（親が折り畳まれていないか）
  * @property visualIndex - フラット化された表示リスト内のインデックス
  * @property childrenIds - 直接の子要素のIDリスト
+ * @property start - 開始日時（必須、未設定の場合は親から計算される）
+ * @property end - 終了日時（必須、未設定の場合は親から計算される）
+ * @property isDateUnset - 元のデータで日時が未設定だったかどうか
  */
-export interface ComputedGanttNode extends GanttNode {
+export interface ComputedGanttNode extends Omit<GanttNode, 'start' | 'end'> {
   /** 階層の深さレベル（0 = ルート） */
   depth: number;
   
@@ -144,6 +150,15 @@ export interface ComputedGanttNode extends GanttNode {
   
   /** 直接の子要素のIDリスト */
   childrenIds: string[];
+  
+  /** 開始日時（必須、未設定の場合は親から計算される） */
+  start: DateTime;
+  
+  /** 終了日時（必須、未設定の場合は親から計算される） */
+  end: DateTime;
+  
+  /** 元のデータで日時が未設定だったかどうか */
+  isDateUnset: boolean;
 }
 
 /**
