@@ -13,8 +13,8 @@ import Hammer from 'hammerjs';
  * ズームジェスチャーのコールバック
  */
 export interface ZoomGestureCallbacks {
-  /** ズームスケールが変更されたときに呼ばれる */
-  onZoomChange: (newScale: number, deltaScale: number) => void;
+  /** ズームスケールが変更されたときに呼ばれる（マウス位置情報を含む） */
+  onZoomChange: (newScale: number, deltaScale: number, mouseX?: number, mouseY?: number) => void;
 }
 
 /**
@@ -69,6 +69,7 @@ export class ZoomGestureDetector {
    * 
    * トラックパッドのピンチやマウスホイールを検出して、
    * ズームスケールを調整する。
+   * マウスポインタの位置を中心にズームする。
    * 
    * @param e - WheelEvent
    */
@@ -84,7 +85,11 @@ export class ZoomGestureDetector {
       const deltaScale = newScale - this.currentScale;
       
       this.currentScale = newScale;
-      this.callbacks.onZoomChange(newScale, deltaScale);
+      
+      // マウス位置を取得してコールバックに渡す
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      this.callbacks.onZoomChange(newScale, deltaScale, mouseX, mouseY);
       
       // デバウンス処理：連続的なホイール操作を滑らかに処理
       if (this.wheelTimeout !== null) {

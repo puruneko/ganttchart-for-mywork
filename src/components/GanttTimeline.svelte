@@ -54,16 +54,44 @@
   
   // ズーム関連
   let svgElement: SVGSVGElement;
+  let timelineContainer: HTMLElement; // スクロールコンテナへの参照
   let zoomDetector: ZoomGestureDetector | null = null;
   let currentZoomScale = getScaleFromDayWidth(dayWidth);
   
   // ズームスケールが変更されたときのハンドラー
-  function handleZoomChange(newScale: number, _deltaScale: number): void {
+  // マウス位置を中心にズームするため、スクロール位置を調整
+  function handleZoomChange(newScale: number, _deltaScale: number, mouseX?: number, mouseY?: number): void {
     // スケールを制限範囲内に収める
     const clampedScale = Math.max(
       ZOOM_SCALE_LIMITS.min,
       Math.min(ZOOM_SCALE_LIMITS.max, newScale)
     );
+    
+    // ズーム前のスクロール位置とマウス位置の関係を保存
+    let scrollLeft = 0;
+    let mouseOffsetX = 0;
+    
+    if (timelineContainer && mouseX !== undefined) {
+      const rect = timelineContainer.getBoundingClientRect();
+      scrollLeft = timelineContainer.scrollLeft;
+      // マウスのコンテナ内での相対位置
+      mouseOffsetX = mouseX - rect.left;
+      // ズーム前のマウス位置のコンテンツ上での絶対位置
+      const mouseContentX = scrollLeft + mouseOffsetX;
+      // スケール比率
+      const scaleFactor = clampedScale / currentZoomScale;
+      // ズーム後のマウス位置のコンテンツ上での絶対位置
+      const newMouseContentX = mouseContentX * scaleFactor;
+      // 新しいスクロール位置を計算（マウス位置を固定）
+      const newScrollLeft = newMouseContentX - mouseOffsetX;
+      
+      // スクロール位置を後で更新するために保存
+      requestAnimationFrame(() => {
+        if (timelineContainer) {
+          timelineContainer.scrollLeft = newScrollLeft;
+        }
+      });
+    }
     
     currentZoomScale = clampedScale;
     
@@ -79,6 +107,9 @@
   // ズームジェスチャー検出器の初期化
   onMount(() => {
     if (svgElement) {
+      // SVG要素の親要素（スクロールコンテナ）を取得
+      timelineContainer = svgElement.parentElement as HTMLElement;
+      
       zoomDetector = new ZoomGestureDetector(
         svgElement,
         { onZoomChange: handleZoomChange },
@@ -119,6 +150,14 @@
     originalEnd: DateTime;
     startX: number;
     lastAppliedDelta: number; // グループ移動用：最後に適用したdelta
+  } | null = null;
+  
+  // 右クリックドラッグでスクロールするための状態
+  let panState: {
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
   } | null = null;
   
   /**
@@ -203,6 +242,59 @@
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', handleMouseUp);
   }
+  
+  /**
+   * 右クリックドラッグでスクロール開始
+   */
+  function handleContextMenu(event: MouseEvent) {
+    event.preventDefault();
+    
+    if (!timelineContainer) return;
+    
+    panState = {
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: timelineContainer.scrollLeft,
+      scrollTop: timelineContainer.scrollTop
+    };
+    
+    window.addEventListener('mousemove', handlePanMove);
+    window.addEventListener('mouseup', handlePanEnd);
+    window.addEventListener('contextmenu', preventContextMenu);
+  }
+  
+  /**
+   * パン中のハンドラー
+   */
+  function handlePanMove(event: MouseEvent) {
+    if (!panState || !timelineContainer) return;
+    
+    const deltaX = event.clientX - panState.startX;
+    const deltaY = event.clientY - panState.startY;
+    
+    timelineContainer.scrollLeft = panState.scrollLeft - deltaX;
+    timelineContainer.scrollTop = panState.scrollTop - deltaY;
+  }
+  
+  /**
+   * パン終了ハンドラー
+   */
+  function handlePanEnd() {
+    panState = null;
+    window.removeEventListener('mousemove', handlePanMove);
+    window.removeEventListener('mouseup', handlePanEnd);
+    // 少し遅延させてcontextmenuイベントを解除
+    setTimeout(() => {
+      window.removeEventListener('contextmenu', preventContextMenu);
+    }, 100);
+  }
+  
+  /**
+   * コンテキストメニューを防止
+   */
+  function preventContextMenu(event: MouseEvent) {
+    event.preventDefault();
+  }
 </script>
 
 <svg
@@ -211,6 +303,7 @@
   {width}
   {height}
   xmlns="http://www.w3.org/2000/svg"
+  on:contextmenu={handleContextMenu}
 >
   <!-- グラデーション定義 -->
   <defs>
