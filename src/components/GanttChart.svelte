@@ -168,7 +168,15 @@
    * ズーム機能（ジェスチャーベース + ボタン操作）
    */
   let currentZoomScale = 1.0; // 初期値
-  $: currentZoomScale = getScaleFromDayWidth(chartConfig?.dayWidth ?? 40);
+  
+  // dayWidthからズームスケールを計算（外部からdayWidthが変更されたとき用）
+  $: {
+    const scaleFromDayWidth = getScaleFromDayWidth(chartConfig?.dayWidth ?? 40);
+    // 大きく異なる場合のみ更新（ボタン操作との競合を避ける）
+    if (Math.abs(scaleFromDayWidth - currentZoomScale) > 0.1) {
+      currentZoomScale = scaleFromDayWidth;
+    }
+  }
   
   // ズームスケールの表示用（デフォルトscale=1.0で3になるように）
   // scale 1.0 → log2(1.0) = 0 → 0 + 3 = 3
