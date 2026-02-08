@@ -139,7 +139,9 @@
   /**
    * ツリーペイン表示切り替え
    */
-  let showTreePane = chartConfig.showTreePane;
+  let showTreePane = true;
+  $: showTreePane = chartConfig?.showTreePane ?? true;
+  
   function toggleTreePane() {
     showTreePane = !showTreePane;
     store.updateConfig({ ...chartConfig, showTreePane });
