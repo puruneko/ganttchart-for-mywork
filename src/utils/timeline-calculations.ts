@@ -55,19 +55,27 @@ export function durationToWidth(start: DateTime, end: DateTime, dayWidth: number
 /**
  * タイムラインヘッダー用の日付配列を生成
  * 
- * 開始日から終了日まで、1日ごとの日付配列を作成する。
+ * 開始日から終了日まで、指定された間隔で日付配列を作成する。
  * ヘッダーに日付ラベルを表示するために使用。
  * 
  * @param dateRange - タイムラインの日付範囲
- * @returns 日付の配列（1日刻み）
+ * @param intervalDays - 目盛りの間隔（日数、デフォルト: 1）
+ * @returns 日付の配列
  */
-export function generateDateTicks(dateRange: DateRange): DateTime[] {
+export function generateDateTicks(dateRange: DateRange, intervalDays: number = 1): DateTime[] {
   const ticks: DateTime[] = [];
   let current = dateRange.start;
   
   while (current <= dateRange.end) {
     ticks.push(current);
-    current = current.plus({ days: 1 });
+    
+    if (intervalDays >= 1) {
+      // 1日以上の間隔
+      current = current.plus({ days: intervalDays });
+    } else {
+      // 1日未満の間隔（時間単位）
+      current = current.plus({ hours: intervalDays * 24 });
+    }
   }
   
   return ticks;

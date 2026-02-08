@@ -48,10 +48,10 @@
       style="left: {x}px; width: {dayWidth}px;"
     >
       <div class="{classPrefix}-header-day-label">
-        {date.toFormat('dd')}
+        {date.toFormat(dateFormat.day)}
       </div>
       <div class="{classPrefix}-header-month-label">
-        {date.toFormat('MMM')}
+        {date.toFormat(dateFormat.month)}
       </div>
     </div>
   {/each}

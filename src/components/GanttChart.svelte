@@ -258,6 +258,7 @@
           {dateRange}
           dayWidth={chartConfig.dayWidth}
           {classPrefix}
+          {zoomLevel}
         />
       </div>
       <div class="{classPrefix}-timeline-wrapper">
