@@ -12,7 +12,7 @@ import {
   calculateTimelineWidth,
   calculateTimelineHeight,
   getBarClass
-} from './timeline-calculations';
+} from '../../src/utils/timeline-calculations';
 
 describe('dateToX', () => {
   it('should calculate X position for dates', () => {

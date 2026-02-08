@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { autoAdjustSectionDates } from './data-manager';
+import { autoAdjustSectionDates } from '../../src/core/data-manager';
 import { DateTime } from 'luxon';
-import type { GanttNode } from '../types';
+import type { GanttNode } from '../../src/types';
 
 describe('autoAdjustSectionDates', () => {
   it('配下のタスクに合わせてセクションの日付を調整する', () => {

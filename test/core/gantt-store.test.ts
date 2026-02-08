@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { DateTime } from 'luxon';
-import { createGanttStore } from './gantt-store';
-import type { GanttNode } from '../types';
+import { createGanttStore } from '../../src/core/gantt-store';
+import type { GanttNode } from '../../src/types';
 import { get } from 'svelte/store';
 
 function createTestNode(

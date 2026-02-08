@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ZoomGestureDetector } from './zoom-gesture';
+import { ZoomGestureDetector } from '../../src/utils/zoom-gesture';
 
 describe('ZoomGestureDetector', () => {
   let element: HTMLElement;

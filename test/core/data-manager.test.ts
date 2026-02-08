@@ -14,8 +14,8 @@ import {
   calculateDateRange,
   toggleNodeCollapse,
   updateNode
-} from './data-manager';
-import type { GanttNode } from '../types';
+} from '../../src/core/data-manager';
+import type { GanttNode } from '../../src/types';
 
 // Test data factory
 function createTestNode(

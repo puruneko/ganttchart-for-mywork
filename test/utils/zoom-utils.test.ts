@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getDayWidthForZoomLevel, getTickIntervalForZoomLevel, getZoomLevelLabel } from './zoom-utils';
+import { getDayWidthForZoomLevel, getTickIntervalForZoomLevel, getZoomLevelLabel } from '../../src/utils/zoom-utils';
 
 describe('getDayWidthForZoomLevel', () => {
   it('ズームレベル1（月単位）で正しいdayWidthを返す', () => {
