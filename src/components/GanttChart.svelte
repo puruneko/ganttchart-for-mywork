@@ -16,6 +16,7 @@
   import GanttTree from './GanttTree.svelte';
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
+  import { getDayWidthForZoomLevel } from '../utils/zoom-utils';
   
   // パブリックprops
   /** 表示するノードの配列 */
@@ -157,6 +158,42 @@
     showTreePane = !showTreePane;
     store.updateConfig({ ...chartConfig, showTreePane });
   }
+  
+  /**
+   * ズーム機能
+   */
+  let zoomLevel = 3; // デフォルト: 日単位
+  $: zoomLevel = chartConfig?.zoomLevel ?? 3;
+  
+  // ズームレベルに応じてdayWidthを自動調整
+  $: {
+    const newDayWidth = getDayWidthForZoomLevel(zoomLevel);
+    if (chartConfig.dayWidth !== newDayWidth) {
+      store.updateConfig({ ...chartConfig, dayWidth: newDayWidth, zoomLevel });
+    }
+  }
+  
+  function zoomIn() {
+    if (zoomLevel < 5) {
+      const newZoomLevel = zoomLevel + 1;
+      const newDayWidth = getDayWidthForZoomLevel(newZoomLevel);
+      store.updateConfig({ ...chartConfig, zoomLevel: newZoomLevel, dayWidth: newDayWidth });
+      if (handlers.onZoomChange) {
+        handlers.onZoomChange(newZoomLevel);
+      }
+    }
+  }
+  
+  function zoomOut() {
+    if (zoomLevel > 1) {
+      const newZoomLevel = zoomLevel - 1;
+      const newDayWidth = getDayWidthForZoomLevel(newZoomLevel);
+      store.updateConfig({ ...chartConfig, zoomLevel: newZoomLevel, dayWidth: newDayWidth });
+      if (handlers.onZoomChange) {
+        handlers.onZoomChange(newZoomLevel);
+      }
+    }
+  }
 </script>
 
 <div class="{classPrefix}-container">
@@ -168,6 +205,27 @@
   >
     {showTreePane ? '◀' : '▶'}
   </button>
+  
+  <!-- ズームボタン -->
+  <div class="{classPrefix}-zoom-controls">
+    <button
+      class="{classPrefix}-zoom-btn"
+      on:click={zoomOut}
+      disabled={zoomLevel <= 1}
+      title="ズームアウト"
+    >
+      −
+    </button>
+    <span class="{classPrefix}-zoom-level">{zoomLevel}</span>
+    <button
+      class="{classPrefix}-zoom-btn"
+      on:click={zoomIn}
+      disabled={zoomLevel >= 5}
+      title="ズームイン"
+    >
+      +
+    </button>
+  </div>
   
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
@@ -250,6 +308,51 @@
   
   :global(.gantt-toggle-tree-btn:hover) {
     background: #f0f0f0;
+  }
+  
+  :global(.gantt-zoom-controls) {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px;
+  }
+  
+  :global(.gantt-zoom-btn) {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background 0.2s;
+  }
+  
+  :global(.gantt-zoom-btn:hover:not(:disabled)) {
+    background: #f0f0f0;
+  }
+  
+  :global(.gantt-zoom-btn:disabled) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  :global(.gantt-zoom-level) {
+    font-size: 12px;
+    color: #666;
+    min-width: 16px;
+    text-align: center;
   }
   
   :global(.gantt-layout) {

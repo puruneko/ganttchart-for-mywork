@@ -5,6 +5,7 @@
   
   import type { DateRange } from '../types';
   import { generateDateTicks, dateToX } from '../utils/timeline-calculations';
+  import { getTickIntervalForZoomLevel } from '../utils/zoom-utils';
   
   /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
@@ -12,8 +13,31 @@
   export let dayWidth: number;
   /** CSSクラスのプレフィックス */
   export let classPrefix: string;
+  /** ズームレベル（1-5） */
+  export let zoomLevel: number = 3;
   
-  $: dateTicks = generateDateTicks(dateRange);
+  $: tickInterval = getTickIntervalForZoomLevel(zoomLevel);
+  $: dateTicks = generateDateTicks(dateRange, tickInterval);
+  
+  // ズームレベルに応じた表示フォーマット
+  function getDateFormat(zoomLevel: number): { day: string; month: string } {
+    switch (zoomLevel) {
+      case 1: // 月単位
+        return { day: 'MMM', month: 'yyyy' };
+      case 2: // 週単位
+        return { day: 'dd', month: 'MMM' };
+      case 3: // 日単位（デフォルト）
+        return { day: 'dd', month: 'MMM' };
+      case 4: // 半日単位
+        return { day: 'dd', month: 'HH:mm' };
+      case 5: // 時間単位
+        return { day: 'HH:mm', month: 'dd MMM' };
+      default:
+        return { day: 'dd', month: 'MMM' };
+    }
+  }
+  
+  $: dateFormat = getDateFormat(zoomLevel);
 </script>
 
 <div class="{classPrefix}-header">

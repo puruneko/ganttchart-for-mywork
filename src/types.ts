@@ -86,6 +86,12 @@ export interface GanttEventHandlers {
   
   /** グループ全体がドラッグされたときに発火 */
   onGroupDrag?: (nodeId: string, daysDelta: number) => void;
+  
+  /** セクション日付自動調整時に発火 */
+  onAutoAdjustSection?: (nodeId: string) => void;
+  
+  /** ズームレベルが変更されたときに発火 */
+  onZoomChange?: (zoomLevel: number) => void;
 }
 
 /**
@@ -122,6 +128,16 @@ export interface GanttConfig {
   
   /** 左側のツリーペインを表示するかどうか */
   showTreePane?: boolean;
+  
+  /** 
+   * ズームレベル（1-5）
+   * - 1: 最小（月単位）
+   * - 2: 週単位
+   * - 3: デフォルト（日単位）
+   * - 4: 半日単位
+   * - 5: 最大（時間単位）
+   */
+  zoomLevel?: number;
 }
 
 /**
