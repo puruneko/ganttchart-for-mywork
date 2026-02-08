@@ -20,6 +20,13 @@
     calculateTimelineHeight,
     getBarClass
   } from '../utils/timeline-calculations';
+  import { onMount, onDestroy } from 'svelte';
+  import { ZoomGestureDetector } from '../utils/zoom-gesture';
+  import { 
+    getDayWidthFromScale, 
+    getScaleFromDayWidth,
+    ZOOM_SCALE_LIMITS 
+  } from '../utils/zoom-scale';
   
   // Props - Svelte 5互換性のため明示的
   /** 表示される（可視な）ノードの配列 */
@@ -42,6 +49,62 @@
   export let onGroupDrag: ((nodeId: string, daysDelta: number) => void) | undefined = undefined;
   /** セクション日付自動調整時のハンドラー */
   export let onAutoAdjustSection: ((nodeId: string) => void) | undefined = undefined;
+  /** ズーム変更時のハンドラー（dayWidthの更新を通知） */
+  export let onZoomChange: ((scale: number, dayWidth: number) => void) | undefined = undefined;
+  
+  // ズーム関連
+  let svgElement: SVGSVGElement;
+  let zoomDetector: ZoomGestureDetector | null = null;
+  let currentZoomScale = getScaleFromDayWidth(dayWidth);
+  
+  // ズームスケールが変更されたときのハンドラー
+  function handleZoomChange(newScale: number, _deltaScale: number): void {
+    // スケールを制限範囲内に収める
+    const clampedScale = Math.max(
+      ZOOM_SCALE_LIMITS.min,
+      Math.min(ZOOM_SCALE_LIMITS.max, newScale)
+    );
+    
+    currentZoomScale = clampedScale;
+    
+    // 新しいdayWidthを計算
+    const newDayWidth = getDayWidthFromScale(clampedScale);
+    
+    // 外部に通知（dayWidthの変更を親コンポーネントに伝える）
+    if (onZoomChange) {
+      onZoomChange(clampedScale, newDayWidth);
+    }
+  }
+  
+  // ズームジェスチャー検出器の初期化
+  onMount(() => {
+    if (svgElement) {
+      zoomDetector = new ZoomGestureDetector(
+        svgElement,
+        { onZoomChange: handleZoomChange },
+        currentZoomScale
+      );
+      zoomDetector.start();
+    }
+  });
+  
+  // クリーンアップ
+  onDestroy(() => {
+    if (zoomDetector) {
+      zoomDetector.stop();
+    }
+  });
+  
+  // dayWidthが外部から変更されたときにズームスケールを同期
+  $: {
+    const newScale = getScaleFromDayWidth(dayWidth);
+    if (Math.abs(newScale - currentZoomScale) > 0.01) {
+      currentZoomScale = newScale;
+      if (zoomDetector) {
+        zoomDetector.setScale(newScale);
+      }
+    }
+  }
   
   // 計算値 - Svelte 5では$derivedに変換される
   $: width = calculateTimelineWidth(dateRange, dayWidth);
@@ -143,6 +206,7 @@
 </script>
 
 <svg
+  bind:this={svgElement}
   class="{classPrefix}-timeline"
   {width}
   {height}

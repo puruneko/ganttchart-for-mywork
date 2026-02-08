@@ -62,20 +62,33 @@ export function durationToWidth(start: DateTime, end: DateTime, dayWidth: number
  * @param intervalDays - 目盛りの間隔（日数、デフォルト: 1）
  * @returns 日付の配列
  */
-export function generateDateTicks(dateRange: DateRange, intervalDays: number = 1): DateTime[] {
+export function generateDateTicks(dateRange: DateRange, intervalDays: number = 1): DateTime[];
+
+/**
+ * タイムラインヘッダー用の日付配列を生成（Duration版）
+ * 
+ * Luxon Durationを使用して、より柔軟な間隔指定をサポート。
+ * 
+ * @param dateRange - タイムラインの日付範囲
+ * @param interval - 目盛りの間隔（Luxon Duration）
+ * @returns 日付の配列
+ */
+export function generateDateTicks(dateRange: DateRange, interval: Duration): DateTime[];
+
+export function generateDateTicks(dateRange: DateRange, intervalOrDays: number | Duration = 1): DateTime[] {
   const ticks: DateTime[] = [];
   let current = dateRange.start;
   
+  // Duration オブジェクトか数値かを判定
+  const interval = typeof intervalOrDays === 'number' 
+    ? (intervalOrDays >= 1 
+        ? Duration.fromObject({ days: intervalOrDays })
+        : Duration.fromObject({ hours: intervalOrDays * 24 }))
+    : intervalOrDays;
+  
   while (current <= dateRange.end) {
     ticks.push(current);
-    
-    if (intervalDays >= 1) {
-      // 1日以上の間隔
-      current = current.plus({ days: intervalDays });
-    } else {
-      // 1日未満の間隔（時間単位）
-      current = current.plus({ hours: intervalDays * 24 });
-    }
+    current = current.plus(interval);
   }
   
   return ticks;
