@@ -139,6 +139,28 @@ test.describe('ガントチャート', () => {
     }
   });
 
+  test('セクション日付自動調整ボタンをクリックして日付を調整できること', async ({ page }) => {
+    // セクションバー（Planning & Research）を見つける
+    const sectionBar = page.locator('.gantt-section-bar-full--section').first();
+    await expect(sectionBar).toBeVisible();
+    
+    // 自動調整ボタンを見つける
+    const autoAdjustBtn = page.locator('.gantt-auto-adjust-btn').first();
+    await expect(autoAdjustBtn).toBeVisible();
+    
+    // ボタンをクリック
+    await autoAdjustBtn.click();
+    
+    // イベントログに自動調整イベントが記録されることを確認
+    await page.waitForTimeout(500);
+    const autoAdjustEvent = page.locator('.log-entry').filter({ hasText: 'Auto-adjust' });
+    await expect(autoAdjustEvent.first()).toBeVisible();
+    
+    // セクションの日付が調整されたことをログで確認
+    const adjustedLog = page.locator('.log-entry').filter({ hasText: 'Section adjusted' });
+    await expect(adjustedLog.first()).toBeVisible();
+  });
+
   test('デバッグパネルが表示されること', async ({ page }) => {
     // デバッグパネルが存在することを確認
     const debugPanel = page.locator('.gantt-debug-panel');
