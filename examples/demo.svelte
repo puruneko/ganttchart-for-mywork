@@ -257,6 +257,44 @@
         nodes = updateNodeAndDescendants(nodes, nodeId, daysDelta);
         console.debug('📊 Gantt data updated after group drag:', nodes);
       }
+    },
+    
+    onAutoAdjustSection: (nodeId) => {
+      logEvent(`📅 Auto-adjust section: ${nodeId}`);
+      
+      if (mode === 'controlled') {
+        // Controlledモードでは、配下のタスクに合わせて日付を調整
+        const descendants = new Set<string>();
+        
+        // 子孫を再帰的に収集
+        const collectDescendants = (id: string) => {
+          nodes.filter(n => n.parentId === id).forEach(child => {
+            descendants.add(child.id);
+            collectDescendants(child.id);
+          });
+        };
+        collectDescendants(nodeId);
+        
+        // 日時が設定されている子孫ノードのみを対象
+        const descendantNodes = nodes.filter(n => descendants.has(n.id) && n.start && n.end);
+        
+        if (descendantNodes.length > 0) {
+          let minStart = descendantNodes[0].start!;
+          let maxEnd = descendantNodes[0].end!;
+          
+          for (const node of descendantNodes) {
+            if (node.start! < minStart) minStart = node.start!;
+            if (node.end! > maxEnd) maxEnd = node.end!;
+          }
+          
+          // セクションの日付を更新
+          nodes = nodes.map(n => 
+            n.id === nodeId ? { ...n, start: minStart.startOf('day'), end: maxEnd.endOf('day') } : n
+          );
+          
+          logEvent(`📅 Section adjusted: ${minStart.toFormat('MM/dd')} - ${maxEnd.toFormat('MM/dd')}`);
+        }
+      }
     }
   };
   

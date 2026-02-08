@@ -131,8 +131,19 @@
    * セクション日付自動調整ハンドラー
    */
   function handleAutoAdjustSection(nodeId: string) {
+    // 外部ハンドラーに通知
     if (handlers.onAutoAdjustSection) {
       handlers.onAutoAdjustSection(nodeId);
+    }
+    
+    // uncontrolledモードの場合、内部で自動調整
+    if (chartConfig.mode === 'uncontrolled') {
+      const newNodes = store.autoAdjustSectionDates(nodeId);
+      
+      // データ変更ハンドラーに通知
+      if (handlers.onDataChange) {
+        handlers.onDataChange(newNodes);
+      }
     }
   }
   

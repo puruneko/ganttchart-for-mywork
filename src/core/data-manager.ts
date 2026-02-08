@@ -315,3 +315,69 @@ export function updateNode(
     return node;
   });
 }
+
+/**
+ * セクション/サブセクションの日付を配下のタスクに合わせて自動調整（イミュータブル操作）
+ * 
+ * 指定されたセクション配下のすべての子ノード（再帰的）の開始日・終了日から、
+ * 最小開始日と最大終了日を計算し、セクションの日付を更新する。
+ * 子ノードがない場合、または日時未設定のノードのみの場合は変更しない。
+ * 
+ * @param nodes - 元のノード配列
+ * @param nodeId - 調整するセクション/サブセクションのID
+ * @returns 更新された新しいノード配列
+ */
+export function autoAdjustSectionDates(
+  nodes: GanttNode[],
+  nodeId: string
+): GanttNode[] {
+  const nodeMap = buildNodeMap(nodes);
+  const hierarchyMap = buildHierarchyMap(nodes);
+  const targetNode = nodeMap.get(nodeId);
+  
+  if (!targetNode) return nodes;
+  
+  // セクション/サブセクション/プロジェクトのみ対象
+  if (targetNode.type !== 'section' && targetNode.type !== 'subsection' && targetNode.type !== 'project') {
+    return nodes;
+  }
+  
+  // 配下のすべての子孫ノードを取得（再帰的）
+  const descendants: GanttNode[] = [];
+  
+  function collectDescendants(parentId: string) {
+    const childIds = hierarchyMap.get(parentId) ?? [];
+    for (const childId of childIds) {
+      const child = nodeMap.get(childId);
+      if (child) {
+        descendants.push(child);
+        collectDescendants(childId);
+      }
+    }
+  }
+  
+  collectDescendants(nodeId);
+  
+  // 日時が設定されている子孫ノードのみを対象
+  const nodesWithDates = descendants.filter(n => n.start && n.end);
+  
+  if (nodesWithDates.length === 0) {
+    // 日時が設定されているノードがない場合は変更しない
+    return nodes;
+  }
+  
+  // 最小開始日と最大終了日を計算
+  let minStart = nodesWithDates[0].start!;
+  let maxEnd = nodesWithDates[0].end!;
+  
+  for (const node of nodesWithDates) {
+    if (node.start! < minStart) minStart = node.start!;
+    if (node.end! > maxEnd) maxEnd = node.end!;
+  }
+  
+  // セクションの日付を更新
+  return updateNode(nodes, nodeId, {
+    start: minStart.startOf('day'),
+    end: maxEnd.endOf('day')
+  });
+}

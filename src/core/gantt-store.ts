@@ -15,7 +15,8 @@ import {
   computeNodes,
   getVisibleNodes,
   calculateDateRange,
-  toggleNodeCollapse
+  toggleNodeCollapse,
+  autoAdjustSectionDates
 } from './data-manager';
 
 /**
@@ -138,6 +139,30 @@ export function createGanttStore(
     return currentNodes.find(n => n.id === nodeId);
   }
   
+  /**
+   * セクション/サブセクションの日付を配下のタスクに合わせて自動調整
+   * 
+   * Uncontrolledモードの場合のみ内部状態を更新。
+   * Controlledモードでは新しいノード配列を返すだけで、
+   * 実際の更新は外部で行う。
+   * 
+   * @param nodeId - 調整するセクション/サブセクションのID
+   * @returns 更新された新しいノード配列（イベント通知用）
+   */
+  function autoAdjustSection(nodeId: string): GanttNode[] {
+    const currentNodes = get(nodes);
+    const newNodes = autoAdjustSectionDates(currentNodes, nodeId);
+    
+    // Uncontrolledモードの場合のみ更新
+    const currentConfig = get(config);
+    if (currentConfig.mode === 'uncontrolled') {
+      nodes.set(newNodes);
+      console.debug('📅 [GanttStore] Section dates auto-adjusted:', nodeId);
+    }
+    
+    return newNodes; // イベント通知用に返す
+  }
+  
   return {
     // 読み取り専用ストア（購読可能）
     nodes: { subscribe: nodes.subscribe },
@@ -151,6 +176,7 @@ export function createGanttStore(
     updateConfig,
     toggleCollapse,
     getNodeById,
+    autoAdjustSectionDates: autoAdjustSection,
     
     // テストと外部アクセス用（プライベートメソッド）
     _getRawNodes: () => get(nodes),
