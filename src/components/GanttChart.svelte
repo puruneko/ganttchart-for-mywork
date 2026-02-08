@@ -16,7 +16,12 @@
   import GanttTree from './GanttTree.svelte';
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
-  import { getDayWidthForZoomLevel } from '../utils/zoom-utils';
+  import { 
+    getTickDefinitionForScale, 
+    getDayWidthFromScale,
+    getScaleFromDayWidth,
+    ZOOM_SCALE_LIMITS 
+  } from '../utils/zoom-scale';
   
   // パブリックprops
   /** 表示するノードの配列 */
@@ -160,40 +165,49 @@
   }
   
   /**
-   * ズーム機能
+   * ズーム機能（ジェスチャーベース + ボタン操作）
    */
-  let zoomLevel = 3; // デフォルト: 日単位
-  $: zoomLevel = chartConfig?.zoomLevel ?? 3;
+  let currentZoomScale = getScaleFromDayWidth(chartConfig.dayWidth);
   
-  // ズームレベルに応じてdayWidthを自動調整
-  $: {
-    const newDayWidth = getDayWidthForZoomLevel(zoomLevel);
-    if (chartConfig.dayWidth !== newDayWidth) {
-      store.updateConfig({ ...chartConfig, dayWidth: newDayWidth, zoomLevel });
+  // ズームスケールの表示用（1-5の範囲にマッピング）
+  $: displayZoomLevel = Math.round(Math.log2(currentZoomScale) * 2 + 3);
+  
+  // タイムラインからのズーム変更を処理
+  function handleTimelineZoom(scale: number, newDayWidth: number): void {
+    currentZoomScale = scale;
+    store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
+    
+    // 外部ハンドラーに通知
+    if (handlers.onZoomChange) {
+      handlers.onZoomChange(scale);
     }
   }
   
+  // ボタンからのズーム操作
   function zoomIn() {
-    if (zoomLevel < 5) {
-      const newZoomLevel = zoomLevel + 1;
-      const newDayWidth = getDayWidthForZoomLevel(newZoomLevel);
-      store.updateConfig({ ...chartConfig, zoomLevel: newZoomLevel, dayWidth: newDayWidth });
-      if (handlers.onZoomChange) {
-        handlers.onZoomChange(newZoomLevel);
-      }
+    const newScale = Math.min(currentZoomScale * 1.5, ZOOM_SCALE_LIMITS.max);
+    const newDayWidth = getDayWidthFromScale(newScale);
+    currentZoomScale = newScale;
+    store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
+    
+    if (handlers.onZoomChange) {
+      handlers.onZoomChange(newScale);
     }
   }
   
   function zoomOut() {
-    if (zoomLevel > 1) {
-      const newZoomLevel = zoomLevel - 1;
-      const newDayWidth = getDayWidthForZoomLevel(newZoomLevel);
-      store.updateConfig({ ...chartConfig, zoomLevel: newZoomLevel, dayWidth: newDayWidth });
-      if (handlers.onZoomChange) {
-        handlers.onZoomChange(newZoomLevel);
-      }
+    const newScale = Math.max(currentZoomScale / 1.5, ZOOM_SCALE_LIMITS.min);
+    const newDayWidth = getDayWidthFromScale(newScale);
+    currentZoomScale = newScale;
+    store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
+    
+    if (handlers.onZoomChange) {
+      handlers.onZoomChange(newScale);
     }
   }
+  
+  // 現在のtick定義を取得
+  $: currentTickDef = getTickDefinitionForScale(currentZoomScale);
 </script>
 
 <div class="{classPrefix}-container">
@@ -211,17 +225,19 @@
     <button
       class="{classPrefix}-zoom-btn"
       on:click={zoomOut}
-      disabled={zoomLevel <= 1}
-      title="ズームアウト"
+      disabled={currentZoomScale <= ZOOM_SCALE_LIMITS.min}
+      title="ズームアウト (Ctrl+ホイールでも可)"
     >
       −
     </button>
-    <span class="{classPrefix}-zoom-level">{zoomLevel}</span>
+    <span class="{classPrefix}-zoom-level" title={currentTickDef.label}>
+      {displayZoomLevel}
+    </span>
     <button
       class="{classPrefix}-zoom-btn"
       on:click={zoomIn}
-      disabled={zoomLevel >= 5}
-      title="ズームイン"
+      disabled={currentZoomScale >= ZOOM_SCALE_LIMITS.max}
+      title="ズームイン (Ctrl+ホイールでも可)"
     >
       +
     </button>
@@ -258,7 +274,7 @@
           {dateRange}
           dayWidth={chartConfig.dayWidth}
           {classPrefix}
-          {zoomLevel}
+          zoomScale={currentZoomScale}
         />
       </div>
       <div class="{classPrefix}-timeline-wrapper">
@@ -273,6 +289,7 @@
           onBarDrag={handleBarDrag}
           onGroupDrag={handleGroupDrag}
           onAutoAdjustSection={handleAutoAdjustSection}
+          onZoomChange={handleTimelineZoom}
         />
       </div>
     </div>
