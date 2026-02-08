@@ -94,7 +94,7 @@
         >
           <span class="{classPrefix}-node-name-text">{node.name}</span>
           <span class="{classPrefix}-node-dates">
-            {node.startDate.toFormat('yyyy/MM/dd')} - {node.endDate.toFormat('yyyy/MM/dd')}
+            {node.start.toFormat('yyyy/MM/dd')} - {node.end.toFormat('yyyy/MM/dd')}
           </span>
         </span>
       </div>
