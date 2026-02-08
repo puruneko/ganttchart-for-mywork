@@ -126,12 +126,39 @@
       handlers.onDataChange(newNodes);
     }
   }
+  
+  /**
+   * セクション日付自動調整ハンドラー
+   */
+  function handleAutoAdjustSection(nodeId: string) {
+    if (handlers.onAutoAdjustSection) {
+      handlers.onAutoAdjustSection(nodeId);
+    }
+  }
+  
+  /**
+   * ツリーペイン表示切り替え
+   */
+  let showTreePane = chartConfig.showTreePane;
+  function toggleTreePane() {
+    showTreePane = !showTreePane;
+    store.updateConfig({ ...chartConfig, showTreePane });
+  }
 </script>
 
 <div class="{classPrefix}-container">
+  <!-- ツリーペイン切り替えボタン -->
+  <button
+    class="{classPrefix}-toggle-tree-btn"
+    on:click={toggleTreePane}
+    title={showTreePane ? 'ツリーペインを非表示' : 'ツリーペインを表示'}
+  >
+    {showTreePane ? '◀' : '▶'}
+  </button>
+  
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
-    {#if chartConfig.showTreePane}
+    {#if showTreePane}
       <div class="{classPrefix}-left-pane">
         <div 
           class="{classPrefix}-tree-header"
@@ -173,6 +200,7 @@
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
           onGroupDrag={handleGroupDrag}
+          onAutoAdjustSection={handleAutoAdjustSection}
         />
       </div>
     </div>
@@ -186,6 +214,29 @@
     border: 1px solid #ddd;
     background: white;
     overflow: hidden;
+    position: relative;
+  }
+  
+  :global(.gantt-toggle-tree-btn) {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: background 0.2s;
+  }
+  
+  :global(.gantt-toggle-tree-btn:hover) {
+    background: #f0f0f0;
   }
   
   :global(.gantt-layout) {

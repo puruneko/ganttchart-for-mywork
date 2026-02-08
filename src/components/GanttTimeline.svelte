@@ -40,6 +40,8 @@
   export let onBarDrag: ((nodeId: string, newStart: DateTime, newEnd: DateTime) => void) | undefined = undefined;
   /** グループドラッグ時のハンドラー */
   export let onGroupDrag: ((nodeId: string, daysDelta: number) => void) | undefined = undefined;
+  /** セクション日付自動調整時のハンドラー */
+  export let onAutoAdjustSection: ((nodeId: string) => void) | undefined = undefined;
   
   // 計算値 - Svelte 5では$derivedに変換される
   $: width = calculateTimelineWidth(dateRange, dayWidth);
@@ -268,6 +270,41 @@
           </rect>
         {/if}
         
+        <!-- 自動調整アイコンボタン - セクション/サブセクションのみ -->
+        {#if node.type === 'section' || node.type === 'subsection'}
+          {@const iconSize = 16}
+          {@const iconX = x + barWidth - handleSize - iconSize - 4}
+          <g
+            class="{classPrefix}-auto-adjust-btn"
+            on:click={(e) => {
+              e.stopPropagation();
+              if (onAutoAdjustSection) {
+                onAutoAdjustSection(node.id);
+              }
+            }}
+            role="button"
+            tabindex="0"
+          >
+            <rect
+              x={iconX}
+              y={sectionBarY + (sectionBarHeight - iconSize) / 2}
+              width={iconSize}
+              height={iconSize}
+              rx="2"
+              class="{classPrefix}-auto-adjust-btn-bg"
+            />
+            <path
+              d="M {iconX + 4} {sectionBarY + sectionBarHeight / 2 - 4} L {iconX + 8} {sectionBarY + sectionBarHeight / 2} L {iconX + 4} {sectionBarY + sectionBarHeight / 2 + 4} M {iconX + 12} {sectionBarY + sectionBarHeight / 2 - 4} L {iconX + 8} {sectionBarY + sectionBarHeight / 2} L {iconX + 12} {sectionBarY + sectionBarHeight / 2 + 4}"
+              stroke="#fff"
+              stroke-width="1.5"
+              fill="none"
+              stroke-linecap="round"
+              pointer-events="none"
+            />
+            <title>配下のタスクに合わせて日付を調整</title>
+          </g>
+        {/if}
+        
         <!-- リサイズハンドル（右） - セクション/サブセクションのみ、バーの上に重ねて配置 -->
         {#if node.type === 'section' || node.type === 'subsection'}
           <rect
@@ -277,7 +314,7 @@
             height={sectionBarHeight}
             class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
             data-node-id={node.id}
-            on:mousedown={(e) => handleMouseDown(node, 'resize-end', e)}
+            on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
             role="button"
             tabindex="0"
           >
@@ -286,7 +323,11 @@
         {/if}
       {:else}
         <!-- 通常のタスクバー（リサイズハンドル付き） -->
-        {@const variant = node.designVariant || 0}
+        {@const customStyle = node.style || {}}
+        {@const barFill = customStyle.fill || undefined}
+        {@const barStroke = customStyle.stroke || undefined}
+        {@const barStrokeWidth = customStyle.strokeWidth || undefined}
+        {@const barRx = customStyle.rx !== undefined ? customStyle.rx : 6}
         
         <!-- メインバー -->
         <rect
@@ -294,8 +335,11 @@
           y={y + 4}
           width={barWidth}
           height={barHeight}
-          class="{barClass} {node.isDateUnset ? classPrefix + '-bar--unset' : ''} {variant > 0 ? classPrefix + '-bar--variant-' + variant : ''}"
-          rx="6"
+          class="{barClass} {node.isDateUnset ? classPrefix + '-bar--unset' : ''}"
+          rx={barRx}
+          fill={barFill}
+          stroke={barStroke}
+          stroke-width={barStrokeWidth}
           data-node-id={node.id}
           data-node-type={node.type}
           on:click={(e) => handleBarClick(node, e)}
@@ -306,30 +350,13 @@
           <title>{node.name}: {node.start.toFormat('yyyy-MM-dd')} - {node.end.toFormat('yyyy-MM-dd')}{node.isDateUnset ? ' (日時未設定)' : ''}</title>
         </rect>
         
-        <!-- Design 5: Striped Pattern -->
-        {#if variant === 5}
-          <defs>
-            <pattern id="stripes-{node.id}" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="8" stroke="#8e44ad" stroke-width="4" />
-            </pattern>
-          </defs>
-          <rect
-            x={x}
-            y={y + 4}
-            width={barWidth}
-            height={barHeight}
-            fill="url(#stripes-{node.id})"
-            rx="6"
-            pointer-events="none"
-          />
-        {/if}
-        
         <!-- タスク名のラベル -->
         <text
           x={x + 8}
           y={y + 4 + barHeight / 2}
           dominant-baseline="middle"
           class="{classPrefix}-task-label {node.isDateUnset ? classPrefix + '-task-label--unset' : ''}"
+          fill={customStyle.labelColor}
           pointer-events="none"
         >
           {node.name}
@@ -495,42 +522,17 @@
     fill: #2c3e50;
   }
   
-  /* Design Variant 1: Default (Control) - 現在のスタイルのまま */
-  
-  /* Design Variant 2: Gradient Fill */
-  :global(.gantt-bar--variant-2) {
-    fill: url(#gradient-task);
-    stroke: #7d3c98;
-    stroke-width: 2;
+  /* 自動調整ボタン */
+  :global(.gantt-auto-adjust-btn) {
+    cursor: pointer;
   }
   
-  /* Design Variant 3: Thick Border */
-  :global(.gantt-bar--variant-3) {
-    fill: #e8d5f0;
-    stroke: #7d3c98;
-    stroke-width: 3;
+  :global(.gantt-auto-adjust-btn-bg) {
+    fill: rgba(0, 0, 0, 0.3);
+    transition: fill 0.2s;
   }
   
-  /* Design Variant 4: Shadow + Flat */
-  :global(.gantt-bar--variant-4) {
-    fill: #9b59b6;
-    stroke: none;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  }
-  
-  /* Design Variant 5: Striped Pattern */
-  :global(.gantt-bar--variant-5) {
-    fill: #e8d5f0;
-    stroke: #7d3c98;
-    stroke-width: 2;
-  }
-  
-  /* Design Variant 6: Double Border */
-  :global(.gantt-bar--variant-6) {
-    fill: #9b59b6;
-    stroke: #7d3c98;
-    stroke-width: 1;
-    outline: 2px solid #9b59b6;
-    outline-offset: 2px;
+  :global(.gantt-auto-adjust-btn:hover .gantt-auto-adjust-btn-bg) {
+    fill: rgba(0, 0, 0, 0.5);
   }
 </style>

@@ -62,75 +62,12 @@
       end: DateTime.fromISO('2024-01-15')
     },
     {
-      id: 'sec-test',
-      parentId: 'proj-1',
-      type: 'section',
-      name: 'Test - Task Design Variations',
-      start: DateTime.fromISO('2024-01-16'),
-      end: DateTime.fromISO('2024-01-25'),
-      isCollapsed: false
-    },
-    {
-      id: 'task-design-1',
-      parentId: 'sec-test',
-      type: 'task',
-      name: 'Design 1: Default (Control)',
-      start: DateTime.fromISO('2024-01-16'),
-      end: DateTime.fromISO('2024-01-18'),
-      designVariant: 1
-    },
-    {
-      id: 'task-design-2',
-      parentId: 'sec-test',
-      type: 'task',
-      name: 'Design 2: Gradient Fill',
-      start: DateTime.fromISO('2024-01-17'),
-      end: DateTime.fromISO('2024-01-19'),
-      designVariant: 2
-    },
-    {
-      id: 'task-design-3',
-      parentId: 'sec-test',
-      type: 'task',
-      name: 'Design 3: Thick Border',
-      start: DateTime.fromISO('2024-01-18'),
-      end: DateTime.fromISO('2024-01-20'),
-      designVariant: 3
-    },
-    {
-      id: 'task-design-4',
-      parentId: 'sec-test',
-      type: 'task',
-      name: 'Design 4: Shadow + Flat',
-      start: DateTime.fromISO('2024-01-19'),
-      end: DateTime.fromISO('2024-01-21'),
-      designVariant: 4
-    },
-    {
-      id: 'task-design-5',
-      parentId: 'sec-test',
-      type: 'task',
-      name: 'Design 5: Striped Pattern',
-      start: DateTime.fromISO('2024-01-20'),
-      end: DateTime.fromISO('2024-01-22'),
-      designVariant: 5
-    },
-    {
-      id: 'task-design-6',
-      parentId: 'sec-test',
-      type: 'task',
-      name: 'Design 6: Double Border',
-      start: DateTime.fromISO('2024-01-21'),
-      end: DateTime.fromISO('2024-01-23'),
-      designVariant: 6
-    },
-    {
       id: 'sec-2',
       parentId: 'proj-1',
       type: 'section',
       name: 'Design Phase',
-      start: DateTime.fromISO('2024-01-26'),
-      end: DateTime.fromISO('2024-02-15'),
+      start: DateTime.fromISO('2024-01-16'),
+      end: DateTime.fromISO('2024-02-05'),
       isCollapsed: false
     },
     {
