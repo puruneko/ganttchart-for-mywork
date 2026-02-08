@@ -58,153 +58,153 @@
             - button "Post-launch monitoring (TBD)" [ref=e92] [cursor=pointer]
         - generic [ref=e93]:
           - generic [ref=e95]:
-            - generic [ref=e97]:
-              - generic [ref=e98]: 1月
-              - generic [ref=e99]: 2月
-              - generic [ref=e100]: 3月
-            - generic [ref=e102]:
-              - generic [ref=e103]: 1日
-              - generic [ref=e104]: 3日
-              - generic [ref=e105]: 5日
-              - generic [ref=e106]: 7日
-              - generic [ref=e107]: 9日
-              - generic [ref=e108]: 11日
-              - generic [ref=e109]: 13日
-              - generic [ref=e110]: 15日
-              - generic [ref=e111]: 17日
-              - generic [ref=e112]: 19日
-              - generic [ref=e113]: 21日
-              - generic [ref=e114]: 23日
-              - generic [ref=e115]: 25日
-              - generic [ref=e116]: 27日
-              - generic [ref=e117]: 29日
-              - generic [ref=e118]: 31日
-              - generic [ref=e119]: 2日
-              - generic [ref=e120]: 4日
-              - generic [ref=e121]: 6日
-              - generic [ref=e122]: 8日
-              - generic [ref=e123]: 10日
-              - generic [ref=e124]: 12日
-              - generic [ref=e125]: 14日
-              - generic [ref=e126]: 16日
-              - generic [ref=e127]: 18日
-              - generic [ref=e128]: 20日
-              - generic [ref=e129]: 22日
-              - generic [ref=e130]: 24日
-              - generic [ref=e131]: 26日
-              - generic [ref=e132]: 28日
-              - generic [ref=e133]: 1日
-          - img [ref=e135]:
-            - generic [ref=e137]:
-              - 'button "Website Redesign Project: 2024-01-01 - 2024-02-29" [ref=e138] [cursor=pointer]'
+            - generic [ref=e96]:
+              - generic [ref=e97]: 1月
+              - generic [ref=e98]: 2月
+              - generic [ref=e99]: 3月
+            - generic [ref=e100]:
+              - generic [ref=e101]: 1日
+              - generic [ref=e102]: 3日
+              - generic [ref=e103]: 5日
+              - generic [ref=e104]: 7日
+              - generic [ref=e105]: 9日
+              - generic [ref=e106]: 11日
+              - generic [ref=e107]: 13日
+              - generic [ref=e108]: 15日
+              - generic [ref=e109]: 17日
+              - generic [ref=e110]: 19日
+              - generic [ref=e111]: 21日
+              - generic [ref=e112]: 23日
+              - generic [ref=e113]: 25日
+              - generic [ref=e114]: 27日
+              - generic [ref=e115]: 29日
+              - generic [ref=e116]: 31日
+              - generic [ref=e117]: 2日
+              - generic [ref=e118]: 4日
+              - generic [ref=e119]: 6日
+              - generic [ref=e120]: 8日
+              - generic [ref=e121]: 10日
+              - generic [ref=e122]: 12日
+              - generic [ref=e123]: 14日
+              - generic [ref=e124]: 16日
+              - generic [ref=e125]: 18日
+              - generic [ref=e126]: 20日
+              - generic [ref=e127]: 22日
+              - generic [ref=e128]: 24日
+              - generic [ref=e129]: 26日
+              - generic [ref=e130]: 28日
+              - generic [ref=e131]: 1日
+          - img [ref=e133]:
+            - generic [ref=e135]:
+              - 'button "Website Redesign Project: 2024-01-01 - 2024-02-29" [ref=e136] [cursor=pointer]'
               - generic: Website Redesign Project
               - generic: 2024/01/01 - 2024/02/29
-              - 'button "Planning & Research: 2024-01-01 - 2024-01-15" [ref=e140] [cursor=pointer]'
+              - 'button "Planning & Research: 2024-01-01 - 2024-01-15" [ref=e138] [cursor=pointer]'
               - generic: Planning & Research
               - generic: 2024/01/01 - 2024/01/15
-              - 'button "開始日をリサイズ: Planning & Research" [ref=e141]'
-              - button "配下のタスクに合わせて日付を調整" [ref=e142] [cursor=pointer]
-              - 'button "終了日をリサイズ: Planning & Research" [ref=e144]'
-              - 'button "User research: 2024-01-01 - 2024-01-07" [ref=e145]'
+              - 'button "開始日をリサイズ: Planning & Research" [ref=e139]'
+              - button "配下のタスクに合わせて日付を調整" [ref=e140] [cursor=pointer]
+              - 'button "終了日をリサイズ: Planning & Research" [ref=e142]'
+              - 'button "User research: 2024-01-01 - 2024-01-07" [ref=e143]'
               - generic: User research
               - generic: 2024/01/01 - 2024/01/07
-              - 'button "開始日をリサイズ: User research" [ref=e146]'
-              - 'button "終了日をリサイズ: User research" [ref=e147]'
-              - 'button "Competitor analysis: 2024-01-05 - 2024-01-12" [ref=e148]'
+              - 'button "開始日をリサイズ: User research" [ref=e144]'
+              - 'button "終了日をリサイズ: User research" [ref=e145]'
+              - 'button "Competitor analysis: 2024-01-05 - 2024-01-12" [ref=e146]'
               - generic: Competitor analysis
               - generic: 2024/01/05 - 2024/01/12
-              - 'button "開始日をリサイズ: Competitor analysis" [ref=e149]'
-              - 'button "終了日をリサイズ: Competitor analysis" [ref=e150]'
-              - 'button "TBD Task (No dates): 2024-01-01 - 2024-01-02 (日時未設定)" [ref=e151]'
+              - 'button "開始日をリサイズ: Competitor analysis" [ref=e147]'
+              - 'button "終了日をリサイズ: Competitor analysis" [ref=e148]'
+              - 'button "TBD Task (No dates): 2024-01-01 - 2024-01-02 (日時未設定)" [ref=e149]'
               - generic: TBD Task (No dates)
               - generic: 2024/01/01 - 2024/01/02
-              - 'button "開始日をリサイズ: TBD Task (No dates)" [ref=e152]'
-              - 'button "終了日をリサイズ: TBD Task (No dates)" [ref=e153]'
-              - 'button "Requirements gathering: 2024-01-10 - 2024-01-15" [ref=e154]'
+              - 'button "開始日をリサイズ: TBD Task (No dates)" [ref=e150]'
+              - 'button "終了日をリサイズ: TBD Task (No dates)" [ref=e151]'
+              - 'button "Requirements gathering: 2024-01-10 - 2024-01-15" [ref=e152]'
               - generic: Requirements gathering
               - generic: 2024/01/10 - 2024/01/15
-              - 'button "開始日をリサイズ: Requirements gathering" [ref=e155]'
-              - 'button "終了日をリサイズ: Requirements gathering" [ref=e156]'
-              - 'button "Design Phase: 2024-01-16 - 2024-02-05" [ref=e158] [cursor=pointer]'
+              - 'button "開始日をリサイズ: Requirements gathering" [ref=e153]'
+              - 'button "終了日をリサイズ: Requirements gathering" [ref=e154]'
+              - 'button "Design Phase: 2024-01-16 - 2024-02-05" [ref=e156] [cursor=pointer]'
               - generic: Design Phase
               - generic: 2024/01/16 - 2024/02/05
-              - 'button "開始日をリサイズ: Design Phase" [ref=e159]'
-              - button "配下のタスクに合わせて日付を調整" [ref=e160] [cursor=pointer]
-              - 'button "終了日をリサイズ: Design Phase" [ref=e162]'
-              - 'button "UI/UX Design: 2024-01-16 - 2024-01-28" [ref=e164] [cursor=pointer]'
+              - 'button "開始日をリサイズ: Design Phase" [ref=e157]'
+              - button "配下のタスクに合わせて日付を調整" [ref=e158] [cursor=pointer]
+              - 'button "終了日をリサイズ: Design Phase" [ref=e160]'
+              - 'button "UI/UX Design: 2024-01-16 - 2024-01-28" [ref=e162] [cursor=pointer]'
               - generic: UI/UX Design
               - generic: 2024/01/16 - 2024/01/28
-              - 'button "開始日をリサイズ: UI/UX Design" [ref=e165]'
-              - button "配下のタスクに合わせて日付を調整" [ref=e166] [cursor=pointer]
-              - 'button "終了日をリサイズ: UI/UX Design" [ref=e168]'
-              - 'button "Wireframes: 2024-01-16 - 2024-01-22" [ref=e169]'
+              - 'button "開始日をリサイズ: UI/UX Design" [ref=e163]'
+              - button "配下のタスクに合わせて日付を調整" [ref=e164] [cursor=pointer]
+              - 'button "終了日をリサイズ: UI/UX Design" [ref=e166]'
+              - 'button "Wireframes: 2024-01-16 - 2024-01-22" [ref=e167]'
               - generic: Wireframes
               - generic: 2024/01/16 - 2024/01/22
-              - 'button "開始日をリサイズ: Wireframes" [ref=e170]'
-              - 'button "終了日をリサイズ: Wireframes" [ref=e171]'
-              - 'button "High-fidelity mockups: 2024-01-23 - 2024-01-28" [ref=e172]'
+              - 'button "開始日をリサイズ: Wireframes" [ref=e168]'
+              - 'button "終了日をリサイズ: Wireframes" [ref=e169]'
+              - 'button "High-fidelity mockups: 2024-01-23 - 2024-01-28" [ref=e170]'
               - generic: High-fidelity mockups
               - generic: 2024/01/23 - 2024/01/28
-              - 'button "開始日をリサイズ: High-fidelity mockups" [ref=e173]'
-              - 'button "終了日をリサイズ: High-fidelity mockups" [ref=e174]'
-              - 'button "Prototype (TBD): 2024-01-16 - 2024-01-17 (日時未設定)" [ref=e175]'
+              - 'button "開始日をリサイズ: High-fidelity mockups" [ref=e171]'
+              - 'button "終了日をリサイズ: High-fidelity mockups" [ref=e172]'
+              - 'button "Prototype (TBD): 2024-01-16 - 2024-01-17 (日時未設定)" [ref=e173]'
               - generic: Prototype (TBD)
               - generic: 2024/01/16 - 2024/01/17
-              - 'button "開始日をリサイズ: Prototype (TBD)" [ref=e176]'
-              - 'button "終了日をリサイズ: Prototype (TBD)" [ref=e177]'
-              - 'button "Design system creation: 2024-01-29 - 2024-02-05" [ref=e178]'
+              - 'button "開始日をリサイズ: Prototype (TBD)" [ref=e174]'
+              - 'button "終了日をリサイズ: Prototype (TBD)" [ref=e175]'
+              - 'button "Design system creation: 2024-01-29 - 2024-02-05" [ref=e176]'
               - generic: Design system creation
               - generic: 2024/01/29 - 2024/02/05
-              - 'button "開始日をリサイズ: Design system creation" [ref=e179]'
-              - 'button "終了日をリサイズ: Design system creation" [ref=e180]'
-              - 'button "Development: 2024-02-06 - 2024-02-25" [ref=e182] [cursor=pointer]'
+              - 'button "開始日をリサイズ: Design system creation" [ref=e177]'
+              - 'button "終了日をリサイズ: Design system creation" [ref=e178]'
+              - 'button "Development: 2024-02-06 - 2024-02-25" [ref=e180] [cursor=pointer]'
               - generic: Development
               - generic: 2024/02/06 - 2024/02/25
-              - 'button "開始日をリサイズ: Development" [ref=e183]'
-              - button "配下のタスクに合わせて日付を調整" [ref=e184] [cursor=pointer]
-              - 'button "終了日をリサイズ: Development" [ref=e186]'
-              - 'button "Frontend development: 2024-02-06 - 2024-02-20" [ref=e187]'
+              - 'button "開始日をリサイズ: Development" [ref=e181]'
+              - button "配下のタスクに合わせて日付を調整" [ref=e182] [cursor=pointer]
+              - 'button "終了日をリサイズ: Development" [ref=e184]'
+              - 'button "Frontend development: 2024-02-06 - 2024-02-20" [ref=e185]'
               - generic: Frontend development
               - generic: 2024/02/06 - 2024/02/20
-              - 'button "開始日をリサイズ: Frontend development" [ref=e188]'
-              - 'button "終了日をリサイズ: Frontend development" [ref=e189]'
-              - 'button "Backend integration: 2024-02-12 - 2024-02-25" [ref=e190]'
+              - 'button "開始日をリサイズ: Frontend development" [ref=e186]'
+              - 'button "終了日をリサイズ: Frontend development" [ref=e187]'
+              - 'button "Backend integration: 2024-02-12 - 2024-02-25" [ref=e188]'
               - generic: Backend integration
               - generic: 2024/02/12 - 2024/02/25
-              - 'button "開始日をリサイズ: Backend integration" [ref=e191]'
-              - 'button "終了日をリサイズ: Backend integration" [ref=e192]'
-              - 'button "Code review (Pending): 2024-02-06 - 2024-02-07 (日時未設定)" [ref=e193]'
+              - 'button "開始日をリサイズ: Backend integration" [ref=e189]'
+              - 'button "終了日をリサイズ: Backend integration" [ref=e190]'
+              - 'button "Code review (Pending): 2024-02-06 - 2024-02-07 (日時未設定)" [ref=e191]'
               - generic: Code review (Pending)
               - generic: 2024/02/06 - 2024/02/07
-              - 'button "開始日をリサイズ: Code review (Pending)" [ref=e194]'
-              - 'button "終了日をリサイズ: Code review (Pending)" [ref=e195]'
-              - 'button "Testing & Launch: 2024-02-26 - 2024-02-29" [ref=e197] [cursor=pointer]'
+              - 'button "開始日をリサイズ: Code review (Pending)" [ref=e192]'
+              - 'button "終了日をリサイズ: Code review (Pending)" [ref=e193]'
+              - 'button "Testing & Launch: 2024-02-26 - 2024-02-29" [ref=e195] [cursor=pointer]'
               - generic: Testing & Launch
               - generic: 2024/02/26 - 2024/02/29
-              - 'button "開始日をリサイズ: Testing & Launch" [ref=e198]'
-              - button "配下のタスクに合わせて日付を調整" [ref=e199] [cursor=pointer]
-              - 'button "終了日をリサイズ: Testing & Launch" [ref=e201]'
-              - 'button "QA Testing: 2024-02-26 - 2024-02-28" [ref=e202]'
+              - 'button "開始日をリサイズ: Testing & Launch" [ref=e196]'
+              - button "配下のタスクに合わせて日付を調整" [ref=e197] [cursor=pointer]
+              - 'button "終了日をリサイズ: Testing & Launch" [ref=e199]'
+              - 'button "QA Testing: 2024-02-26 - 2024-02-28" [ref=e200]'
               - generic: QA Testing
               - generic: 2024/02/26 - 2024/02/28
-              - 'button "開始日をリサイズ: QA Testing" [ref=e203]'
-              - 'button "終了日をリサイズ: QA Testing" [ref=e204]'
-              - 'button "Production deployment: 2024-02-29 - 2024-02-29" [ref=e205]'
+              - 'button "開始日をリサイズ: QA Testing" [ref=e201]'
+              - 'button "終了日をリサイズ: QA Testing" [ref=e202]'
+              - 'button "Production deployment: 2024-02-29 - 2024-02-29" [ref=e203]'
               - generic: Production deployment
               - generic: 2024/02/29 - 2024/02/29
-              - 'button "開始日をリサイズ: Production deployment" [ref=e206]'
-              - 'button "終了日をリサイズ: Production deployment" [ref=e207]'
-              - 'button "Post-launch monitoring (TBD): 2024-02-26 - 2024-02-27 (日時未設定)" [ref=e208]'
+              - 'button "開始日をリサイズ: Production deployment" [ref=e204]'
+              - 'button "終了日をリサイズ: Production deployment" [ref=e205]'
+              - 'button "Post-launch monitoring (TBD): 2024-02-26 - 2024-02-27 (日時未設定)" [ref=e206]'
               - generic: Post-launch monitoring (TBD)
               - generic: 2024/02/26 - 2024/02/27
-              - 'button "開始日をリサイズ: Post-launch monitoring (TBD)" [ref=e209]'
-              - 'button "終了日をリサイズ: Post-launch monitoring (TBD)" [ref=e210]'
-    - generic [ref=e211]:
-      - heading "Event Log" [level=3] [ref=e212]
-      - generic [ref=e214]: "🔍 Zoom level changed: 0.7124999999999999"
-  - generic [ref=e215]:
-    - 'heading "🔍 Debug: Gantt Data (20 nodes)" [level=3] [ref=e217]'
-    - generic [ref=e219]:
+              - 'button "開始日をリサイズ: Post-launch monitoring (TBD)" [ref=e207]'
+              - 'button "終了日をリサイズ: Post-launch monitoring (TBD)" [ref=e208]'
+    - generic [ref=e209]:
+      - heading "Event Log" [level=3] [ref=e210]
+      - generic [ref=e212]: "🔍 Zoom level changed: 0.7124999999999999"
+  - generic [ref=e213]:
+    - 'heading "🔍 Debug: Gantt Data (20 nodes)" [level=3] [ref=e215]'
+    - generic [ref=e217]:
       - text: 📁 Website Redesign Project [project]
       - text: "ID: proj-1 | 2024-01-01 → 2024-02-29"
       - text: 📁 Planning & Research [section]

@@ -29,49 +29,45 @@
   $: timelineWidth = calculateTimelineWidth(dateRange, dayWidth);
 </script>
 
-<div class="{classPrefix}-header">
+<!-- ヘッダー全体のコンテナ（スクロールはラッパーが管理） -->
+<div class="{classPrefix}-header" style="width: {timelineWidth}px;">
   <!-- 上段: 大きい単位 -->
   <div class="{classPrefix}-header-major">
-    <div class="{classPrefix}-header-major-content" style="width: {timelineWidth}px;">
-      {#each majorTicks as tick (tick.start.toISO())}
-        {@const x = dateToX(tick.start, dateRange, dayWidth)}
-        {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
-        <div
-          class="{classPrefix}-header-major-cell"
-          style="left: {x}px; width: {width}px;"
-        >
-          {tick.label}
-        </div>
-      {/each}
-    </div>
+    {#each majorTicks as tick (tick.start.toISO())}
+      {@const x = dateToX(tick.start, dateRange, dayWidth)}
+      {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
+      <div
+        class="{classPrefix}-header-major-cell"
+        style="left: {x}px; width: {width}px;"
+      >
+        {tick.label}
+      </div>
+    {/each}
   </div>
   
   <!-- 下段: 小さい単位 -->
   <div class="{classPrefix}-header-minor">
-    <div class="{classPrefix}-header-minor-content" style="width: {timelineWidth}px;">
-      {#each minorTicks as tick (tick.start.toISO())}
-        {@const x = dateToX(tick.start, dateRange, dayWidth)}
-        {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
-        <div
-          class="{classPrefix}-header-minor-cell"
-          style="left: {x}px; width: {width}px;"
-        >
-          {tick.label}
-        </div>
-      {/each}
-    </div>
+    {#each minorTicks as tick (tick.start.toISO())}
+      {@const x = dateToX(tick.start, dateRange, dayWidth)}
+      {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
+      <div
+        class="{classPrefix}-header-minor-cell"
+        style="left: {x}px; width: {width}px;"
+      >
+        {tick.label}
+      </div>
+    {/each}
   </div>
 </div>
 
 <style>
   :global(.gantt-header) {
-    position: relative;
     height: 60px;
     background: #f5f5f5;
     border-bottom: 2px solid #ddd;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    min-width: 100%;
   }
   
   /* 上段: 大きい単位 */
@@ -81,12 +77,6 @@
     background: #e8e8e8;
     border-bottom: 1px solid #ccc;
     flex-shrink: 0;
-  }
-  
-  :global(.gantt-header-major-content) {
-    position: relative;
-    height: 100%;
-    min-height: 30px;
   }
   
   :global(.gantt-header-major-cell) {
@@ -113,12 +103,6 @@
     height: 30px;
     background: #f5f5f5;
     flex-shrink: 0;
-  }
-  
-  :global(.gantt-header-minor-content) {
-    position: relative;
-    height: 100%;
-    min-height: 30px;
   }
   
   :global(.gantt-header-minor-cell) {
