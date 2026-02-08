@@ -29,11 +29,13 @@
       style="left: {x}px; width: {dayWidth}px;"
     >
       <div class="{classPrefix}-header-day-label">
-        {date.toFormat(dateFormat.day)}
+        {date.toFormat(tickDef.majorFormat)}
       </div>
-      <div class="{classPrefix}-header-month-label">
-        {date.toFormat(dateFormat.month)}
-      </div>
+      {#if tickDef.minorFormat}
+        <div class="{classPrefix}-header-month-label">
+          {date.toFormat(tickDef.minorFormat)}
+        </div>
+      {/if}
     </div>
   {/each}
 </div>
