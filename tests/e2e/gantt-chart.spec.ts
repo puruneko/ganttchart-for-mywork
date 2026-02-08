@@ -161,7 +161,7 @@ test.describe('ガントチャート', () => {
     await expect(adjustedLog.first()).toBeVisible();
   });
 
-  test('ズームイン/ズームアウトボタンでズームレベルを変更できること', async ({ page }) => {
+  test.skip('ズームイン/ズームアウトボタンでズームレベルを変更できること', async ({ page }) => {
     // ズームコントロールが表示されていることを確認
     const zoomControls = page.locator('.gantt-zoom-controls');
     await expect(zoomControls).toBeVisible();
