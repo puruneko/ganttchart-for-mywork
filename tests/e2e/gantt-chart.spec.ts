@@ -161,6 +161,43 @@ test.describe('ガントチャート', () => {
     await expect(adjustedLog.first()).toBeVisible();
   });
 
+  test('ズームイン/ズームアウトボタンでズームレベルを変更できること', async ({ page }) => {
+    // ズームコントロールが表示されていることを確認
+    const zoomControls = page.locator('.gantt-zoom-controls');
+    await expect(zoomControls).toBeVisible();
+    
+    // ズームレベルの初期値を確認（デフォルト: 3）
+    const zoomLevel = page.locator('.gantt-zoom-level');
+    await expect(zoomLevel).toHaveText('3');
+    
+    // ズームインボタンをクリック
+    const zoomInBtn = page.locator('.gantt-zoom-btn').filter({ hasText: '+' });
+    await zoomInBtn.click();
+    
+    // ズームレベルが4になることを確認
+    await expect(zoomLevel).toHaveText('4');
+    
+    // イベントログにズーム変更イベントが記録されることを確認
+    await page.waitForTimeout(500);
+    const zoomEvent = page.locator('.log-entry').filter({ hasText: 'Zoom level changed: 4' });
+    await expect(zoomEvent.first()).toBeVisible();
+    
+    // もう一度ズームイン
+    await zoomInBtn.click();
+    await expect(zoomLevel).toHaveText('5');
+    
+    // 最大ズームレベルでズームインボタンが無効になることを確認
+    await expect(zoomInBtn).toBeDisabled();
+    
+    // ズームアウトボタンをクリック
+    const zoomOutBtn = page.locator('.gantt-zoom-btn').filter({ hasText: '−' });
+    await zoomOutBtn.click();
+    await expect(zoomLevel).toHaveText('4');
+    
+    // ズームインボタンが再び有効になることを確認
+    await expect(zoomInBtn).not.toBeDisabled();
+  });
+
   test('デバッグパネルが表示されること', async ({ page }) => {
     // デバッグパネルが存在することを確認
     const debugPanel = page.locator('.gantt-debug-panel');
