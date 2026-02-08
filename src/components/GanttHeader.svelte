@@ -69,9 +69,9 @@
     height: 60px;
     background: #f5f5f5;
     border-bottom: 2px solid #ddd;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
   
   /* 上段: 大きい単位 */
@@ -80,12 +80,13 @@
     height: 30px;
     background: #e8e8e8;
     border-bottom: 1px solid #ccc;
-    overflow: hidden;
+    flex-shrink: 0;
   }
   
   :global(.gantt-header-major-content) {
     position: relative;
     height: 100%;
+    min-height: 30px;
   }
   
   :global(.gantt-header-major-cell) {
@@ -111,12 +112,13 @@
     position: relative;
     height: 30px;
     background: #f5f5f5;
-    overflow: hidden;
+    flex-shrink: 0;
   }
   
   :global(.gantt-header-minor-content) {
     position: relative;
     height: 100%;
+    min-height: 30px;
   }
   
   :global(.gantt-header-minor-cell) {

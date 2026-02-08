@@ -391,6 +391,7 @@
           class="{classPrefix}-tree-wrapper"
           bind:this={treeWrapperElement}
           on:scroll={handleTreeScroll}
+          on:contextmenu={handleContextMenu}
         >
           <GanttTree
             {visibleNodes}
@@ -411,6 +412,7 @@
         class="{classPrefix}-timeline-header-wrapper"
         bind:this={timelineHeaderWrapperElement}
         on:scroll={handleHeaderScroll}
+        on:contextmenu={handleContextMenu}
       >
         <GanttHeader
           {dateRange}

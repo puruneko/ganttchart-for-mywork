@@ -349,12 +349,21 @@
         <!-- セクション/プロジェクト名のラベル -->
         <text
           x={x + 8}
-          y={sectionBarY + sectionBarHeight / 2}
-          dominant-baseline="middle"
+          y={sectionBarY + sectionBarHeight / 2 - 6}
           class="{classPrefix}-section-label"
           pointer-events="none"
         >
           {node.name}
+        </text>
+        
+        <!-- セクション/プロジェクトの日付ラベル -->
+        <text
+          x={x + 8}
+          y={sectionBarY + sectionBarHeight / 2 + 6}
+          class="{classPrefix}-section-date-label"
+          pointer-events="none"
+        >
+          {node.start.toFormat('yyyy/MM/dd')} - {node.end.toFormat('yyyy/MM/dd')}
         </text>
         
         <!-- リサイズハンドル（左） - セクション/サブセクションのみ、バーの上に重ねて配置 -->
@@ -457,13 +466,23 @@
         <!-- タスク名のラベル -->
         <text
           x={x + 8}
-          y={y + 4 + barHeight / 2}
-          dominant-baseline="middle"
+          y={y + 4 + barHeight / 2 - 6}
           class="{classPrefix}-task-label {node.isDateUnset ? classPrefix + '-task-label--unset' : ''}"
           fill={customStyle.labelColor}
           pointer-events="none"
         >
           {node.name}
+        </text>
+        
+        <!-- タスクの日付ラベル -->
+        <text
+          x={x + 8}
+          y={y + 4 + barHeight / 2 + 6}
+          class="{classPrefix}-task-date-label {node.isDateUnset ? classPrefix + '-task-date-label--unset' : ''}"
+          fill={customStyle.labelColor}
+          pointer-events="none"
+        >
+          {node.start.toFormat('yyyy/MM/dd')} - {node.end.toFormat('yyyy/MM/dd')}
         </text>
         
         <!-- リサイズハンドル（左） - バーの上に重ねて配置 -->
@@ -608,22 +627,42 @@
   /* セクション/プロジェクト名ラベル */
   :global(.gantt-section-label) {
     fill: #fff;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
+    user-select: none;
+  }
+  
+  /* セクション/プロジェクト日付ラベル */
+  :global(.gantt-section-date-label) {
+    fill: rgba(255, 255, 255, 0.8);
+    font-size: 9px;
+    font-weight: 400;
     user-select: none;
   }
   
   /* タスク名ラベル */
   :global(.gantt-task-label) {
     fill: #2c3e50;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
+    user-select: none;
+  }
+  
+  /* タスク日付ラベル */
+  :global(.gantt-task-date-label) {
+    fill: #7f8c8d;
+    font-size: 8px;
+    font-weight: 400;
     user-select: none;
   }
   
   /* 日時未設定タスクのラベルは黒色 */
   :global(.gantt-task-label--unset) {
     fill: #2c3e50;
+  }
+  
+  :global(.gantt-task-date-label--unset) {
+    fill: #7f8c8d;
   }
   
   /* 自動調整ボタン */
