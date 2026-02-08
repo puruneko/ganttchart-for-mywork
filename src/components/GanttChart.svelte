@@ -218,6 +218,72 @@
   
   // 現在のtick定義を取得
   $: currentTickDef = getTickDefinitionForScale(currentZoomScale);
+  
+  /**
+   * スクロール同期機能
+   * - ヘッダーとタイムラインの横スクロールを同期
+   * - ツリーとタイムラインの縦スクロールを同期
+   */
+  let timelineHeaderWrapperElement: HTMLElement;
+  let timelineWrapperElement: HTMLElement;
+  let treeWrapperElement: HTMLElement;
+  
+  // スクロール同期処理中のフラグ（ループ防止）
+  let isScrolling = false;
+  
+  /**
+   * タイムラインの横スクロールとヘッダーを同期
+   */
+  function handleTimelineScroll() {
+    if (isScrolling) return;
+    isScrolling = true;
+    
+    try {
+      // 横スクロール: ヘッダーと同期
+      if (timelineWrapperElement && timelineHeaderWrapperElement) {
+        timelineHeaderWrapperElement.scrollLeft = timelineWrapperElement.scrollLeft;
+      }
+      
+      // 縦スクロール: ツリーと同期
+      if (timelineWrapperElement && treeWrapperElement) {
+        treeWrapperElement.scrollTop = timelineWrapperElement.scrollTop;
+      }
+    } finally {
+      isScrolling = false;
+    }
+  }
+  
+  /**
+   * ツリーの縦スクロールとタイムラインを同期
+   */
+  function handleTreeScroll() {
+    if (isScrolling) return;
+    isScrolling = true;
+    
+    try {
+      if (timelineWrapperElement && treeWrapperElement) {
+        timelineWrapperElement.scrollTop = treeWrapperElement.scrollTop;
+      }
+    } finally {
+      isScrolling = false;
+    }
+  }
+  
+  /**
+   * ヘッダーの横スクロールとタイムラインを同期
+   */
+  function handleHeaderScroll() {
+    if (isScrolling) return;
+    isScrolling = true;
+    
+    try {
+      if (timelineWrapperElement && timelineHeaderWrapperElement) {
+        timelineWrapperElement.scrollLeft = timelineHeaderWrapperElement.scrollLeft;
+      }
+    } finally {
+      isScrolling = false;
+    }
+  }
 </script>
 
 <div class="{classPrefix}-container">
@@ -263,7 +329,11 @@
         >
           <span class="{classPrefix}-tree-header-label">タスク</span>
         </div>
-        <div class="{classPrefix}-tree-wrapper">
+        <div 
+          class="{classPrefix}-tree-wrapper"
+          bind:this={treeWrapperElement}
+          on:scroll={handleTreeScroll}
+        >
           <GanttTree
             {visibleNodes}
             rowHeight={chartConfig.rowHeight}
@@ -279,7 +349,11 @@
     
     <!-- 右ペイン: タイムライン -->
     <div class="{classPrefix}-right-pane">
-      <div class="{classPrefix}-timeline-header-wrapper">
+      <div 
+        class="{classPrefix}-timeline-header-wrapper"
+        bind:this={timelineHeaderWrapperElement}
+        on:scroll={handleHeaderScroll}
+      >
         <GanttHeader
           {dateRange}
           dayWidth={chartConfig.dayWidth}
@@ -287,7 +361,11 @@
           zoomScale={currentZoomScale}
         />
       </div>
-      <div class="{classPrefix}-timeline-wrapper">
+      <div 
+        class="{classPrefix}-timeline-wrapper"
+        bind:this={timelineWrapperElement}
+        on:scroll={handleTimelineScroll}
+      >
         <GanttTimeline
           {visibleNodes}
           {dateRange}
@@ -407,7 +485,7 @@
   
   :global(.gantt-tree-wrapper) {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: scroll; /* 常に縦スクロールバーを表示（タイムラインと同期） */
     overflow-x: hidden;
   }
   
@@ -419,13 +497,13 @@
   }
   
   :global(.gantt-timeline-header-wrapper) {
-    overflow-x: auto;
+    overflow-x: scroll; /* 常に横スクロールバーを表示 */
     overflow-y: hidden;
   }
   
   :global(.gantt-timeline-wrapper) {
     flex: 1;
-    overflow: auto;
+    overflow: scroll; /* 常にxyスクロールバーを表示 */
   }
   
   /* スクロールバー同期スタイリング */

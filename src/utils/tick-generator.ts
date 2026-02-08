@@ -105,6 +105,8 @@ export function generateTwoLevelTicks(
 
 /**
  * ズームスケールに応じた2段tick定義を取得
+ * 
+ * デフォルト（scale = 1.0）: 上段=月、下段=日（1日ごと）
  */
 export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   // 時間単位（最も拡大）
@@ -145,40 +147,51 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
     };
   }
   
-  // 日単位
-  if (scale >= 6) {
+  // 日単位（デフォルトはここ: scale = 1.0の場合）
+  if (scale >= 3) {
     return {
       majorUnit: 'month',
-      majorFormat: 'yyyy年M月',
+      majorFormat: 'M月',
       minorUnit: 'day',
       minorFormat: 'd日',
       minorInterval: Duration.fromObject({ days: 1 })
     };
   }
-  if (scale >= 3) {
+  if (scale >= 1.5) {
     return {
       majorUnit: 'month',
-      majorFormat: 'yyyy年M月',
+      majorFormat: 'M月',
       minorUnit: 'day',
       minorFormat: 'd日',
       minorInterval: Duration.fromObject({ days: 2 })
     };
   }
   
-  // 週単位
-  if (scale >= 1.5) {
+  // デフォルト: 上段=月、下段=日（1日ごと）
+  if (scale >= 0.5) {
     return {
       majorUnit: 'month',
-      majorFormat: 'yyyy年M月',
+      majorFormat: 'M月',
+      minorUnit: 'day',
+      minorFormat: 'd日',
+      minorInterval: Duration.fromObject({ days: 1 })
+    };
+  }
+  
+  // 週単位
+  if (scale >= 0.3) {
+    return {
+      majorUnit: 'month',
+      majorFormat: 'M月',
       minorUnit: 'week',
       minorFormat: 'M/d',
       minorInterval: Duration.fromObject({ weeks: 1 })
     };
   }
-  if (scale >= 0.8) {
+  if (scale >= 0.15) {
     return {
       majorUnit: 'month',
-      majorFormat: 'yyyy年M月',
+      majorFormat: 'M月',
       minorUnit: 'week',
       minorFormat: 'M/d',
       minorInterval: Duration.fromObject({ weeks: 2 })
@@ -186,7 +199,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   }
   
   // 月単位
-  if (scale >= 0.4) {
+  if (scale >= 0.08) {
     return {
       majorUnit: 'year',
       majorFormat: 'yyyy年',
@@ -195,7 +208,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ months: 1 })
     };
   }
-  if (scale >= 0.2) {
+  if (scale >= 0.04) {
     return {
       majorUnit: 'year',
       majorFormat: 'yyyy年',
