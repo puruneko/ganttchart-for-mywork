@@ -259,7 +259,7 @@
       <div class="{classPrefix}-left-pane">
         <div 
           class="{classPrefix}-tree-header"
-          style="width: {chartConfig.treePaneWidth}px; height: 50px;"
+          style="width: {chartConfig.treePaneWidth}px; height: 60px;"
         >
           <span class="{classPrefix}-tree-header-label">タスク</span>
         </div>

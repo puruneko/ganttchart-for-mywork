@@ -1,11 +1,14 @@
 <script lang="ts">
   /**
-   * タイムラインヘッダーコンポーネント - 日付ラベルを表示
+   * タイムラインヘッダーコンポーネント - 2段日付ラベルを表示
+   * 
+   * 上段: 大きい単位（年、月、週など）
+   * 下段: 小さい単位（日、時間など）
    */
   
   import type { DateRange } from '../types';
-  import { generateDateTicks, dateToX } from '../utils/timeline-calculations';
-  import { getTickDefinitionForScale } from '../utils/zoom-scale';
+  import { dateToX, durationToWidth } from '../utils/timeline-calculations';
+  import { generateTwoLevelTicks, getTickGenerationDefForScale } from '../utils/tick-generator';
   
   /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
@@ -16,58 +19,101 @@
   /** ズームスケール */
   export let zoomScale: number = 1.0;
   
-  // ズームスケールに応じたtick定義を取得
-  $: tickDef = getTickDefinitionForScale(zoomScale);
-  $: dateTicks = generateDateTicks(dateRange, tickDef.interval);
+  // ズームスケールに応じた2段tick定義を取得
+  $: tickDef = getTickGenerationDefForScale(zoomScale);
+  $: twoLevelTicks = generateTwoLevelTicks(dateRange, tickDef);
+  $: majorTicks = twoLevelTicks.majorTicks;
+  $: minorTicks = twoLevelTicks.minorTicks;
 </script>
 
 <div class="{classPrefix}-header">
-  {#each dateTicks as date (date.toISO())}
-    {@const x = dateToX(date, dateRange, dayWidth)}
-    <div
-      class="{classPrefix}-header-day"
-      style="left: {x}px; width: {dayWidth}px;"
-    >
-      <div class="{classPrefix}-header-day-label">
-        {date.toFormat(tickDef.majorFormat)}
+  <!-- 上段: 大きい単位 -->
+  <div class="{classPrefix}-header-major">
+    {#each majorTicks as tick (tick.start.toISO())}
+      {@const x = dateToX(tick.start, dateRange, dayWidth)}
+      {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
+      <div
+        class="{classPrefix}-header-major-cell"
+        style="left: {x}px; width: {width}px;"
+      >
+        {tick.label}
       </div>
-      {#if tickDef.minorFormat}
-        <div class="{classPrefix}-header-month-label">
-          {date.toFormat(tickDef.minorFormat)}
-        </div>
-      {/if}
-    </div>
-  {/each}
+    {/each}
+  </div>
+  
+  <!-- 下段: 小さい単位 -->
+  <div class="{classPrefix}-header-minor">
+    {#each minorTicks as tick (tick.start.toISO())}
+      {@const x = dateToX(tick.start, dateRange, dayWidth)}
+      {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
+      <div
+        class="{classPrefix}-header-minor-cell"
+        style="left: {x}px; width: {width}px;"
+      >
+        {tick.label}
+      </div>
+    {/each}
+  </div>
 </div>
 
 <style>
   :global(.gantt-header) {
     position: relative;
-    height: 50px;
+    height: 60px;
     background: #f5f5f5;
     border-bottom: 2px solid #ddd;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   
-  :global(.gantt-header-day) {
+  /* 上段: 大きい単位 */
+  :global(.gantt-header-major) {
+    position: relative;
+    height: 30px;
+    background: #e8e8e8;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  :global(.gantt-header-major-cell) {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-right: 1px solid #bbb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 4px;
+  }
+  
+  /* 下段: 小さい単位 */
+  :global(.gantt-header-minor) {
+    position: relative;
+    height: 30px;
+    background: #f5f5f5;
+  }
+  
+  :global(.gantt-header-minor-cell) {
     position: absolute;
     top: 0;
     height: 100%;
     border-right: 1px solid #e0e0e0;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-  }
-  
-  :global(.gantt-header-day-label) {
-    font-size: 14px;
-    font-weight: 600;
-  }
-  
-  :global(.gantt-header-month-label) {
-    font-size: 11px;
-    color: #666;
+    font-size: 12px;
+    color: #555;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
   }
 </style>
