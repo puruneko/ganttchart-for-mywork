@@ -392,6 +392,7 @@
     background: white;
     overflow: hidden;
     position: relative;
+    height: 600px; /* デフォルトの高さを設定 */
   }
   
   :global(.gantt-toggle-tree-btn) {
@@ -485,8 +486,14 @@
   
   :global(.gantt-tree-wrapper) {
     flex: 1;
-    overflow-y: scroll; /* 常に縦スクロールバーを表示（タイムラインと同期） */
+    overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  
+  :global(.gantt-tree-wrapper::-webkit-scrollbar) {
+    display: none; /* Chrome/Safari */
   }
   
   :global(.gantt-right-pane) {
@@ -497,13 +504,25 @@
   }
   
   :global(.gantt-timeline-header-wrapper) {
-    overflow-x: scroll; /* 常に横スクロールバーを表示 */
+    overflow-x: auto;
     overflow-y: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  
+  :global(.gantt-timeline-header-wrapper::-webkit-scrollbar) {
+    display: none; /* Chrome/Safari */
   }
   
   :global(.gantt-timeline-wrapper) {
     flex: 1;
-    overflow: scroll; /* 常にxyスクロールバーを表示 */
+    overflow: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  
+  :global(.gantt-timeline-wrapper::-webkit-scrollbar) {
+    display: none; /* Chrome/Safari */
   }
   
   /* スクロールバー同期スタイリング */

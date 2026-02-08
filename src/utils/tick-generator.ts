@@ -107,10 +107,17 @@ export function generateTwoLevelTicks(
  * ズームスケールに応じた2段tick定義を取得
  * 
  * デフォルト（scale = 1.0）: 上段=月、下段=日（1日ごと）
+ * 
+ * セル幅の最小値を考慮:
+ * - 時間単位: 最小30px (1時間 = 30px → scale 0.72以上)
+ * - 日単位: 最小40px (1日 = 40px → scale 0.96以上)
+ * - 週単位: 最小50px (1週間 = 50px → scale 0.20以上)
+ * - 月単位: 最小50px (1ヶ月 = 50px → scale 0.06以上)
  */
 export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   // 時間単位（最も拡大）
-  if (scale >= 100) {
+  // 1時間 = scale * 42 (1日42px / 24時間)
+  if (scale >= 17) { // 1時間 ≈ 714px
     return {
       majorUnit: 'day',
       majorFormat: 'yyyy年M月d日',
@@ -119,7 +126,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ hours: 1 })
     };
   }
-  if (scale >= 50) {
+  if (scale >= 5.5) { // 3時間 ≈ 693px
     return {
       majorUnit: 'day',
       majorFormat: 'M月d日',
@@ -128,7 +135,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ hours: 3 })
     };
   }
-  if (scale >= 25) {
+  if (scale >= 2.8) { // 6時間 ≈ 706px
     return {
       majorUnit: 'day',
       majorFormat: 'M月d日',
@@ -137,7 +144,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ hours: 6 })
     };
   }
-  if (scale >= 12) {
+  if (scale >= 1.4) { // 12時間 ≈ 706px
     return {
       majorUnit: 'day',
       majorFormat: 'M月d日',
@@ -148,7 +155,8 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   }
   
   // 日単位（デフォルトはここ: scale = 1.0の場合）
-  if (scale >= 3) {
+  // 1日 = scale * 42px
+  if (scale >= 0.95) { // 1日 ≈ 40px
     return {
       majorUnit: 'month',
       majorFormat: 'M月',
@@ -157,7 +165,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ days: 1 })
     };
   }
-  if (scale >= 1.5) {
+  if (scale >= 0.48) { // 2日 ≈ 40px
     return {
       majorUnit: 'month',
       majorFormat: 'M月',
@@ -166,20 +174,19 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ days: 2 })
     };
   }
-  
-  // デフォルト: 上段=月、下段=日（1日ごと）
-  if (scale >= 0.5) {
+  if (scale >= 0.24) { // 4日 ≈ 40px
     return {
       majorUnit: 'month',
       majorFormat: 'M月',
       minorUnit: 'day',
       minorFormat: 'd日',
-      minorInterval: Duration.fromObject({ days: 1 })
+      minorInterval: Duration.fromObject({ days: 4 })
     };
   }
   
   // 週単位
-  if (scale >= 0.3) {
+  // 1週間 = scale * 42 * 7 = scale * 294px
+  if (scale >= 0.17) { // 1週間 ≈ 50px
     return {
       majorUnit: 'month',
       majorFormat: 'M月',
@@ -188,7 +195,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ weeks: 1 })
     };
   }
-  if (scale >= 0.15) {
+  if (scale >= 0.085) { // 2週間 ≈ 50px
     return {
       majorUnit: 'month',
       majorFormat: 'M月',
@@ -199,7 +206,8 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   }
   
   // 月単位
-  if (scale >= 0.08) {
+  // 1ヶ月 ≈ scale * 42 * 30 = scale * 1260px
+  if (scale >= 0.04) { // 1ヶ月 ≈ 50px
     return {
       majorUnit: 'year',
       majorFormat: 'yyyy年',
@@ -208,7 +216,7 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
       minorInterval: Duration.fromObject({ months: 1 })
     };
   }
-  if (scale >= 0.04) {
+  if (scale >= 0.013) { // 3ヶ月 ≈ 50px
     return {
       majorUnit: 'year',
       majorFormat: 'yyyy年',

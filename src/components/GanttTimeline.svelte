@@ -264,10 +264,18 @@
   }
   
   /**
-   * パン中のハンドラー
+   * パン中のハンドラー - 右クリックホールド中のみスクロール
    */
   function handlePanMove(event: MouseEvent) {
     if (!panState || !timelineContainer) return;
+    
+    // 右クリックボタン(button 2)が押されていない場合は終了
+    if ((event.buttons & 2) === 0) {
+      handlePanEnd();
+      return;
+    }
+    
+    event.preventDefault();
     
     const deltaX = event.clientX - panState.startX;
     const deltaY = event.clientY - panState.startY;
