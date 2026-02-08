@@ -92,7 +92,10 @@
           role="button"
           tabindex="0"
         >
-          {node.name}
+          <span class="{classPrefix}-node-name-text">{node.name}</span>
+          <span class="{classPrefix}-node-dates">
+            {node.startDate.toFormat('yyyy/MM/dd')} - {node.endDate.toFormat('yyyy/MM/dd')}
+          </span>
         </span>
       </div>
     </div>
@@ -143,13 +146,26 @@
     cursor: pointer;
     flex: 1;
     padding: 4px 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  :global(.gantt-node-name:hover) {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  :global(.gantt-node-name-text) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   
-  :global(.gantt-node-name:hover) {
-    background: rgba(0, 0, 0, 0.05);
+  :global(.gantt-node-dates) {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    margin-top: 2px;
   }
   
   :global(.gantt-tree-row--project .gantt-node-name) {

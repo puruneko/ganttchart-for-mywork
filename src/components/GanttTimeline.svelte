@@ -243,66 +243,6 @@
     window.removeEventListener('mouseup', handleMouseUp);
   }
   
-  /**
-   * 右クリックドラッグでスクロール開始
-   */
-  function handleContextMenu(event: MouseEvent) {
-    event.preventDefault();
-    
-    if (!timelineContainer) return;
-    
-    panState = {
-      startX: event.clientX,
-      startY: event.clientY,
-      scrollLeft: timelineContainer.scrollLeft,
-      scrollTop: timelineContainer.scrollTop
-    };
-    
-    window.addEventListener('mousemove', handlePanMove);
-    window.addEventListener('mouseup', handlePanEnd);
-    window.addEventListener('contextmenu', preventContextMenu);
-  }
-  
-  /**
-   * パン中のハンドラー - 右クリックホールド中のみスクロール
-   */
-  function handlePanMove(event: MouseEvent) {
-    if (!panState || !timelineContainer) return;
-    
-    // 右クリックボタン(button 2)が押されていない場合は終了
-    if ((event.buttons & 2) === 0) {
-      handlePanEnd();
-      return;
-    }
-    
-    event.preventDefault();
-    
-    const deltaX = event.clientX - panState.startX;
-    const deltaY = event.clientY - panState.startY;
-    
-    timelineContainer.scrollLeft = panState.scrollLeft - deltaX;
-    timelineContainer.scrollTop = panState.scrollTop - deltaY;
-  }
-  
-  /**
-   * パン終了ハンドラー
-   */
-  function handlePanEnd() {
-    panState = null;
-    window.removeEventListener('mousemove', handlePanMove);
-    window.removeEventListener('mouseup', handlePanEnd);
-    // 少し遅延させてcontextmenuイベントを解除
-    setTimeout(() => {
-      window.removeEventListener('contextmenu', preventContextMenu);
-    }, 100);
-  }
-  
-  /**
-   * コンテキストメニューを防止
-   */
-  function preventContextMenu(event: MouseEvent) {
-    event.preventDefault();
-  }
 </script>
 
 <svg
@@ -311,7 +251,6 @@
   {width}
   {height}
   xmlns="http://www.w3.org/2000/svg"
-  on:contextmenu={handleContextMenu}
 >
   <!-- グラデーション定義 -->
   <defs>

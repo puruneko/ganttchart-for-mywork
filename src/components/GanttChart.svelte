@@ -284,6 +284,64 @@
       isScrolling = false;
     }
   }
+  
+  /**
+   * 右クリックドラッグでスクロール
+   */
+  let panState: {
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null = null;
+  
+  function handleContextMenu(event: MouseEvent) {
+    event.preventDefault();
+    
+    if (!timelineWrapperElement) return;
+    
+    panState = {
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: timelineWrapperElement.scrollLeft,
+      scrollTop: timelineWrapperElement.scrollTop
+    };
+    
+    window.addEventListener('mousemove', handlePanMove);
+    window.addEventListener('mouseup', handlePanEnd);
+    window.addEventListener('contextmenu', preventContextMenu);
+  }
+  
+  function handlePanMove(event: MouseEvent) {
+    if (!panState || !timelineWrapperElement) return;
+    
+    // 右クリックボタン(button 2)が押されていない場合は終了
+    if ((event.buttons & 2) === 0) {
+      handlePanEnd();
+      return;
+    }
+    
+    event.preventDefault();
+    
+    const deltaX = event.clientX - panState.startX;
+    const deltaY = event.clientY - panState.startY;
+    
+    timelineWrapperElement.scrollLeft = panState.scrollLeft - deltaX;
+    timelineWrapperElement.scrollTop = panState.scrollTop - deltaY;
+  }
+  
+  function handlePanEnd() {
+    panState = null;
+    window.removeEventListener('mousemove', handlePanMove);
+    window.removeEventListener('mouseup', handlePanEnd);
+    setTimeout(() => {
+      window.removeEventListener('contextmenu', preventContextMenu);
+    }, 100);
+  }
+  
+  function preventContextMenu(event: MouseEvent) {
+    event.preventDefault();
+  }
 </script>
 
 <div class="{classPrefix}-container">
@@ -365,6 +423,7 @@
         class="{classPrefix}-timeline-wrapper"
         bind:this={timelineWrapperElement}
         on:scroll={handleTimelineScroll}
+        on:contextmenu={handleContextMenu}
       >
         <GanttTimeline
           {visibleNodes}
