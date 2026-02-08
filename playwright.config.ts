@@ -6,7 +6,7 @@ const timeoutSecond = 60
 
 export default defineConfig({
     workers: 1,
-    testDir: "./test/e2e",
+    testDir: "./tests/e2e",
     webServer: {
         command: "npm run dev",
         port: testPort,
