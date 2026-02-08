@@ -5,7 +5,7 @@
  * すべての関数は副作用がなく、同じ入力に対して常に同じ出力を返す。
  */
 
-import type { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 import type { DateRange } from '../types';
 
 /**

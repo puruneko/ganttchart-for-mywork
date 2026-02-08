@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { DateTime } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 import {
   dateToX,
   rowToY,
