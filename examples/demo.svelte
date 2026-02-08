@@ -295,6 +295,10 @@
           logEvent(`📅 Section adjusted: ${minStart.toFormat('MM/dd')} - ${maxEnd.toFormat('MM/dd')}`);
         }
       }
+    },
+    
+    onZoomChange: (zoomLevel) => {
+      logEvent(`🔍 Zoom level changed: ${zoomLevel}`);
     }
   };
   
