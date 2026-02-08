@@ -7,8 +7,14 @@ export default defineConfig({
         baseURL: "http://localhost:5177",
         headless: true,
     },
-    timeout: 15 * 1000, //60000,
+    timeout: 60 * 1000,
     expect: {
         timeout: 10000,
+    },
+    webServer: {
+        command: 'npm run dev',
+        port: 5177,
+        timeout: 120 * 1000,
+        reuseExistingServer: !process.env.CI,
     },
 })
