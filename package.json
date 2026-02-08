@@ -14,7 +14,8 @@
         "demo": "vite --open",
         "example:demo": "vite --open",
         "allowedCommit": "git commit -m ",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "test:e2e:preview": "vite preview"
     },
     "devDependencies": {
         "@playwright/test": "^1.58.2",

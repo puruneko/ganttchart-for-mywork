@@ -1,20 +1,24 @@
 // playwright.config.ts
 import { defineConfig } from "@playwright/test"
 
+const testPort = 5177
+const timeoutSecond = 60
+
 export default defineConfig({
+    workers: 1,
     testDir: "./tests/e2e",
+    webServer: {
+        command: "npm run test:e2e:preview",
+        port: testPort,
+        timeout: timeoutSecond * 1000,
+        reuseExistingServer: false, //!process.env.CI,
+    },
     use: {
-        baseURL: "http://localhost:5177",
+        baseURL: `http://localhost:${testPort}`,
         headless: true,
     },
-    timeout: 60 * 1000,
+    timeout: timeoutSecond * 1000,
     expect: {
-        timeout: 10000,
-    },
-    webServer: {
-        command: 'npm run dev',
-        port: 5177,
-        timeout: 120 * 1000,
-        reuseExistingServer: !process.env.CI,
+        timeout: 10 * 1000,
     },
 })
