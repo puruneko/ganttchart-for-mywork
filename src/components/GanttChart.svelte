@@ -170,8 +170,9 @@
   let currentZoomScale = 1.0; // 初期値
   $: currentZoomScale = getScaleFromDayWidth(chartConfig?.dayWidth ?? 40);
   
-  // ズームスケールの表示用（1-5の範囲にマッピング）
-  $: displayZoomLevel = Math.round(Math.log2(currentZoomScale) * 2 + 3);
+  // ズームスケールの表示用（デフォルトscale=1.0で3になるように）
+  // scale 1.0 → log2(1.0) = 0 → 0 + 3 = 3
+  $: displayZoomLevel = Math.max(1, Math.min(5, Math.round(Math.log2(currentZoomScale) + 3)));
   
   // タイムラインからのズーム変更を処理
   function handleTimelineZoom(scale: number, newDayWidth: number): void {
