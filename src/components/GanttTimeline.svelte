@@ -314,7 +314,7 @@
             height={sectionBarHeight}
             class="{classPrefix}-resize-handle {classPrefix}-resize-handle--end"
             data-node-id={node.id}
-            on:mousedown={(e) => handleMouseDown(node, 'resize-start', e)}
+            on:mousedown={(e) => handleMouseDown(node, 'resize-end', e)}
             role="button"
             tabindex="0"
           >

@@ -7,7 +7,7 @@ export default defineConfig({
         baseURL: "http://localhost:5177",
         headless: true,
     },
-    timeout: 60000,
+    timeout: 15 * 1000, //60000,
     expect: {
         timeout: 10000,
     },
