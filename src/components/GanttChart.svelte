@@ -234,54 +234,66 @@
   /**
    * タイムラインの横スクロールとヘッダーを同期
    */
-  function handleTimelineScroll() {
+  function handleTimelineScroll(event: Event) {
     if (isScrolling) return;
     isScrolling = true;
     
     try {
       // 横スクロール: ヘッダーと同期
       if (timelineWrapperElement && timelineHeaderWrapperElement) {
-        timelineHeaderWrapperElement.scrollLeft = timelineWrapperElement.scrollLeft;
+        const scrollLeft = timelineWrapperElement.scrollLeft;
+        if (timelineHeaderWrapperElement.scrollLeft !== scrollLeft) {
+          timelineHeaderWrapperElement.scrollLeft = scrollLeft;
+        }
       }
       
       // 縦スクロール: ツリーと同期
       if (timelineWrapperElement && treeWrapperElement) {
-        treeWrapperElement.scrollTop = timelineWrapperElement.scrollTop;
+        const scrollTop = timelineWrapperElement.scrollTop;
+        if (treeWrapperElement.scrollTop !== scrollTop) {
+          treeWrapperElement.scrollTop = scrollTop;
+        }
       }
     } finally {
-      isScrolling = false;
+      setTimeout(() => { isScrolling = false; }, 0);
     }
   }
   
   /**
    * ツリーの縦スクロールとタイムラインを同期
    */
-  function handleTreeScroll() {
+  function handleTreeScroll(event: Event) {
     if (isScrolling) return;
     isScrolling = true;
     
     try {
       if (timelineWrapperElement && treeWrapperElement) {
-        timelineWrapperElement.scrollTop = treeWrapperElement.scrollTop;
+        const scrollTop = treeWrapperElement.scrollTop;
+        if (timelineWrapperElement.scrollTop !== scrollTop) {
+          timelineWrapperElement.scrollTop = scrollTop;
+        }
       }
     } finally {
-      isScrolling = false;
+      setTimeout(() => { isScrolling = false; }, 0);
     }
   }
   
   /**
    * ヘッダーの横スクロールとタイムラインを同期
    */
-  function handleHeaderScroll() {
+  function handleHeaderScroll(event: Event) {
     if (isScrolling) return;
     isScrolling = true;
     
     try {
       if (timelineWrapperElement && timelineHeaderWrapperElement) {
-        timelineWrapperElement.scrollLeft = timelineHeaderWrapperElement.scrollLeft;
+        const scrollLeft = timelineHeaderWrapperElement.scrollLeft;
+        if (timelineWrapperElement.scrollLeft !== scrollLeft) {
+          timelineWrapperElement.scrollLeft = scrollLeft;
+        }
       }
     } finally {
-      isScrolling = false;
+      setTimeout(() => { isScrolling = false; }, 0);
     }
   }
   
@@ -295,7 +307,10 @@
     scrollTop: number;
   } | null = null;
   
-  function handleContextMenu(event: MouseEvent) {
+  function handleMouseDown(event: MouseEvent) {
+    // 右クリック（button = 2）でパン開始
+    if (event.button !== 2) return;
+    
     event.preventDefault();
     
     if (!timelineWrapperElement) return;
@@ -312,10 +327,15 @@
     window.addEventListener('contextmenu', preventContextMenu);
   }
   
+  function handleContextMenu(event: MouseEvent) {
+    // コンテキストメニューを防止
+    event.preventDefault();
+  }
+  
   function handlePanMove(event: MouseEvent) {
     if (!panState || !timelineWrapperElement) return;
     
-    // 右クリックボタン(button 2)が押されていない場合は終了
+    // 右クリックボタン(buttons bit 2)が押されていない場合は終了
     if ((event.buttons & 2) === 0) {
       handlePanEnd();
       return;
@@ -326,8 +346,11 @@
     const deltaX = event.clientX - panState.startX;
     const deltaY = event.clientY - panState.startY;
     
+    // スクロール同期フラグを一時的に無効化
+    isScrolling = true;
     timelineWrapperElement.scrollLeft = panState.scrollLeft - deltaX;
     timelineWrapperElement.scrollTop = panState.scrollTop - deltaY;
+    isScrolling = false;
   }
   
   function handlePanEnd() {
@@ -391,6 +414,7 @@
           class="{classPrefix}-tree-wrapper"
           bind:this={treeWrapperElement}
           on:scroll={handleTreeScroll}
+          on:mousedown={handleMouseDown}
           on:contextmenu={handleContextMenu}
         >
           <GanttTree
@@ -412,6 +436,7 @@
         class="{classPrefix}-timeline-header-wrapper"
         bind:this={timelineHeaderWrapperElement}
         on:scroll={handleHeaderScroll}
+        on:mousedown={handleMouseDown}
         on:contextmenu={handleContextMenu}
       >
         <GanttHeader
@@ -425,6 +450,7 @@
         class="{classPrefix}-timeline-wrapper"
         bind:this={timelineWrapperElement}
         on:scroll={handleTimelineScroll}
+        on:mousedown={handleMouseDown}
         on:contextmenu={handleContextMenu}
       >
         <GanttTimeline

@@ -62,6 +62,7 @@
 - `page.goto()` で以下を行うことは禁止
   - `localhost` の直接指定
   - ポート番号の直接指定
+  - `waitUntil`に`networkidle`の指定は禁止。`domcontentloaded`を推奨
 - サーバ起動失敗・ポート競合が発生した場合
   - **テストコードは修正しない**
   - 起動方法や設定を見直すこと
