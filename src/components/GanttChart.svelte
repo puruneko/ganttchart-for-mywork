@@ -167,7 +167,8 @@
   /**
    * ズーム機能（ジェスチャーベース + ボタン操作）
    */
-  let currentZoomScale = getScaleFromDayWidth(chartConfig.dayWidth);
+  let currentZoomScale = 1.0; // 初期値
+  $: currentZoomScale = getScaleFromDayWidth(chartConfig?.dayWidth ?? 40);
   
   // ズームスケールの表示用（1-5の範囲にマッピング）
   $: displayZoomLevel = Math.round(Math.log2(currentZoomScale) * 2 + 3);
