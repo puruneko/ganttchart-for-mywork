@@ -175,7 +175,7 @@
       {@const x = dateToX(node.start, dateRange, dayWidth)}
       {@const y = rowToY(node.visualIndex, rowHeight)}
       {@const barWidth = durationToWidth(node.start, node.end, dayWidth)}
-      {@const barHeight = Math.round((rowHeight - 8) * 0.6)}
+      {@const barHeight = Math.round((rowHeight - 8) * 0.85)}
       {@const barClass = getBarClass(node.type, classPrefix)}
       {@const handleSize = 8}
       
@@ -421,8 +421,8 @@
   }
   
   :global(.gantt-bar--task) {
-    fill: #d6e9f8;
-    stroke: none;
+    fill: rgba(92, 163, 243, 0.4);
+    stroke: rgba(92, 163, 243, 1);
   }
   
   /* 日時未設定のタスクバー */
