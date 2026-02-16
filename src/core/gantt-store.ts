@@ -169,12 +169,8 @@ export function createGanttStore(
   const zoomScale: Writable<number> = writable(1.0);
   
   // 拡張されたdateRange（スクロール領域に応じて動的に拡張）
+  // 初期値はbaseDateRangeと同じ、initExtendedDateRange()で正しくバッファを追加
   const extendedDateRange: Writable<DateRange> = writable(get(dateRange));
-  
-  // 基本dateRangeが変更されたら、extendedDateRangeも初期化
-  dateRange.subscribe($dateRange => {
-    extendedDateRange.set($dateRange);
-  });
   
   /**
    * 現在のTick定義に基づいて適切なバッファ日数を計算

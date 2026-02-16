@@ -25,6 +25,7 @@
   import { getTickGenerationDefForScale, addCustomTickGenerationDef } from '../utils/tick-generator';
   import type { TickGenerationDef } from '../utils/tick-generator';
   import { Duration } from 'luxon';
+  import { onMount } from 'svelte';
   
   // パブリックprops
   /** 表示するノードの配列 */
@@ -60,8 +61,20 @@
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
-  // 初期化時にextendedDateRangeを設定
-  $: if (timelineWrapperElement && chartConfig.dayWidth && currentZoomScale) {
+  // extendedDateRange初期化フラグ
+  let isExtendedDateRangeInitialized = false;
+  
+  // 初回マウント時にextendedDateRangeを初期化
+  onMount(() => {
+    if (timelineWrapperElement && !isExtendedDateRangeInitialized) {
+      const containerWidth = timelineWrapperElement.clientWidth;
+      store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
+      isExtendedDateRangeInitialized = true;
+    }
+  });
+  
+  // dateRangeが変更されたときも再初期化
+  $: if (isExtendedDateRangeInitialized && dateRange && timelineWrapperElement) {
     const containerWidth = timelineWrapperElement.clientWidth;
     store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
   }
