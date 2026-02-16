@@ -183,11 +183,6 @@
   let eventLog: string[] = [];
   let showEventLog = false;
   
-  // Tick定義エディター
-  let showTickEditor = false;
-  let tickDefinitions: TickDefinition[] = [];
-  let editingTick: { index: number; def: TickDefinition } | null = null;
-  
   // データデバッグパネル
   let showDataDebug = false;
   
@@ -197,7 +192,8 @@
   // 現在のズームスケール（ガントチャートからsubscribe）
   let currentZoomScale = 1.0;
   
-  // Tick定義を初期化
+  // Tick定義を初期化（デバッグパネル用）
+  let tickDefinitions: TickDefinition[] = [];
   $: tickDefinitions = getAllTickDefinitions() as TickDefinition[];
   
   // 現在のスケールに対応するTick定義のインデックスを取得
@@ -354,58 +350,6 @@
     logEvent('🔄 Data reset');
   }
   
-  // Tick定義の編集
-  function startEditTick(index: number) {
-    editingTick = { 
-      index, 
-      def: JSON.parse(JSON.stringify(tickDefinitions[index])) // ディープコピー
-    };
-  }
-  
-  function cancelEditTick() {
-    editingTick = null;
-  }
-  
-  function saveEditTick() {
-    if (editingTick) {
-      const label = editingTick.def.label;
-      updateTickDefinition(editingTick.index, editingTick.def);
-      tickDefinitions = getAllTickDefinitions() as TickDefinition[];
-      editingTick = null;
-      logEvent(`⚙️ Tick定義を更新: ${label}`);
-    }
-  }
-  
-  // Duration文字列をパース
-  function parseDurationString(str: string): Duration {
-    try {
-      // "1 hour", "3 hours", "1 day", "2 weeks", "1 month", "1 year" などの形式をサポート
-      const parts = str.trim().split(' ');
-      if (parts.length !== 2) throw new Error('Invalid format');
-      
-      const value = parseFloat(parts[0]);
-      const unit = parts[1].toLowerCase().replace(/s$/, ''); // 複数形を単数形に
-      
-      const durationObj: any = {};
-      durationObj[unit] = value;
-      
-      return Duration.fromObject(durationObj);
-    } catch (e) {
-      console.error('Duration parse error:', str, e);
-      return Duration.fromObject({ days: 1 });
-    }
-  }
-  
-  // DurationをUI表示用文字列に変換
-  function formatDurationForUI(duration: Duration): string {
-    const obj = duration.toObject();
-    const entries = Object.entries(obj).filter(([_, v]) => v && v !== 0);
-    if (entries.length > 0) {
-      const [unit, value] = entries[0];
-      return `${value} ${unit}`;
-    }
-    return '1 day';
-  }
 </script>
 
 <div class="demo-container">
@@ -427,9 +371,6 @@
       <button on:click={() => showEventLog = !showEventLog}>
         {showEventLog ? 'Hide' : 'Show'} Event Log
       </button>
-      <button on:click={() => showTickEditor = !showTickEditor}>
-        {showTickEditor ? 'Hide' : 'Show'} Tick Editor
-      </button>
       <button on:click={() => showDataDebug = !showDataDebug}>
         {showDataDebug ? 'Hide' : 'Show'} Data Debug
       </button>
@@ -437,7 +378,7 @@
   </div>
   
   <div class="demo-content">
-    <div class="gantt-area" class:has-tick-editor={showTickEditor}>
+    <div class="gantt-area">
       <div class="gantt-wrapper">
         <GanttChart
           bind:this={ganttChartComponent}
@@ -454,31 +395,6 @@
           }}
         />
       </div>
-      
-      {#if showTickEditor}
-        <div class="tick-editor">
-          <h3>Tick Definitions Editor</h3>
-          <div class="tick-info">
-            <small>Current Scale: {currentZoomScale.toFixed(2)}</small>
-          </div>
-          <div class="tick-list">
-            {#each tickDefinitions as tick, i}
-              <div class="tick-item" class:active={i === currentTickIndex}>
-                <div class="tick-header">
-                  <strong>{tick.label}</strong>
-                  <button class="edit-btn" on:click={() => startEditTick(i)}>Edit</button>
-                </div>
-                <div class="tick-details">
-                  <div>minScale: {tick.minScale}</div>
-                  <div>interval: {formatDurationForUI(tick.interval)}</div>
-                  <div>majorFormat: {tick.majorFormat}</div>
-                  <div>minorFormat: {tick.minorFormat || '(none)'}</div>
-                </div>
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
     </div>
     
     <div class="bottom-panels">
@@ -614,55 +530,6 @@
       {/if}
     </div>
   </div>
-  
-  <!-- Tick Edit Modal -->
-  {#if editingTick}
-    <div class="modal-backdrop" on:click={cancelEditTick}>
-      <div class="modal-content" on:click|stopPropagation>
-        <h3>Edit Tick Definition</h3>
-        <div class="form-group">
-          <label>
-            Label:
-            <input type="text" bind:value={editingTick.def.label} />
-          </label>
-        </div>
-        <div class="form-group">
-          <label>
-            Min Scale:
-            <input type="number" step="0.1" bind:value={editingTick.def.minScale} />
-          </label>
-        </div>
-        <div class="form-group">
-          <label>
-            Interval (e.g., "1 day", "3 hours", "2 weeks"):
-            <input 
-              type="text" 
-              value={formatDurationForUI(editingTick.def.interval)}
-              on:input={(e) => {
-                editingTick.def.interval = parseDurationString(e.currentTarget.value);
-              }}
-            />
-          </label>
-        </div>
-        <div class="form-group">
-          <label>
-            Major Format:
-            <input type="text" bind:value={editingTick.def.majorFormat} />
-          </label>
-        </div>
-        <div class="form-group">
-          <label>
-            Minor Format (optional):
-            <input type="text" bind:value={editingTick.def.minorFormat} />
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button on:click={saveEditTick}>Save</button>
-          <button on:click={cancelEditTick}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -728,17 +595,6 @@
     gap: 20px;
   }
   
-  .gantt-area {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  
-  /* Tick Editor表示時 */
-  .gantt-area.has-tick-editor {
-    grid-template-columns: 1fr 350px;
-  }
-  
   .gantt-wrapper {
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -786,153 +642,6 @@
     font-size: 14px;
   }
   
-  @media (max-width: 1024px) {
-    .demo-content {
-      grid-template-columns: 1fr;
-    }
-  }
-  
-  /* Tick Editor */
-  .tick-editor {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 16px;
-    background: #f9f9f9;
-    height: 600px;
-    overflow-y: auto;
-  }
-  
-  .tick-editor h3 {
-    margin: 0 0 8px 0;
-    font-size: 18px;
-    color: #333;
-  }
-  
-  .tick-info {
-    margin-bottom: 12px;
-    padding: 8px;
-    background: #e3f2fd;
-    border-radius: 4px;
-  }
-  
-  .tick-info small {
-    font-size: 12px;
-    color: #1976d2;
-    font-weight: 600;
-  }
-  
-  .tick-list {
-    display: grid;
-    gap: 12px;
-  }
-  
-  .tick-item {
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 12px;
-    transition: all 0.2s;
-  }
-  
-  .tick-item.active {
-    background: #e8f5e9;
-    border: 2px solid #4caf50;
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
-  }
-  
-  .tick-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  
-  .tick-header strong {
-    font-size: 14px;
-    color: #333;
-  }
-  
-  .edit-btn {
-    padding: 4px 12px;
-    font-size: 12px;
-    background: #4a90e2;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .edit-btn:hover {
-    background: #357abd;
-  }
-  
-  .tick-details {
-    font-size: 12px;
-    color: #666;
-    display: grid;
-    gap: 4px;
-  }
-  
-  /* Modal */
-  .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  
-  .modal-content {
-    background: white;
-    border-radius: 8px;
-    padding: 24px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-  }
-  
-  .modal-content h3 {
-    margin: 0 0 20px 0;
-    font-size: 18px;
-    color: #333;
-  }
-  
-  .form-group {
-    margin-bottom: 16px;
-  }
-  
-  .form-group label {
-    display: block;
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 6px;
-  }
-  
-  .form-group input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-    box-sizing: border-box;
-  }
-  
-  .modal-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 20px;
-  }
-  
-  .modal-actions button {
-    padding: 8px 16px;
-  }
   
   /* Data Debug Panel */
   .data-debug {

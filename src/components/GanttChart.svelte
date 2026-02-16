@@ -173,12 +173,87 @@
   }
   
   /**
+   * Tick定義エディタ表示切り替え
+   */
+  let showTickEditor = false;
+  
+  function toggleTickEditor() {
+    showTickEditor = !showTickEditor;
+  }
+  
+  /**
    * イベントログ表示切り替え
    */
   let showEventLog = false; // 既定値: 非表示
   
   function toggleEventLog() {
     showEventLog = !showEventLog;
+  }
+  
+  /**
+   * Tick定義エディタ用
+   */
+  import { getAllTickDefinitions, updateTickDefinition, type TickDefinition } from '../utils/zoom-scale';
+  
+  let tickDefinitions: TickDefinition[] = [];
+  let editingTick: { index: number; def: TickDefinition } | null = null;
+  
+  // Tick定義を初期化
+  $: tickDefinitions = getAllTickDefinitions() as TickDefinition[];
+  
+  // 現在のスケールに対応するTick定義のインデックスを取得
+  $: currentTickIndex = tickDefinitions.findIndex((tick, i) => {
+    if (i === tickDefinitions.length - 1) return true; // 最後の定義
+    return currentZoomScale >= tick.minScale && currentZoomScale < tickDefinitions[i + 1].minScale;
+  });
+  
+  function startEditTick(index: number) {
+    editingTick = { 
+      index, 
+      def: JSON.parse(JSON.stringify(tickDefinitions[index])) // ディープコピー
+    };
+  }
+  
+  function cancelEditTick() {
+    editingTick = null;
+  }
+  
+  function saveEditTick() {
+    if (editingTick) {
+      const label = editingTick.def.label;
+      updateTickDefinition(editingTick.index, editingTick.def);
+      tickDefinitions = getAllTickDefinitions() as TickDefinition[];
+      editingTick = null;
+    }
+  }
+  
+  // Duration文字列をパース
+  function parseDurationString(str: string): Duration {
+    try {
+      const parts = str.trim().split(' ');
+      if (parts.length !== 2) throw new Error('Invalid format');
+      
+      const value = parseFloat(parts[0]);
+      const unit = parts[1].toLowerCase().replace(/s$/, '');
+      
+      const durationObj: any = {};
+      durationObj[unit] = value;
+      
+      return Duration.fromObject(durationObj);
+    } catch (e) {
+      return Duration.fromObject({ days: 1 });
+    }
+  }
+  
+  // DurationをUI表示用文字列に変換
+  function formatDurationForUI(duration: Duration): string {
+    const obj = duration.toObject();
+    const entries = Object.entries(obj).filter(([_, v]) => v && v !== 0);
+    if (entries.length > 0) {
+      const [unit, value] = entries[0];
+      return `${value} ${unit}`;
+    }
+    return '1 day';
   }
   
   
@@ -424,6 +499,15 @@
     </button>
   </div>
   
+  <!-- Tick定義エディタ切り替えボタン -->
+  <button
+    class="{classPrefix}-toggle-tick-editor-btn"
+    on:click={toggleTickEditor}
+    title={showTickEditor ? 'Tick Editorを非表示' : 'Tick Editorを表示'}
+  >
+    {showTickEditor ? '⚙' : '⚙'}
+  </button>
+  
   
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
@@ -493,7 +577,88 @@
         />
       </div>
     </div>
+    
+    <!-- Tick定義エディタパネル -->
+    {#if showTickEditor}
+      <div class="{classPrefix}-tick-editor-pane">
+        <div class="{classPrefix}-tick-editor-header">
+          <span class="{classPrefix}-tick-editor-label">Tick Definitions</span>
+        </div>
+        <div class="{classPrefix}-tick-editor-wrapper">
+          <div class="{classPrefix}-tick-info">
+            <small>Current Scale: {currentZoomScale.toFixed(2)}</small>
+          </div>
+          <div class="{classPrefix}-tick-list">
+            {#each tickDefinitions as tick, i}
+              <div class="{classPrefix}-tick-item" class:active={i === currentTickIndex}>
+                <div class="{classPrefix}-tick-header">
+                  <strong>{tick.label}</strong>
+                  <button class="{classPrefix}-edit-btn" on:click={() => startEditTick(i)}>Edit</button>
+                </div>
+                <div class="{classPrefix}-tick-details">
+                  <div>minScale: {tick.minScale}</div>
+                  <div>interval: {formatDurationForUI(tick.interval)}</div>
+                  <div>majorFormat: {tick.majorFormat}</div>
+                  <div>minorFormat: {tick.minorFormat || '(none)'}</div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    {/if}
   </div>
+  
+  <!-- Tick Edit Modal -->
+  {#if editingTick}
+    <div class="{classPrefix}-modal-backdrop" on:click={cancelEditTick}>
+      <div class="{classPrefix}-modal-content" on:click|stopPropagation>
+        <h3>Edit Tick Definition</h3>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Label:
+            <input type="text" bind:value={editingTick.def.label} />
+          </label>
+        </div>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Min Scale:
+            <input type="number" step="0.1" bind:value={editingTick.def.minScale} />
+          </label>
+        </div>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Interval (e.g., "1 day", "3 hours", "2 weeks"):
+            <input 
+              type="text" 
+              value={formatDurationForUI(editingTick.def.interval)}
+              on:input={(e) => {
+                if (editingTick) {
+                  editingTick.def.interval = parseDurationString(e.currentTarget.value);
+                }
+              }}
+            />
+          </label>
+        </div>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Major Format:
+            <input type="text" bind:value={editingTick.def.majorFormat} />
+          </label>
+        </div>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Minor Format (optional):
+            <input type="text" bind:value={editingTick.def.minorFormat} />
+          </label>
+        </div>
+        <div class="{classPrefix}-modal-actions">
+          <button on:click={saveEditTick}>Save</button>
+          <button on:click={cancelEditTick}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -529,6 +694,27 @@
     background: #f0f0f0;
   }
   
+  :global(.gantt-toggle-tick-editor-btn) {
+    position: absolute;
+    top: 8px;
+    right: 120px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+  
+  :global(.gantt-toggle-tick-editor-btn:hover) {
+    background: #f0f0f0;
+  }
   
   :global(.gantt-zoom-controls) {
     position: absolute;
@@ -616,6 +802,97 @@
     overflow: hidden;
   }
   
+  :global(.gantt-tick-editor-pane) {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 320px;
+    border-left: 1px solid #ddd;
+  }
+  
+  :global(.gantt-tick-editor-header) {
+    border-bottom: 2px solid #ddd;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-weight: 600;
+    box-sizing: border-box;
+    height: 60px;
+  }
+  
+  :global(.gantt-tick-editor-wrapper) {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    background: #f9f9f9;
+  }
+  
+  :global(.gantt-tick-info) {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: #e3f2fd;
+    border-radius: 4px;
+  }
+  
+  :global(.gantt-tick-info small) {
+    font-size: 12px;
+    color: #1976d2;
+    font-weight: 600;
+  }
+  
+  :global(.gantt-tick-list) {
+    display: grid;
+    gap: 12px;
+  }
+  
+  :global(.gantt-tick-item) {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px;
+    transition: all 0.2s;
+  }
+  
+  :global(.gantt-tick-item.active) {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+  }
+  
+  :global(.gantt-tick-header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  :global(.gantt-tick-header strong) {
+    font-size: 14px;
+    color: #333;
+  }
+  
+  :global(.gantt-edit-btn) {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  :global(.gantt-edit-btn:hover) {
+    background: #357abd;
+  }
+  
+  :global(.gantt-tick-details) {
+    font-size: 12px;
+    color: #666;
+    display: grid;
+    gap: 4px;
+  }
+  
   :global(.gantt-timeline-header-wrapper) {
     overflow-x: auto;
     overflow-y: hidden;
@@ -642,5 +919,76 @@
   :global(.gantt-tree-wrapper),
   :global(.gantt-timeline-wrapper) {
     scrollbar-width: thin;
+  }
+  
+  /* Modal */
+  :global(.gantt-modal-backdrop) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  :global(.gantt-modal-content) {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  :global(.gantt-modal-content h3) {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    color: #333;
+  }
+  
+  :global(.gantt-form-group) {
+    margin-bottom: 16px;
+  }
+  
+  :global(.gantt-form-group label) {
+    display: block;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  
+  :global(.gantt-form-group input) {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  
+  :global(.gantt-modal-actions) {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  
+  :global(.gantt-modal-actions button) {
+    padding: 8px 16px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  :global(.gantt-modal-actions button:hover) {
+    background: #357abd;
   }
 </style>
