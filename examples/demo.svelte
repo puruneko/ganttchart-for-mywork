@@ -191,7 +191,10 @@
   // データデバッグパネル
   let showDataDebug = false;
   
-  // 現在のズームスケール（外部から取得）
+  // GanttChartコンポーネントへの参照
+  let ganttChartComponent: any;
+  
+  // 現在のズームスケール（ガントチャートからsubscribe）
   let currentZoomScale = 1.0;
   
   // Tick定義を初期化
@@ -202,6 +205,16 @@
     if (i === tickDefinitions.length - 1) return true; // 最後の定義
     return currentZoomScale >= tick.minScale && currentZoomScale < tickDefinitions[i + 1].minScale;
   });
+  
+  // GanttChartのストアをsubscribe
+  $: if (ganttChartComponent) {
+    const store = ganttChartComponent.getStore();
+    if (store) {
+      store.zoomScale.subscribe((scale: number) => {
+        currentZoomScale = scale;
+      });
+    }
+  }
   
   function logEvent(message: string) {
     eventLog = [message, ...eventLog].slice(0, 10);
@@ -426,7 +439,8 @@
   <div class="demo-content">
     <div class="gantt-area" class:has-tick-editor={showTickEditor}>
       <div class="gantt-wrapper">
-        <GanttChart 
+        <GanttChart
+          bind:this={ganttChartComponent}
           {nodes}
           {handlers}
           config={{
@@ -557,11 +571,39 @@
               <div class="debug-content node-list">
                 {#each nodes.slice(0, 10) as node}
                   <div class="node-item" class:collapsed={node.isCollapsed}>
-                    <div class="node-id">{node.id}</div>
-                    <div class="node-name">{node.name}</div>
-                    <div class="node-type">{node.type}</div>
-                    <div class="node-dates">
-                      {node.start && node.end ? `${node.start.toFormat('MM/dd')} - ${node.end.toFormat('MM/dd')}` : 'No dates'}
+                    <div class="node-detail">
+                      <div class="detail-row">
+                        <span class="detail-label">ID:</span>
+                        <span class="detail-value">{node.id}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Name:</span>
+                        <span class="detail-value">{node.name}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Type:</span>
+                        <span class="detail-value type-badge type-{node.type}">{node.type}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Parent:</span>
+                        <span class="detail-value">{node.parentId || '(root)'}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Dates:</span>
+                        <span class="detail-value">
+                          {node.start && node.end ? `${node.start.toFormat('yyyy-MM-dd')} - ${node.end.toFormat('yyyy-MM-dd')}` : 'Not set'}
+                        </span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">Collapsed:</span>
+                        <span class="detail-value">{node.isCollapsed ? 'Yes' : 'No'}</span>
+                      </div>
+                      {#if node.metadata}
+                        <div class="detail-row metadata">
+                          <span class="detail-label">Metadata:</span>
+                          <span class="detail-value metadata-value">{JSON.stringify(node.metadata)}</span>
+                        </div>
+                      {/if}
                     </div>
                   </div>
                 {/each}
@@ -957,44 +999,88 @@
   }
   
   .node-list {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
   }
   
   .node-item {
-    display: grid;
-    grid-template-columns: 100px 1fr 100px 150px;
-    gap: 8px;
-    padding: 8px;
+    padding: 12px;
     background: #f5f5f5;
     border-radius: 4px;
-    font-size: 12px;
-    align-items: center;
+    margin-bottom: 8px;
+    border-left: 3px solid #4a90e2;
   }
   
   .node-item.collapsed {
     opacity: 0.6;
+    border-left-color: #999;
   }
   
-  .node-id {
-    font-family: 'Courier New', monospace;
+  .node-detail {
+    display: grid;
+    gap: 6px;
+  }
+  
+  .detail-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+  }
+  
+  .detail-row.metadata {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid #ddd;
+  }
+  
+  .detail-label {
+    min-width: 80px;
     color: #666;
     font-weight: 600;
+    flex-shrink: 0;
   }
   
-  .node-name {
+  .detail-value {
     color: #333;
+    word-break: break-word;
   }
   
-  .node-type {
-    color: #4a90e2;
-    font-weight: 600;
-    text-align: center;
-  }
-  
-  .node-dates {
-    color: #666;
+  .detail-value.metadata-value {
     font-family: 'Courier New', monospace;
-    text-align: right;
+    font-size: 11px;
+    background: #fff;
+    padding: 4px 6px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+  }
+  
+  .type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  
+  .type-project {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+  
+  .type-section {
+    background: #f3e5f5;
+    color: #7b1fa2;
+  }
+  
+  .type-subsection {
+    background: #fff3e0;
+    color: #e65100;
+  }
+  
+  .type-task {
+    background: #e8f5e9;
+    color: #2e7d32;
   }
 </style>

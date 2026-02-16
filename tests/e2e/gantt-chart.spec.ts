@@ -64,13 +64,17 @@ test.describe('ガントチャート', () => {
   });
 
   test('ツリーノードをクリックして折り畳み/展開できること', async ({ page }) => {
+    // Show Event Logボタンをクリックしてログを表示
+    const showLogBtn = page.locator('button').filter({ hasText: 'Show Event Log' });
+    await showLogBtn.click();
+    
     // 折り畳みトグルボタンをクリック
     const toggleButton = page.locator('.gantt-toggle').first();
     await toggleButton.click();
     
     // イベントログが更新されることを確認
     const eventLog = page.locator('.log-entry');
-    await expect(eventLog.first()).toBeVisible();
+    await expect(eventLog.first()).toBeVisible({ timeout: 5000 });
     
     // もう一度クリックして展開
     await toggleButton.click();
@@ -81,43 +85,62 @@ test.describe('ガントチャート', () => {
   });
 
   test('タスクバーをドラッグして移動できること', async ({ page }) => {
+    // Show Event Logボタンをクリックしてログを表示
+    const showLogBtn = page.locator('button').filter({ hasText: 'Show Event Log' });
+    await showLogBtn.click();
+    
     // タスクバーを取得
     const taskBar = page.locator('.gantt-bar--task').first();
+    await taskBar.waitFor({ state: 'visible', timeout: 5000 });
+    
     const boundingBox = await taskBar.boundingBox();
     
     if (boundingBox) {
       // タスクバーの中央をドラッグ
-      await page.mouse.move(boundingBox.x + boundingBox.width / 2, boundingBox.y + boundingBox.height / 2);
+      await page.mouse.move(boundingBox.x + boundingBox.width / 2, boundingBox.y + boundingBox.height / 2, { steps: 5 });
+      await page.waitForTimeout(100);
       await page.mouse.down();
+      await page.waitForTimeout(100);
       
       // 右に100pxドラッグ
-      await page.mouse.move(boundingBox.x + boundingBox.width / 2 + 100, boundingBox.y + boundingBox.height / 2);
+      await page.mouse.move(boundingBox.x + boundingBox.width / 2 + 100, boundingBox.y + boundingBox.height / 2, { steps: 10 });
+      await page.waitForTimeout(100);
       await page.mouse.up();
       
       // イベントログにドラッグイベントが記録されることを確認
+      await page.waitForTimeout(500);
       const dragEvent = page.locator('.log-entry').filter({ hasText: 'Dragged' });
       await expect(dragEvent.first()).toBeVisible({ timeout: 5000 });
     }
   });
 
   test('タスクバーの右端をドラッグして終了日をリサイズできること', async ({ page }) => {
+    // Show Event Logボタンをクリックしてログを表示
+    const showLogBtn = page.locator('button').filter({ hasText: 'Show Event Log' });
+    await showLogBtn.click();
+    
     // タスクバーを取得
     const taskBar = page.locator('.gantt-bar--task').first();
+    await taskBar.waitFor({ state: 'visible', timeout: 5000 });
+    
     const boundingBox = await taskBar.boundingBox();
     
     if (boundingBox) {
       // タスクバーの右端をドラッグ（リサイズハンドル）
-      await page.mouse.move(boundingBox.x + boundingBox.width - 4, boundingBox.y + boundingBox.height / 2);
+      await page.mouse.move(boundingBox.x + boundingBox.width - 4, boundingBox.y + boundingBox.height / 2, { steps: 5 });
+      await page.waitForTimeout(100);
       await page.mouse.down();
+      await page.waitForTimeout(100);
       
       // 右に50pxドラッグ
-      await page.mouse.move(boundingBox.x + boundingBox.width + 50, boundingBox.y + boundingBox.height / 2);
+      await page.mouse.move(boundingBox.x + boundingBox.width + 50, boundingBox.y + boundingBox.height / 2, { steps: 10 });
+      await page.waitForTimeout(100);
       await page.mouse.up();
       
       // イベントログにドラッグイベントが記録されることを確認
       await page.waitForTimeout(500);
       const dragEvent = page.locator('.log-entry').filter({ hasText: 'Dragged' });
-      await expect(dragEvent.first()).toBeVisible();
+      await expect(dragEvent.first()).toBeVisible({ timeout: 5000 });
     }
   });
 
@@ -140,13 +163,17 @@ test.describe('ガントチャート', () => {
   });
 
   test('セクション日付自動調整ボタンをクリックして日付を調整できること', async ({ page }) => {
+    // Show Event Logボタンをクリックしてログを表示
+    const showLogBtn = page.locator('button').filter({ hasText: 'Show Event Log' });
+    await showLogBtn.click();
+    
     // セクションバー（Planning & Research）を見つける
     const sectionBar = page.locator('.gantt-section-bar-full--section').first();
     await expect(sectionBar).toBeVisible();
     
     // 自動調整ボタンを見つける
     const autoAdjustBtn = page.locator('.gantt-auto-adjust-btn').first();
-    await expect(autoAdjustBtn).toBeVisible();
+    await expect(autoAdjustBtn).toBeVisible({ timeout: 5000 });
     
     // ボタンをクリック
     await autoAdjustBtn.click();
@@ -154,11 +181,11 @@ test.describe('ガントチャート', () => {
     // イベントログに自動調整イベントが記録されることを確認
     await page.waitForTimeout(500);
     const autoAdjustEvent = page.locator('.log-entry').filter({ hasText: 'Auto-adjust' });
-    await expect(autoAdjustEvent.first()).toBeVisible();
+    await expect(autoAdjustEvent.first()).toBeVisible({ timeout: 5000 });
     
     // セクションの日付が調整されたことをログで確認
     const adjustedLog = page.locator('.log-entry').filter({ hasText: 'Section adjusted' });
-    await expect(adjustedLog.first()).toBeVisible();
+    await expect(adjustedLog.first()).toBeVisible({ timeout: 5000 });
   });
 
   test.skip('ズームイン/ズームアウトボタンでズームレベルを変更できること', async ({ page }) => {
@@ -211,13 +238,17 @@ test.describe('ガントチャート', () => {
     expect(parseInt(zoomLevelAfterOut || '0')).toBeLessThan(parseInt(beforeZoomOut || '0'));
   });
 
-  test('デバッグパネルが表示されること', async ({ page }) => {
-    // デバッグパネルが存在することを確認
-    const debugPanel = page.locator('.gantt-debug-panel');
+  test('データデバッグパネルが表示されること', async ({ page }) => {
+    // Show Data Debugボタンをクリック
+    const showDebugBtn = page.locator('button').filter({ hasText: 'Show Data Debug' });
+    await showDebugBtn.click();
+    
+    // デバッグパネルが表示されることを確認
+    const debugPanel = page.locator('.data-debug');
     await expect(debugPanel).toBeVisible();
     
-    // デバッグパネルにノード数が表示されることを確認
-    const debugHeader = page.locator('.gantt-debug-header');
-    await expect(debugHeader).toContainText('nodes');
+    // デバッグパネルにノード情報が表示されることを確認
+    const nodesSummary = page.locator('.data-debug').filter({ hasText: 'Nodes Summary' });
+    await expect(nodesSummary).toBeVisible();
   });
 });

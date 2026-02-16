@@ -164,6 +164,9 @@ export function createGanttStore(
     return newNodes; // イベント通知用に返す
   }
   
+  // 現在のズームスケールを保持するストア
+  const zoomScale: Writable<number> = writable(1.0);
+  
   return {
     // 読み取り専用ストア（購読可能）
     nodes: { subscribe: nodes.subscribe },
@@ -171,6 +174,7 @@ export function createGanttStore(
     computedNodes: { subscribe: computedNodes.subscribe },
     visibleNodes: { subscribe: visibleNodes.subscribe },
     dateRange: { subscribe: dateRange.subscribe },
+    zoomScale: { subscribe: zoomScale.subscribe },
     
     // アクション関数
     setNodes,
@@ -178,6 +182,7 @@ export function createGanttStore(
     toggleCollapse,
     getNodeById,
     autoAdjustSectionDates: autoAdjustSection,
+    setZoomScale: (scale: number) => zoomScale.set(scale),
     
     // テストと外部アクセス用（プライベートメソッド）
     _getRawNodes: () => get(nodes),

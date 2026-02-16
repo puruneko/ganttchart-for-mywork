@@ -112,13 +112,13 @@
     border-right: 1px solid #e0e0e0;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     box-sizing: border-box;
     font-size: 12px;
     color: #555;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 0 2px;
+    padding: 0 4px;
   }
 </style>

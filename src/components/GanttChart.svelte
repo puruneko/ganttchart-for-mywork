@@ -38,6 +38,11 @@
   // Svelte 5では、このストア全体を$stateと$derivedに置き換え可能
   const store = createGanttStore(nodes, config);
   
+  // 外部からストアにアクセスできるようにエクスポート（Tick Editorなどで使用）
+  export function getStore() {
+    return store;
+  }
+  
   // ストアの値を購読
   // これらはSvelte 5でシンプルな$state参照になる
   $: {
@@ -198,6 +203,7 @@
   // タイムラインからのズーム変更を処理
   function handleTimelineZoom(scale: number, newDayWidth: number): void {
     currentZoomScale = scale;
+    store.setZoomScale(scale); // ストアにも反映
     store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
     
     // 外部ハンドラーに通知
@@ -211,6 +217,7 @@
     const newScale = Math.min(currentZoomScale * 1.5, ZOOM_SCALE_LIMITS.max);
     const newDayWidth = getDayWidthFromScale(newScale);
     currentZoomScale = newScale;
+    store.setZoomScale(newScale); // ストアにも反映
     store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
     
     if (handlers.onZoomChange) {
@@ -222,6 +229,7 @@
     const newScale = Math.max(currentZoomScale / 1.5, ZOOM_SCALE_LIMITS.min);
     const newDayWidth = getDayWidthFromScale(newScale);
     currentZoomScale = newScale;
+    store.setZoomScale(newScale); // ストアにも反映
     store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
     
     if (handlers.onZoomChange) {
