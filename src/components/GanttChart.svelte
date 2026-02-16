@@ -198,29 +198,23 @@
   let tickDefinitions: TickDefinition[] = [];
   let editingTick: { index: number; def: TickDefinition } | null = null;
   
-  // Tick定義を初期化
+  // Tick定義を初期化（降順でソートされている：大きい→小さい）
   $: tickDefinitions = getAllTickDefinitions() as TickDefinition[];
   
   // 現在のスケールに対応するTick定義のインデックスを取得
+  // TICK_DEFINITIONSは降順ソート済み（minScale: 100, 50, 25, ..., 0）
   $: currentTickIndex = (() => {
     if (tickDefinitions.length === 0) return -1;
     
+    // 降順でチェック：最初にscale >= minScaleとなる定義を探す
     for (let i = 0; i < tickDefinitions.length; i++) {
-      if (i === tickDefinitions.length - 1) {
-        // 最後の定義：このスケール以上ならこれを使う
-        if (currentZoomScale >= tickDefinitions[i].minScale) {
-          return i;
-        }
-      } else {
-        // 中間の定義：minScale <= scale < 次のminScale
-        if (currentZoomScale >= tickDefinitions[i].minScale && currentZoomScale < tickDefinitions[i + 1].minScale) {
-          return i;
-        }
+      if (currentZoomScale >= tickDefinitions[i].minScale) {
+        return i;
       }
     }
     
-    // どれにも該当しない場合は最初の定義
-    return 0;
+    // どれにも該当しない（scaleが最小のminScaleより小さい）場合は最後の定義
+    return tickDefinitions.length - 1;
   })();
   
   function startEditTick(index: number) {
