@@ -210,3 +210,18 @@ export function removeCustomTickDefinition(minScale: number): void {
 export function getAllTickDefinitions(): readonly TickDefinition[] {
   return [...TICK_DEFINITIONS];
 }
+
+/**
+ * Tick定義を更新（インデックス指定）
+ * 
+ * @param index - 更新する定義のインデックス
+ * @param definition - 新しい定義
+ */
+export function updateTickDefinition(index: number, definition: TickDefinition): void {
+  if (index >= 0 && index < TICK_DEFINITIONS.length) {
+    TICK_DEFINITIONS[index] = definition;
+    // minScaleの降順でソート
+    TICK_DEFINITIONS.sort((a, b) => b.minScale - a.minScale);
+    console.log('🔄 ズーム定義を更新:', definition);
+  }
+}
