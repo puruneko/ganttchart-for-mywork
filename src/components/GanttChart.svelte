@@ -202,10 +202,26 @@
   $: tickDefinitions = getAllTickDefinitions() as TickDefinition[];
   
   // 現在のスケールに対応するTick定義のインデックスを取得
-  $: currentTickIndex = tickDefinitions.findIndex((tick, i) => {
-    if (i === tickDefinitions.length - 1) return true; // 最後の定義
-    return currentZoomScale >= tick.minScale && currentZoomScale < tickDefinitions[i + 1].minScale;
-  });
+  $: currentTickIndex = (() => {
+    if (tickDefinitions.length === 0) return -1;
+    
+    for (let i = 0; i < tickDefinitions.length; i++) {
+      if (i === tickDefinitions.length - 1) {
+        // 最後の定義：このスケール以上ならこれを使う
+        if (currentZoomScale >= tickDefinitions[i].minScale) {
+          return i;
+        }
+      } else {
+        // 中間の定義：minScale <= scale < 次のminScale
+        if (currentZoomScale >= tickDefinitions[i].minScale && currentZoomScale < tickDefinitions[i + 1].minScale) {
+          return i;
+        }
+      }
+    }
+    
+    // どれにも該当しない場合は最初の定義
+    return 0;
+  })();
   
   function startEditTick(index: number) {
     editingTick = { 
@@ -586,7 +602,7 @@
         </div>
         <div class="{classPrefix}-tick-editor-wrapper">
           <div class="{classPrefix}-tick-info">
-            <small>Current Scale: {currentZoomScale.toFixed(2)}</small>
+            <small>Current Scale: {currentZoomScale.toFixed(2)} | Active Index: {currentTickIndex}</small>
           </div>
           <div class="{classPrefix}-tick-list">
             {#each tickDefinitions as tick, i}
