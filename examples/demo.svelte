@@ -188,8 +188,17 @@
   let tickDefinitions: TickDefinition[] = [];
   let editingTick: { index: number; def: TickDefinition } | null = null;
   
+  // 現在のズームスケール（外部から取得）
+  let currentZoomScale = 1.0;
+  
   // Tick定義を初期化
   $: tickDefinitions = getAllTickDefinitions() as TickDefinition[];
+  
+  // 現在のスケールに対応するTick定義のインデックスを取得
+  $: currentTickIndex = tickDefinitions.findIndex((tick, i) => {
+    if (i === tickDefinitions.length - 1) return true; // 最後の定義
+    return currentZoomScale >= tick.minScale && currentZoomScale < tickDefinitions[i + 1].minScale;
+  });
   
   function logEvent(message: string) {
     eventLog = [message, ...eventLog].slice(0, 10);
@@ -307,7 +316,8 @@
     },
     
     onZoomChange: (zoomLevel) => {
-      logEvent(`🔍 Zoom level changed: ${zoomLevel}`);
+      currentZoomScale = zoomLevel;
+      logEvent(`🔍 Zoom level changed: ${zoomLevel.toFixed(2)}`);
     }
   };
   
@@ -407,58 +417,65 @@
     </div>
   </div>
   
-  <div class="demo-content" class:has-tick-editor={showTickEditor} class:has-event-log={showEventLog}>
-    <div class="gantt-wrapper">
-      <GanttChart 
-        {nodes}
-        {handlers}
-        config={{
-          mode,
-          rowHeight: 32,
-          dayWidth: 30,
-          treePaneWidth: 300,
-          indentSize: 20,
-          classPrefix: 'gantt',
-          dragSnapDivision: 4
-        }}
-      />
+  <div class="demo-content">
+    <div class="gantt-area" class:has-tick-editor={showTickEditor}>
+      <div class="gantt-wrapper">
+        <GanttChart 
+          {nodes}
+          {handlers}
+          config={{
+            mode,
+            rowHeight: 32,
+            dayWidth: 30,
+            treePaneWidth: 300,
+            indentSize: 20,
+            classPrefix: 'gantt',
+            dragSnapDivision: 4
+          }}
+        />
+      </div>
+      
+      {#if showTickEditor}
+        <div class="tick-editor">
+          <h3>Tick Definitions Editor</h3>
+          <div class="tick-info">
+            <small>Current Scale: {currentZoomScale.toFixed(2)}</small>
+          </div>
+          <div class="tick-list">
+            {#each tickDefinitions as tick, i}
+              <div class="tick-item" class:active={i === currentTickIndex}>
+                <div class="tick-header">
+                  <strong>{tick.label}</strong>
+                  <button class="edit-btn" on:click={() => startEditTick(i)}>Edit</button>
+                </div>
+                <div class="tick-details">
+                  <div>minScale: {tick.minScale}</div>
+                  <div>interval: {formatDurationForUI(tick.interval)}</div>
+                  <div>majorFormat: {tick.majorFormat}</div>
+                  <div>minorFormat: {tick.minorFormat || '(none)'}</div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
     
-    {#if showTickEditor}
-      <div class="tick-editor">
-        <h3>Tick Definitions Editor</h3>
-        <div class="tick-list">
-          {#each tickDefinitions as tick, i}
-            <div class="tick-item">
-              <div class="tick-header">
-                <strong>{tick.label}</strong>
-                <button class="edit-btn" on:click={() => startEditTick(i)}>Edit</button>
-              </div>
-              <div class="tick-details">
-                <div>minScale: {tick.minScale}</div>
-                <div>interval: {formatDurationForUI(tick.interval)}</div>
-                <div>majorFormat: {tick.majorFormat}</div>
-                <div>minorFormat: {tick.minorFormat || '(none)'}</div>
-              </div>
-            </div>
-          {/each}
+    <div class="bottom-panels">
+      {#if showEventLog}
+        <div class="event-log">
+          <h3>Event Log</h3>
+          <div class="log-entries">
+            {#each eventLog as entry}
+              <div class="log-entry">{entry}</div>
+            {/each}
+            {#if eventLog.length === 0}
+              <div class="log-empty">No events yet. Try clicking nodes!</div>
+            {/if}
+          </div>
         </div>
-      </div>
-    {/if}
-    
-    {#if showEventLog}
-      <div class="event-log">
-        <h3>Event Log</h3>
-        <div class="log-entries">
-          {#each eventLog as entry}
-            <div class="log-entry">{entry}</div>
-          {/each}
-          {#if eventLog.length === 0}
-            <div class="log-empty">No events yet. Try clicking nodes!</div>
-          {/if}
-        </div>
-      </div>
-    {/if}
+      {/if}
+    </div>
   </div>
   
   <!-- Tick Edit Modal -->
@@ -569,24 +586,20 @@
   }
   
   .demo-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .gantt-area {
     display: grid;
     grid-template-columns: 1fr;
     gap: 20px;
   }
   
-  /* Tick Editorのみ表示 */
-  .demo-content.has-tick-editor:not(.has-event-log) {
-    grid-template-columns: 1fr 320px;
-  }
-  
-  /* Event Logのみ表示 */
-  .demo-content.has-event-log:not(.has-tick-editor) {
-    grid-template-columns: 1fr 300px;
-  }
-  
-  /* 両方表示 */
-  .demo-content.has-tick-editor.has-event-log {
-    grid-template-columns: 1fr 320px 300px;
+  /* Tick Editor表示時 */
+  .gantt-area.has-tick-editor {
+    grid-template-columns: 1fr 350px;
   }
   
   .gantt-wrapper {
@@ -596,11 +609,17 @@
     height: 600px;
   }
   
+  .bottom-panels {
+    display: grid;
+    gap: 20px;
+  }
+  
   .event-log {
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 16px;
     background: #f9f9f9;
+    max-height: 300px;
   }
   
   .event-log h3 {
@@ -610,7 +629,7 @@
   }
   
   .log-entries {
-    max-height: 550px;
+    max-height: 240px;
     overflow-y: auto;
   }
   
@@ -647,9 +666,22 @@
   }
   
   .tick-editor h3 {
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     font-size: 18px;
     color: #333;
+  }
+  
+  .tick-info {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: #e3f2fd;
+    border-radius: 4px;
+  }
+  
+  .tick-info small {
+    font-size: 12px;
+    color: #1976d2;
+    font-weight: 600;
   }
   
   .tick-list {
@@ -662,6 +694,13 @@
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     padding: 12px;
+    transition: all 0.2s;
+  }
+  
+  .tick-item.active {
+    background: #e8f5e9;
+    border: 2px solid #4caf50;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
   }
   
   .tick-header {
