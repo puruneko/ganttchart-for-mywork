@@ -220,8 +220,10 @@ describe('calculateDateRange', () => {
     
     const range = calculateDateRange(nodes);
     
-    expect(range.start.toISODate()).toBe('2024-01-01');
-    expect(range.end.toISODate()).toBe('2024-01-31'); // includes end day + 1
+    // 最小開始日(2024-01-01) - 15日 = 2023-12-17
+    expect(range.start.toISODate()).toBe('2023-12-17');
+    // 最大終了日(2024-01-30) + 15日 = 2024-02-14
+    expect(range.end.toISODate()).toBe('2024-02-14');
   });
   
   it('should return default range for empty nodes', () => {

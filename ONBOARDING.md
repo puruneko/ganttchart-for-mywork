@@ -51,7 +51,7 @@ Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force
 **E2Eテストが失敗する場合の対処:**
 - ポート競合が原因のことが多い
 - `playwright.config.ts`のwebServer設定を確認
-- 開発サーバーのポートは`5177`固定
+- 開発サーバーのポートは`5176`固定
 
 ## プロジェクト構造
 
@@ -159,7 +159,7 @@ interface TickDefinition {
 }
 ```
 
-**11段階のtick定義:**
+**11段階のtick定義(今後変更の可能性あり):**
 1. 1時間 (scale ≥ 100)
 2. 3時間 (scale ≥ 50)
 3. 6時間 (scale ≥ 25)
@@ -398,10 +398,10 @@ Start-Sleep -Seconds 3
 **原因2: vite.config.tsとplaywright.config.tsのポート不一致**
 ```typescript
 // vite.config.ts
-const basePort = 5177  // ← この値を確認
+const basePort = 5175  // ← この値を確認
 
 // playwright.config.ts
-const testPort = 5177  // ← 一致していること
+const testPort = 5176  // ← 一致していること
 ```
 
 **原因3: webServerコマンドが間違っている**

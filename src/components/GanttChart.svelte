@@ -16,7 +16,6 @@
   import GanttTree from './GanttTree.svelte';
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
-  import GanttDebugPanel from './GanttDebugPanel.svelte';
   import { 
     getTickDefinitionForScale, 
     getDayWidthFromScale,
@@ -177,14 +176,6 @@
     showEventLog = !showEventLog;
   }
   
-  /**
-   * デバッグパネル表示切り替え
-   */
-  let showDebugPanel = true; // 既定値: 表示（調整用）
-  
-  function toggleDebugPanel() {
-    showDebugPanel = !showDebugPanel;
-  }
   
   /**
    * ズーム機能（ジェスチャーベース + ボタン操作）
@@ -243,51 +234,6 @@
   
   // ヘッダー用のtick定義を取得（tick-generator用）
   $: headerTickDef = getTickGenerationDefForScale(currentZoomScale);
-  
-  /**
-   * デバッグパネルからのズーム定義更新を処理
-   */
-  function handleUpdateZoomDef(updates: { minScale: number; interval: Duration; majorFormat: string; minorFormat: string }) {
-    const currentDef = headerTickDef;
-    
-    // intervalから単位を判定
-    let minorUnit: 'month' | 'week' | 'day' | 'hour' = 'day';
-    let majorUnit: 'year' | 'month' | 'week' | 'day' = 'month';
-    
-    if (updates.interval.hours && updates.interval.hours > 0) {
-      minorUnit = 'hour';
-      majorUnit = 'day';
-    } else if (updates.interval.days && updates.interval.days > 0) {
-      minorUnit = 'day';
-      majorUnit = 'month';
-    } else if (updates.interval.weeks && updates.interval.weeks > 0) {
-      minorUnit = 'week';
-      majorUnit = 'month';
-    } else if (updates.interval.months && updates.interval.months > 0) {
-      minorUnit = 'month';
-      majorUnit = 'year';
-    } else if (updates.interval.years && updates.interval.years > 0) {
-      minorUnit = 'month';
-      majorUnit = 'year';
-    }
-    
-    // 新しいTickGenerationDefを作成
-    const newDef: TickGenerationDef = {
-      majorUnit: majorUnit,
-      majorFormat: updates.majorFormat || currentDef.majorFormat,
-      minorUnit: minorUnit,
-      minorFormat: updates.minorFormat || currentDef.minorFormat,
-      minorInterval: updates.interval
-    };
-    
-    // カスタム定義として追加
-    addCustomTickGenerationDef(updates.minScale, newDef);
-    
-    // 表示を強制的に更新（リアクティブに反映させる）
-    headerTickDef = getTickGenerationDefForScale(currentZoomScale);
-    
-    console.log('✅ カスタムズーム定義を適用しました:', newDef);
-  }
   
   /**
    * スクロール同期機能
@@ -470,33 +416,6 @@
     </button>
   </div>
   
-  <!-- イベントログトグルボタン -->
-  <button
-    class="{classPrefix}-toggle-log-btn"
-    on:click={toggleEventLog}
-    title={showEventLog ? 'イベントログを非表示' : 'イベントログを表示'}
-  >
-    {showEventLog ? '📋' : '📋'}
-  </button>
-  
-  <!-- デバッグパネルトグルボタン -->
-  <button
-    class="{classPrefix}-toggle-debug-btn"
-    on:click={toggleDebugPanel}
-    title={showDebugPanel ? 'デバッグパネルを非表示' : 'デバッグパネルを表示'}
-  >
-    {showDebugPanel ? '🔧' : '🔧'}
-  </button>
-  
-  <!-- デバッグパネル -->
-  {#if showDebugPanel}
-    <GanttDebugPanel
-      currentScale={currentZoomScale}
-      tickDef={headerTickDef}
-      {classPrefix}
-      onUpdateZoomDef={handleUpdateZoomDef}
-    />
-  {/if}
   
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
@@ -602,49 +521,6 @@
     background: #f0f0f0;
   }
   
-  :global(.gantt-toggle-log-btn) {
-    position: absolute;
-    top: 8px;
-    left: 48px;
-    z-index: 10;
-    width: 32px;
-    height: 32px;
-    border: 1px solid #ccc;
-    background: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    transition: background 0.2s;
-  }
-  
-  :global(.gantt-toggle-log-btn:hover) {
-    background: #f0f0f0;
-  }
-  
-  :global(.gantt-toggle-debug-btn) {
-    position: absolute;
-    top: 8px;
-    left: 88px;
-    z-index: 10;
-    width: 32px;
-    height: 32px;
-    border: 1px solid #ccc;
-    background: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    transition: background 0.2s;
-  }
-  
-  :global(.gantt-toggle-debug-btn:hover) {
-    background: #f0f0f0;
-  }
   
   :global(.gantt-zoom-controls) {
     position: absolute;

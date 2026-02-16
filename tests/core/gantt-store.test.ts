@@ -176,8 +176,10 @@ describe('dateRange', () => {
     const store = createGanttStore(nodes);
     const range = get(store.dateRange);
     
-    expect(range.start.toISODate()).toBe('2024-01-01');
-    expect(range.end.toISODate()).toBe('2024-01-21');
+    // 最小開始日(2024-01-01) - 15日 = 2023-12-17
+    expect(range.start.toISODate()).toBe('2023-12-17');
+    // 最大終了日(2024-01-20) + 15日 = 2024-02-04
+    expect(range.end.toISODate()).toBe('2024-02-04');
   });
 });
 

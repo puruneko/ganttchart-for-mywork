@@ -188,6 +188,9 @@
   let tickDefinitions: TickDefinition[] = [];
   let editingTick: { index: number; def: TickDefinition } | null = null;
   
+  // データデバッグパネル
+  let showDataDebug = false;
+  
   // 現在のズームスケール（外部から取得）
   let currentZoomScale = 1.0;
   
@@ -414,6 +417,9 @@
       <button on:click={() => showTickEditor = !showTickEditor}>
         {showTickEditor ? 'Hide' : 'Show'} Tick Editor
       </button>
+      <button on:click={() => showDataDebug = !showDataDebug}>
+        {showDataDebug ? 'Hide' : 'Show'} Data Debug
+      </button>
     </div>
   </div>
   
@@ -472,6 +478,95 @@
             {#if eventLog.length === 0}
               <div class="log-empty">No events yet. Try clicking nodes!</div>
             {/if}
+          </div>
+        </div>
+      {/if}
+      
+      {#if showDataDebug}
+        <div class="data-debug">
+          <h3>Internal Data Debug Panel</h3>
+          <div class="debug-sections">
+            <div class="debug-section">
+              <h4>📊 Nodes Summary</h4>
+              <div class="debug-content">
+                <div class="debug-item">
+                  <span class="label">Total Nodes:</span>
+                  <span class="value">{nodes.length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Visible Nodes:</span>
+                  <span class="value">{nodes.filter(n => !n.isCollapsed || n.parentId === null).length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Collapsed Nodes:</span>
+                  <span class="value">{nodes.filter(n => n.isCollapsed).length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Nodes with Dates:</span>
+                  <span class="value">{nodes.filter(n => n.start && n.end).length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Nodes without Dates:</span>
+                  <span class="value">{nodes.filter(n => !n.start || !n.end).length}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="debug-section">
+              <h4>🎯 Node Types</h4>
+              <div class="debug-content">
+                <div class="debug-item">
+                  <span class="label">Projects:</span>
+                  <span class="value">{nodes.filter(n => n.type === 'project').length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Sections:</span>
+                  <span class="value">{nodes.filter(n => n.type === 'section').length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Subsections:</span>
+                  <span class="value">{nodes.filter(n => n.type === 'subsection').length}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Tasks:</span>
+                  <span class="value">{nodes.filter(n => n.type === 'task').length}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="debug-section">
+              <h4>🔍 Zoom & Scale</h4>
+              <div class="debug-content">
+                <div class="debug-item">
+                  <span class="label">Current Zoom Scale:</span>
+                  <span class="value">{currentZoomScale.toFixed(3)}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Active Tick Definition:</span>
+                  <span class="value">{currentTickIndex >= 0 ? tickDefinitions[currentTickIndex]?.label : 'N/A'}</span>
+                </div>
+                <div class="debug-item">
+                  <span class="label">Mode:</span>
+                  <span class="value">{mode}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="debug-section full-width">
+              <h4>📋 Node List (First 10)</h4>
+              <div class="debug-content node-list">
+                {#each nodes.slice(0, 10) as node}
+                  <div class="node-item" class:collapsed={node.isCollapsed}>
+                    <div class="node-id">{node.id}</div>
+                    <div class="node-name">{node.name}</div>
+                    <div class="node-type">{node.type}</div>
+                    <div class="node-dates">
+                      {node.start && node.end ? `${node.start.toFormat('MM/dd')} - ${node.end.toFormat('MM/dd')}` : 'No dates'}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
           </div>
         </div>
       {/if}
@@ -795,5 +890,111 @@
   
   .modal-actions button {
     padding: 8px 16px;
+  }
+  
+  /* Data Debug Panel */
+  .data-debug {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f9f9f9;
+  }
+  
+  .data-debug h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .debug-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  
+  .debug-section {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px;
+  }
+  
+  .debug-section.full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .debug-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #555;
+    font-weight: 600;
+  }
+  
+  .debug-content {
+    display: grid;
+    gap: 8px;
+  }
+  
+  .debug-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  
+  .debug-item .label {
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .debug-item .value {
+    color: #333;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+  
+  .node-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .node-item {
+    display: grid;
+    grid-template-columns: 100px 1fr 100px 150px;
+    gap: 8px;
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    font-size: 12px;
+    align-items: center;
+  }
+  
+  .node-item.collapsed {
+    opacity: 0.6;
+  }
+  
+  .node-id {
+    font-family: 'Courier New', monospace;
+    color: #666;
+    font-weight: 600;
+  }
+  
+  .node-name {
+    color: #333;
+  }
+  
+  .node-type {
+    color: #4a90e2;
+    font-weight: 600;
+    text-align: center;
+  }
+  
+  .node-dates {
+    color: #666;
+    font-family: 'Courier New', monospace;
+    text-align: right;
   }
 </style>

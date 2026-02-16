@@ -7,7 +7,6 @@
 
 // メインコンポーネント
 export { default as GanttChart } from './components/GanttChart.svelte';
-export { default as GanttDebugPanel } from './components/GanttDebugPanel.svelte';
 
 // 型定義
 export type {
