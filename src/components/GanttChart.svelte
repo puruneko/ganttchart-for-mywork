@@ -16,6 +16,7 @@
   import GanttTree from './GanttTree.svelte';
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
+  import GanttDebugPanel from './GanttDebugPanel.svelte';
   import { 
     getTickDefinitionForScale, 
     getDayWidthFromScale,
@@ -51,14 +52,14 @@
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
-  // 重要なデータ変更を監視してログ出力
+  // 重要なデータ変更を監視してログ出力（showEventLogがtrueの場合のみ）
   $: {
-    if (visibleNodes) {
+    if (showEventLog && visibleNodes) {
       console.debug('👁️ [GanttChart] Visible nodes updated:', visibleNodes.length, 'visible');
     }
   }
   $: {
-    if (dateRange) {
+    if (showEventLog && dateRange) {
       console.debug('📅 [GanttChart] Date range:', dateRange.start.toISODate(), '→', dateRange.end.toISODate());
     }
   }
@@ -162,6 +163,24 @@
   function toggleTreePane() {
     showTreePane = !showTreePane;
     store.updateConfig({ ...chartConfig, showTreePane });
+  }
+  
+  /**
+   * イベントログ表示切り替え
+   */
+  let showEventLog = false; // 既定値: 非表示
+  
+  function toggleEventLog() {
+    showEventLog = !showEventLog;
+  }
+  
+  /**
+   * デバッグパネル表示切り替え
+   */
+  let showDebugPanel = true; // 既定値: 表示（調整用）
+  
+  function toggleDebugPanel() {
+    showDebugPanel = !showDebugPanel;
   }
   
   /**
@@ -400,6 +419,33 @@
     </button>
   </div>
   
+  <!-- イベントログトグルボタン -->
+  <button
+    class="{classPrefix}-toggle-log-btn"
+    on:click={toggleEventLog}
+    title={showEventLog ? 'イベントログを非表示' : 'イベントログを表示'}
+  >
+    {showEventLog ? '📋' : '📋'}
+  </button>
+  
+  <!-- デバッグパネルトグルボタン -->
+  <button
+    class="{classPrefix}-toggle-debug-btn"
+    on:click={toggleDebugPanel}
+    title={showDebugPanel ? 'デバッグパネルを非表示' : 'デバッグパネルを表示'}
+  >
+    {showDebugPanel ? '🔧' : '🔧'}
+  </button>
+  
+  <!-- デバッグパネル -->
+  {#if showDebugPanel}
+    <GanttDebugPanel
+      currentScale={currentZoomScale}
+      tickDef={currentTickDef}
+      {classPrefix}
+    />
+  {/if}
+  
   <div class="{classPrefix}-layout">
     <!-- 左ペイン: ツリー -->
     {#if showTreePane}
@@ -501,6 +547,50 @@
   }
   
   :global(.gantt-toggle-tree-btn:hover) {
+    background: #f0f0f0;
+  }
+  
+  :global(.gantt-toggle-log-btn) {
+    position: absolute;
+    top: 8px;
+    left: 48px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+  
+  :global(.gantt-toggle-log-btn:hover) {
+    background: #f0f0f0;
+  }
+  
+  :global(.gantt-toggle-debug-btn) {
+    position: absolute;
+    top: 8px;
+    left: 88px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+  
+  :global(.gantt-toggle-debug-btn:hover) {
     background: #f0f0f0;
   }
   
