@@ -51,11 +51,12 @@
   $: store.updateConfig(config);
   
   // 購読用に個別ストアを抽出
-  const { visibleNodes: visibleNodesStore, dateRange: dateRangeStore, config: configStore } = store;
+  const { visibleNodes: visibleNodesStore, dateRange: dateRangeStore, extendedDateRange: extendedDateRangeStore, config: configStore } = store;
   
   // $構文で購読
   $: visibleNodes = $visibleNodesStore;
   $: dateRange = $dateRangeStore;
+  $: extendedDateRange = $extendedDateRangeStore;
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
@@ -380,6 +381,10 @@
         if (timelineHeaderWrapperElement.scrollLeft !== scrollLeft) {
           timelineHeaderWrapperElement.scrollLeft = scrollLeft;
         }
+        
+        // 拡張dateRangeを更新（無限スクロール感を実現）
+        const containerWidth = timelineWrapperElement.clientWidth;
+        store.updateExtendedDateRange(scrollLeft, containerWidth, chartConfig.dayWidth);
       }
       
       // 縦スクロール: ツリーと同期
@@ -585,7 +590,7 @@
         on:contextmenu={handleContextMenu}
       >
         <GanttHeader
-          {dateRange}
+          dateRange={extendedDateRange}
           dayWidth={chartConfig.dayWidth}
           {classPrefix}
           zoomScale={currentZoomScale}
@@ -600,7 +605,7 @@
       >
         <GanttTimeline
           {visibleNodes}
-          {dateRange}
+          dateRange={extendedDateRange}
           dayWidth={chartConfig.dayWidth}
           rowHeight={chartConfig.rowHeight}
           dragSnapDivision={chartConfig.dragSnapDivision}

@@ -167,6 +167,40 @@ export function createGanttStore(
   // 現在のズームスケールを保持するストア
   const zoomScale: Writable<number> = writable(1.0);
   
+  // 拡張されたdateRange（スクロール領域に応じて動的に拡張）
+  const extendedDateRange: Writable<DateRange> = writable(get(dateRange));
+  
+  // 基本dateRangeが変更されたら、extendedDateRangeも初期化
+  dateRange.subscribe($dateRange => {
+    extendedDateRange.set($dateRange);
+  });
+  
+  /**
+   * ビューポートに基づいてdateRangeを拡張
+   * 
+   * @param scrollLeft - スクロール位置（ピクセル）
+   * @param containerWidth - 表示領域の幅（ピクセル）
+   * @param dayWidth - 1日あたりの幅（ピクセル）
+   */
+  function updateExtendedDateRange(scrollLeft: number, containerWidth: number, dayWidth: number) {
+    const baseDateRange = get(dateRange);
+    
+    // ビューポートのバッファ（画面の2倍分）
+    const bufferDays = Math.ceil((containerWidth / dayWidth) * 2);
+    
+    // スクロール位置から表示開始日を計算
+    const scrollDays = Math.floor(scrollLeft / dayWidth);
+    
+    // 拡張された範囲を計算
+    const extendedStart = baseDateRange.start.minus({ days: bufferDays + scrollDays });
+    const extendedEnd = baseDateRange.end.plus({ days: bufferDays - scrollDays });
+    
+    extendedDateRange.set({
+      start: extendedStart,
+      end: extendedEnd
+    });
+  }
+  
   return {
     // 読み取り専用ストア（購読可能）
     nodes: { subscribe: nodes.subscribe },
@@ -174,6 +208,7 @@ export function createGanttStore(
     computedNodes: { subscribe: computedNodes.subscribe },
     visibleNodes: { subscribe: visibleNodes.subscribe },
     dateRange: { subscribe: dateRange.subscribe },
+    extendedDateRange: { subscribe: extendedDateRange.subscribe },
     zoomScale: { subscribe: zoomScale.subscribe },
     
     // アクション関数
@@ -183,6 +218,7 @@ export function createGanttStore(
     getNodeById,
     autoAdjustSectionDates: autoAdjustSection,
     setZoomScale: (scale: number) => zoomScale.set(scale),
+    updateExtendedDateRange,
     
     // テストと外部アクセス用（プライベートメソッド）
     _getRawNodes: () => get(nodes),
