@@ -33,7 +33,8 @@ const DEFAULT_CONFIG: Required<GanttConfig> = {
   indentSize: 20,
   classPrefix: 'gantt',
   dragSnapDivision: 4,
-  showTreePane: true
+  showTreePane: true,
+  zoomLevel: 3
 };
 
 /**

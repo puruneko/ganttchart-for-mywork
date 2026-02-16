@@ -258,8 +258,8 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   return {
     majorUnit: 'year',
     majorFormat: 'yyyy年',
-    minorUnit: 'year',
-    minorFormat: 'yyyy',
-    minorInterval: Duration.fromObject({ years: 1 })
+    minorUnit: 'month',
+    minorFormat: 'MMM',
+    minorInterval: Duration.fromObject({ months: 1 })
   };
 }

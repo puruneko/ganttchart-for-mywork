@@ -62,7 +62,7 @@ export function durationToWidth(start: DateTime, end: DateTime, dayWidth: number
  * @param intervalDays - 目盛りの間隔（日数、デフォルト: 1）
  * @returns 日付の配列
  */
-export function generateDateTicks(dateRange: DateRange, intervalDays: number = 1): DateTime[];
+export function generateDateTicks(dateRange: DateRange, intervalDays?: number): DateTime[];
 
 /**
  * タイムラインヘッダー用の日付配列を生成（Duration版）

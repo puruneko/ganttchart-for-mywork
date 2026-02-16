@@ -6,7 +6,6 @@
    */
   
   import GanttChart from '../src/components/GanttChart.svelte';
-  import GanttDebugPanel from '../src/components/GanttDebugPanel.svelte';
   import { DateTime, Duration } from 'luxon';
   import type { GanttNode, GanttEventHandlers } from '../src/types';
   import { getAllTickDefinitions, updateTickDefinition, type TickDefinition } from '../src/utils/zoom-scale';
@@ -510,9 +509,6 @@
       </div>
     </div>
   {/if}
-  
-  <!-- Debug Panel -->
-  <GanttDebugPanel {nodes} classPrefix="gantt" />
 </div>
 
 <style>

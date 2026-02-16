@@ -7,15 +7,15 @@
   import { Duration } from 'luxon';
   import type { TickGenerationDef } from '../utils/tick-generator';
   
-  export let currentScale: number;
-  export let tickDef: TickGenerationDef;
+  export let currentScale: number | undefined = undefined;
+  export let tickDef: TickGenerationDef | undefined = undefined;
   export let classPrefix: string;
   
   // ズーム定義を編集した際のコールバック
   export let onUpdateZoomDef: ((updates: { minScale: number; interval: Duration; majorFormat: string; minorFormat: string }) => void) | null = null;
   
   // 編集可能な値
-  let editMinScale = currentScale.toFixed(3);
+  let editMinScale = currentScale?.toFixed(3) ?? '1.000';
   let editMajorFormat = tickDef?.majorFormat || '';
   let editMinorFormat = tickDef?.minorFormat || '';
   
@@ -48,7 +48,7 @@
   
   
   // 現在の値を同期
-  $: editMinScale = currentScale.toFixed(3);
+  $: editMinScale = currentScale?.toFixed(3) ?? '1.000';
   $: {
     if (tickDef?.majorFormat) editMajorFormat = tickDef.majorFormat;
   }
@@ -81,7 +81,7 @@
    * 編集内容をリセット
    */
   function resetChanges() {
-    editMinScale = currentScale.toFixed(3);
+    editMinScale = currentScale?.toFixed(3) ?? '1.000';
     editMajorFormat = tickDef?.majorFormat || '';
     editMinorFormat = tickDef?.minorFormat || '';
     
