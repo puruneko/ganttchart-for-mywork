@@ -7,6 +7,7 @@
 
 import { DateTime, Duration } from 'luxon';
 import type { DateRange } from '../types';
+import { getTickDefinitionForScale } from './zoom-scale';
 
 /**
  * Tick情報（単一のtick）
@@ -126,13 +127,7 @@ export function clearCustomTickGenerationDefs(): void {
 /**
  * ズームスケールに応じた2段tick定義を取得
  * 
- * デフォルト（scale = 1.0）: 上段=月、下段=日（1日ごと）
- * 
- * セル幅の最小値を考慮:
- * - 時間単位: 最小30px (1時間 = 30px → scale 0.72以上)
- * - 日単位: 最小40px (1日 = 40px → scale 0.96以上)
- * - 週単位: 最小50px (1週間 = 50px → scale 0.20以上)
- * - 月単位: 最小50px (1ヶ月 = 50px → scale 0.06以上)
+ * zoom-scale.tsのTickDefinitionから変換して取得
  */
 export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
   // カスタム定義をチェック
@@ -142,124 +137,14 @@ export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
     }
   }
   
-  // デフォルト定義
-  // 時間単位（最も拡大）
-  // 1時間 = scale * 42 (1日42px / 24時間)
-  if (scale >= 17) { // 1時間 ≈ 714px
-    return {
-      majorUnit: 'day',
-      majorFormat: 'yyyy年M月d日',
-      minorUnit: 'hour',
-      minorFormat: 'HH:mm',
-      minorInterval: Duration.fromObject({ hours: 1 })
-    };
-  }
-  if (scale >= 5.5) { // 3時間 ≈ 693px
-    return {
-      majorUnit: 'day',
-      majorFormat: 'M月d日',
-      minorUnit: 'hour',
-      minorFormat: 'HH:mm',
-      minorInterval: Duration.fromObject({ hours: 3 })
-    };
-  }
-  if (scale >= 2.8) { // 6時間 ≈ 706px
-    return {
-      majorUnit: 'day',
-      majorFormat: 'M月d日',
-      minorUnit: 'hour',
-      minorFormat: 'HH:mm',
-      minorInterval: Duration.fromObject({ hours: 6 })
-    };
-  }
-  if (scale >= 1.4) { // 12時間 ≈ 706px
-    return {
-      majorUnit: 'day',
-      majorFormat: 'M月d日',
-      minorUnit: 'hour',
-      minorFormat: 'HH:mm',
-      minorInterval: Duration.fromObject({ hours: 12 })
-    };
-  }
+  // TickDefinitionから取得（zoom-scale.tsと統一）
+  const tickDef = getTickDefinitionForScale(scale);
   
-  // 日単位（デフォルトはここ: scale = 1.0の場合）
-  // 1日 = scale * 42px
-  if (scale >= 0.95) { // 1日 ≈ 40px
-    return {
-      majorUnit: 'month',
-      majorFormat: 'M月',
-      minorUnit: 'day',
-      minorFormat: 'd日',
-      minorInterval: Duration.fromObject({ days: 1 })
-    };
-  }
-  if (scale >= 0.48) { // 2日 ≈ 40px
-    return {
-      majorUnit: 'month',
-      majorFormat: 'M月',
-      minorUnit: 'day',
-      minorFormat: 'd日',
-      minorInterval: Duration.fromObject({ days: 2 })
-    };
-  }
-  if (scale >= 0.24) { // 4日 ≈ 40px
-    return {
-      majorUnit: 'month',
-      majorFormat: 'M月',
-      minorUnit: 'day',
-      minorFormat: 'd日',
-      minorInterval: Duration.fromObject({ days: 4 })
-    };
-  }
-  
-  // 週単位
-  // 1週間 = scale * 42 * 7 = scale * 294px
-  if (scale >= 0.17) { // 1週間 ≈ 50px
-    return {
-      majorUnit: 'month',
-      majorFormat: 'M月',
-      minorUnit: 'week',
-      minorFormat: 'M/d',
-      minorInterval: Duration.fromObject({ weeks: 1 })
-    };
-  }
-  if (scale >= 0.085) { // 2週間 ≈ 50px
-    return {
-      majorUnit: 'month',
-      majorFormat: 'M月',
-      minorUnit: 'week',
-      minorFormat: 'M/d',
-      minorInterval: Duration.fromObject({ weeks: 2 })
-    };
-  }
-  
-  // 月単位
-  // 1ヶ月 ≈ scale * 42 * 30 = scale * 1260px
-  if (scale >= 0.04) { // 1ヶ月 ≈ 50px
-    return {
-      majorUnit: 'year',
-      majorFormat: 'yyyy年',
-      minorUnit: 'month',
-      minorFormat: 'M月',
-      minorInterval: Duration.fromObject({ months: 1 })
-    };
-  }
-  if (scale >= 0.013) { // 3ヶ月 ≈ 50px
-    return {
-      majorUnit: 'year',
-      majorFormat: 'yyyy年',
-      minorUnit: 'month',
-      minorFormat: 'M月',
-      minorInterval: Duration.fromObject({ months: 3 })
-    };
-  }
-  
-  // 年単位（最も縮小）
   return {
-    majorUnit: 'year',
-    majorFormat: 'yyyy年',
-    minorUnit: 'month',
-    minorFormat: 'MMM',
-    minorInterval: Duration.fromObject({ months: 1 })
+    majorUnit: tickDef.majorUnit,
+    majorFormat: tickDef.majorFormat,
+    minorUnit: tickDef.minorUnit,
+    minorFormat: tickDef.minorFormat,
+    minorInterval: tickDef.minorInterval,
   };
 }

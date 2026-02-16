@@ -13,107 +13,152 @@
 import { Duration } from 'luxon';
 
 /**
- * Tick定義
+ * Tick定義（2段構成対応）
  * 特定のズーム範囲に対応する時間単位とフォーマット
+ * 
+ * 上段（major）: 大きい単位（年、月、週など）
+ * 下段（minor）: 小さい単位（日、時間など）
  */
 export interface TickDefinition {
   /** この定義が適用される最小スケール値 */
   minScale: number;
-  /** Tick間隔（Luxon Duration） */
-  interval: Duration;
-  /** 主目盛りの表示フォーマット */
+  
+  // 上段（major）の定義
+  /** 上段の単位 */
+  majorUnit: 'year' | 'month' | 'week' | 'day';
+  /** 上段の表示フォーマット */
   majorFormat: string;
-  /** 副目盛りの表示フォーマット（オプション） */
-  minorFormat?: string;
-  /** 説明ラベル */
+  /** 上段の間隔（オプション、デフォルトは1単位） */
+  majorInterval?: Duration;
+  
+  // 下段（minor）の定義
+  /** 下段の単位 */
+  minorUnit: 'month' | 'week' | 'day' | 'hour';
+  /** 下段の表示フォーマット */
+  minorFormat: string;
+  /** 下段の間隔（Duration） */
+  minorInterval: Duration;
+  
+  /** 説明ラベル（UI表示用） */
   label: string;
 }
 
 /**
- * Tick定義のリスト（スケールの小さい順）
- * markwkenの実装を参考に、より細かい粒度に対応
+ * Tick定義のリスト（2段構成、降順ソート）
+ * tick-generator.tsのデフォルト定義と統一
  */
 let TICK_DEFINITIONS: TickDefinition[] = [
-  // 時間単位（最も拡大）
+  // 時間単位（最も拡大: scale >= 17）
   {
-    minScale: 100,
-    interval: Duration.fromObject({ hours: 1 }),
-    majorFormat: 'HH:mm',
-    minorFormat: 'dd MMM',
+    minScale: 17,
+    majorUnit: 'day',
+    majorFormat: 'yyyy年M月d日',
+    minorUnit: 'hour',
+    minorFormat: 'HH:mm',
+    minorInterval: Duration.fromObject({ hours: 1 }),
     label: '1時間',
   },
   {
-    minScale: 50,
-    interval: Duration.fromObject({ hours: 3 }),
-    majorFormat: 'HH:mm',
-    minorFormat: 'dd MMM',
+    minScale: 5.5,
+    majorUnit: 'day',
+    majorFormat: 'M月d日',
+    minorUnit: 'hour',
+    minorFormat: 'HH:mm',
+    minorInterval: Duration.fromObject({ hours: 3 }),
     label: '3時間',
   },
   {
-    minScale: 25,
-    interval: Duration.fromObject({ hours: 6 }),
-    majorFormat: 'HH:mm',
-    minorFormat: 'dd MMM',
+    minScale: 2.8,
+    majorUnit: 'day',
+    majorFormat: 'M月d日',
+    minorUnit: 'hour',
+    minorFormat: 'HH:mm',
+    minorInterval: Duration.fromObject({ hours: 6 }),
     label: '6時間',
   },
   {
-    minScale: 12,
-    interval: Duration.fromObject({ hours: 12 }),
-    majorFormat: 'HH:mm',
-    minorFormat: 'dd MMM',
+    minScale: 1.4,
+    majorUnit: 'day',
+    majorFormat: 'M月d日',
+    minorUnit: 'hour',
+    minorFormat: 'HH:mm',
+    minorInterval: Duration.fromObject({ hours: 12 }),
     label: '12時間',
   },
-  // 日単位
+  // 日単位（scale >= 0.95）
   {
-    minScale: 6,
-    interval: Duration.fromObject({ days: 1 }),
-    majorFormat: 'dd',
-    minorFormat: 'MMM yyyy',
+    minScale: 0.95,
+    majorUnit: 'month',
+    majorFormat: 'M月',
+    minorUnit: 'day',
+    minorFormat: 'd日',
+    minorInterval: Duration.fromObject({ days: 1 }),
     label: '1日',
   },
   {
-    minScale: 3,
-    interval: Duration.fromObject({ days: 2 }),
-    majorFormat: 'dd',
-    minorFormat: 'MMM yyyy',
+    minScale: 0.48,
+    majorUnit: 'month',
+    majorFormat: 'M月',
+    minorUnit: 'day',
+    minorFormat: 'd日',
+    minorInterval: Duration.fromObject({ days: 2 }),
     label: '2日',
   },
-  // 週単位
   {
-    minScale: 1.5,
-    interval: Duration.fromObject({ weeks: 1 }),
-    majorFormat: 'dd MMM',
-    minorFormat: 'yyyy',
+    minScale: 0.24,
+    majorUnit: 'month',
+    majorFormat: 'M月',
+    minorUnit: 'day',
+    minorFormat: 'd日',
+    minorInterval: Duration.fromObject({ days: 4 }),
+    label: '4日',
+  },
+  // 週単位（scale >= 0.17）
+  {
+    minScale: 0.17,
+    majorUnit: 'month',
+    majorFormat: 'M月',
+    minorUnit: 'week',
+    minorFormat: 'M/d',
+    minorInterval: Duration.fromObject({ weeks: 1 }),
     label: '1週間',
   },
   {
-    minScale: 0.8,
-    interval: Duration.fromObject({ weeks: 2 }),
-    majorFormat: 'dd MMM',
-    minorFormat: 'yyyy',
+    minScale: 0.085,
+    majorUnit: 'month',
+    majorFormat: 'M月',
+    minorUnit: 'week',
+    minorFormat: 'M/d',
+    minorInterval: Duration.fromObject({ weeks: 2 }),
     label: '2週間',
   },
-  // 月単位
+  // 月単位（scale >= 0.04）
   {
-    minScale: 0.4,
-    interval: Duration.fromObject({ months: 1 }),
-    majorFormat: 'MMM',
-    minorFormat: 'yyyy',
+    minScale: 0.04,
+    majorUnit: 'year',
+    majorFormat: 'yyyy年',
+    minorUnit: 'month',
+    minorFormat: 'M月',
+    minorInterval: Duration.fromObject({ months: 1 }),
     label: '1ヶ月',
   },
   {
-    minScale: 0.2,
-    interval: Duration.fromObject({ months: 3 }),
-    majorFormat: 'MMM',
-    minorFormat: 'yyyy',
+    minScale: 0.013,
+    majorUnit: 'year',
+    majorFormat: 'yyyy年',
+    minorUnit: 'month',
+    minorFormat: 'M月',
+    minorInterval: Duration.fromObject({ months: 3 }),
     label: '3ヶ月',
   },
-  // 年単位（最も縮小）
+  // 年単位（最も縮小: scale < 0.013）
   {
     minScale: 0,
-    interval: Duration.fromObject({ years: 1 }),
-    majorFormat: 'yyyy',
-    minorFormat: '',
+    majorUnit: 'year',
+    majorFormat: 'yyyy年',
+    minorUnit: 'month',
+    minorFormat: 'MMM',
+    minorInterval: Duration.fromObject({ months: 1 }),
     label: '1年',
   },
 ];

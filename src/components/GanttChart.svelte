@@ -627,9 +627,9 @@
                 </div>
                 <div class="{classPrefix}-tick-details">
                   <div>minScale: {tick.minScale}</div>
-                  <div>interval: {formatDurationForUI(tick.interval)}</div>
-                  <div>majorFormat: {tick.majorFormat}</div>
-                  <div>minorFormat: {tick.minorFormat || '(none)'}</div>
+                  <div>Major: {tick.majorUnit} / {tick.majorFormat}</div>
+                  <div>Minor: {tick.minorUnit} / {tick.minorFormat}</div>
+                  <div>Minor Interval: {formatDurationForUI(tick.minorInterval)}</div>
                 </div>
               </div>
             {/each}
@@ -658,16 +658,13 @@
         </div>
         <div class="{classPrefix}-form-group">
           <label>
-            Interval (e.g., "1 day", "3 hours", "2 weeks"):
-            <input 
-              type="text" 
-              value={formatDurationForUI(editingTick.def.interval)}
-              on:input={(e) => {
-                if (editingTick) {
-                  editingTick.def.interval = parseDurationString(e.currentTarget.value);
-                }
-              }}
-            />
+            Major Unit:
+            <select bind:value={editingTick.def.majorUnit}>
+              <option value="year">year</option>
+              <option value="month">month</option>
+              <option value="week">week</option>
+              <option value="day">day</option>
+            </select>
           </label>
         </div>
         <div class="{classPrefix}-form-group">
@@ -678,8 +675,33 @@
         </div>
         <div class="{classPrefix}-form-group">
           <label>
-            Minor Format (optional):
+            Minor Unit:
+            <select bind:value={editingTick.def.minorUnit}>
+              <option value="month">month</option>
+              <option value="week">week</option>
+              <option value="day">day</option>
+              <option value="hour">hour</option>
+            </select>
+          </label>
+        </div>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Minor Format:
             <input type="text" bind:value={editingTick.def.minorFormat} />
+          </label>
+        </div>
+        <div class="{classPrefix}-form-group">
+          <label>
+            Minor Interval (e.g., "1 day", "3 hours", "2 weeks"):
+            <input 
+              type="text" 
+              value={formatDurationForUI(editingTick.def.minorInterval)}
+              on:input={(e) => {
+                if (editingTick) {
+                  editingTick.def.minorInterval = parseDurationString(e.currentTarget.value);
+                }
+              }}
+            />
           </label>
         </div>
         <div class="{classPrefix}-modal-actions">
@@ -992,7 +1014,8 @@
     margin-bottom: 6px;
   }
   
-  :global(.gantt-form-group input) {
+  :global(.gantt-form-group input),
+  :global(.gantt-form-group select) {
     width: 100%;
     padding: 8px 12px;
     border: 1px solid #ddd;
