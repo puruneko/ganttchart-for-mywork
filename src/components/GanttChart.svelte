@@ -218,9 +218,15 @@
   })();
   
   function startEditTick(index: number) {
+    const original = tickDefinitions[index];
+    // DurationオブジェクトをディープコピーするためにtoObject()を使用
     editingTick = { 
       index, 
-      def: JSON.parse(JSON.stringify(tickDefinitions[index])) // ディープコピー
+      def: {
+        ...original,
+        majorInterval: original.majorInterval ? Duration.fromObject(original.majorInterval.toObject()) : undefined,
+        minorInterval: Duration.fromObject(original.minorInterval.toObject()),
+      }
     };
   }
   
