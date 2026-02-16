@@ -61,9 +61,9 @@
   $: classPrefix = chartConfig.classPrefix;
   
   // 初期化時にextendedDateRangeを設定
-  $: if (timelineWrapperElement && chartConfig.dayWidth) {
+  $: if (timelineWrapperElement && chartConfig.dayWidth && currentZoomScale) {
     const containerWidth = timelineWrapperElement.clientWidth;
-    store.initExtendedDateRange(containerWidth, chartConfig.dayWidth);
+    store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
   }
   
   // 重要なデータ変更を監視してログ出力（showEventLogがtrueの場合のみ）
@@ -394,6 +394,7 @@
           scrollLeft,
           containerWidth,
           chartConfig.dayWidth,
+          currentZoomScale,
           timelineWrapperElement
         );
       }

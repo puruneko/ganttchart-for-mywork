@@ -18,6 +18,7 @@ import {
   toggleNodeCollapse,
   autoAdjustSectionDates
 } from './data-manager';
+import { getTickDefinitionForScale } from '../utils/zoom-scale';
 
 /**
  * デフォルト設定
@@ -176,15 +177,46 @@ export function createGanttStore(
   });
   
   /**
+   * 現在のTick定義に基づいて適切なバッファ日数を計算
+   * 
+   * @param viewportDays - ビューポートに表示される日数
+   * @param zoomScale - 現在のズームスケール
+   * @returns 適切なバッファ日数
+   */
+  function calculateAdaptiveBuffer(viewportDays: number, zoomScale: number): number {
+    // 現在のズームレベルに対応するTick定義を取得
+    const tickDef = getTickDefinitionForScale(zoomScale);
+    
+    // minorIntervalから1単位の日数を計算
+    const intervalDays = tickDef.minorInterval.as('days');
+    
+    // Tick単位ごとの適切な倍率を決定
+    if (intervalDays < 1) {
+      // 時間単位（1日未満） → 少なめ（ビューポート3倍 or Tick50単位分）
+      return Math.max(Math.ceil(viewportDays * 3), Math.ceil(intervalDays * 50));
+    } else if (intervalDays <= 7) {
+      // 日単位（1-7日） → 中程度（ビューポート5倍 or Tick30単位分）
+      return Math.max(Math.ceil(viewportDays * 5), Math.ceil(intervalDays * 30));
+    } else if (intervalDays <= 31) {
+      // 週単位（8-31日） → 多め（ビューポート8倍 or Tick20単位分）
+      return Math.max(Math.ceil(viewportDays * 8), Math.ceil(intervalDays * 20));
+    } else {
+      // 月/年単位（32日以上） → さらに多め（ビューポート15倍 or Tick15単位分）
+      return Math.max(Math.ceil(viewportDays * 15), Math.ceil(intervalDays * 15));
+    }
+  }
+  
+  /**
    * 初期extendedDateRangeを広く設定
    * 
    * @param containerWidth - 表示領域の幅（ピクセル）
    * @param dayWidth - 1日あたりの幅（ピクセル）
+   * @param zoomScale - 現在のズームスケール
    */
-  function initExtendedDateRange(containerWidth: number, dayWidth: number) {
+  function initExtendedDateRange(containerWidth: number, dayWidth: number, zoomScale: number) {
     const baseDateRange = get(dateRange);
     const viewportDays = Math.ceil(containerWidth / dayWidth);
-    const bufferDays = viewportDays * 10; // 前後10画面分
+    const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale);
     
     const extendedStart = baseDateRange.start.minus({ days: bufferDays });
     const extendedEnd = baseDateRange.end.plus({ days: bufferDays });
@@ -201,6 +233,7 @@ export function createGanttStore(
    * @param scrollLeft - スクロール位置（ピクセル）
    * @param containerWidth - 表示領域の幅（ピクセル）
    * @param dayWidth - 1日あたりの幅（ピクセル）
+   * @param zoomScale - 現在のズームスケール
    * @param timelineElement - タイムライン要素（スクロール位置補正用）
    * @returns 拡張が発生したかどうか
    */
@@ -208,13 +241,14 @@ export function createGanttStore(
     scrollLeft: number,
     containerWidth: number,
     dayWidth: number,
+    zoomScale: number,
     timelineElement: HTMLElement | null
   ): boolean {
     const current = get(extendedDateRange);
     const baseDateRange = get(dateRange);
     const viewportDays = Math.ceil(containerWidth / dayWidth);
     const threshold = viewportDays * 2; // 端から2画面分
-    const bufferDays = viewportDays * 10; // 拡張時は10画面分追加
+    const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale);
     
     // 現在の範囲の日数を計算
     const totalDays = current.end.diff(current.start, 'days').days;
