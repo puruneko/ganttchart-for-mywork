@@ -21,8 +21,11 @@
     getTickDefinitionForScale, 
     getDayWidthFromScale,
     getScaleFromDayWidth,
-    ZOOM_SCALE_LIMITS 
+    ZOOM_SCALE_LIMITS
   } from '../utils/zoom-scale';
+  import { getTickGenerationDefForScale, addCustomTickGenerationDef } from '../utils/tick-generator';
+  import type { TickGenerationDef } from '../utils/tick-generator';
+  import { Duration } from 'luxon';
   
   // パブリックprops
   /** 表示するノードの配列 */
@@ -235,8 +238,56 @@
     }
   }
   
-  // 現在のtick定義を取得
+  // 現在のtick定義を取得（zoom-scale用）
   $: currentTickDef = getTickDefinitionForScale(currentZoomScale);
+  
+  // ヘッダー用のtick定義を取得（tick-generator用）
+  $: headerTickDef = getTickGenerationDefForScale(currentZoomScale);
+  
+  /**
+   * デバッグパネルからのズーム定義更新を処理
+   */
+  function handleUpdateZoomDef(updates: { minScale: number; interval: Duration; majorFormat: string; minorFormat: string }) {
+    const currentDef = headerTickDef;
+    
+    // intervalから単位を判定
+    let minorUnit: 'month' | 'week' | 'day' | 'hour' = 'day';
+    let majorUnit: 'year' | 'month' | 'week' | 'day' = 'month';
+    
+    if (updates.interval.hours && updates.interval.hours > 0) {
+      minorUnit = 'hour';
+      majorUnit = 'day';
+    } else if (updates.interval.days && updates.interval.days > 0) {
+      minorUnit = 'day';
+      majorUnit = 'month';
+    } else if (updates.interval.weeks && updates.interval.weeks > 0) {
+      minorUnit = 'week';
+      majorUnit = 'month';
+    } else if (updates.interval.months && updates.interval.months > 0) {
+      minorUnit = 'month';
+      majorUnit = 'year';
+    } else if (updates.interval.years && updates.interval.years > 0) {
+      minorUnit = 'month';
+      majorUnit = 'year';
+    }
+    
+    // 新しいTickGenerationDefを作成
+    const newDef: TickGenerationDef = {
+      majorUnit: majorUnit,
+      majorFormat: updates.majorFormat || currentDef.majorFormat,
+      minorUnit: minorUnit,
+      minorFormat: updates.minorFormat || currentDef.minorFormat,
+      minorInterval: updates.interval
+    };
+    
+    // カスタム定義として追加
+    addCustomTickGenerationDef(updates.minScale, newDef);
+    
+    // 表示を強制的に更新（リアクティブに反映させる）
+    headerTickDef = getTickGenerationDefForScale(currentZoomScale);
+    
+    console.log('✅ カスタムズーム定義を適用しました:', newDef);
+  }
   
   /**
    * スクロール同期機能
@@ -253,7 +304,7 @@
   /**
    * タイムラインの横スクロールとヘッダーを同期
    */
-  function handleTimelineScroll(event: Event) {
+  function handleTimelineScroll(_event: Event) {
     if (isScrolling) return;
     isScrolling = true;
     
@@ -281,7 +332,7 @@
   /**
    * ツリーの縦スクロールとタイムラインを同期
    */
-  function handleTreeScroll(event: Event) {
+  function handleTreeScroll(_event: Event) {
     if (isScrolling) return;
     isScrolling = true;
     
@@ -300,7 +351,7 @@
   /**
    * ヘッダーの横スクロールとタイムラインを同期
    */
-  function handleHeaderScroll(event: Event) {
+  function handleHeaderScroll(_event: Event) {
     if (isScrolling) return;
     isScrolling = true;
     
@@ -441,8 +492,9 @@
   {#if showDebugPanel}
     <GanttDebugPanel
       currentScale={currentZoomScale}
-      tickDef={currentTickDef}
+      tickDef={headerTickDef}
       {classPrefix}
+      onUpdateZoomDef={handleUpdateZoomDef}
     />
   {/if}
   

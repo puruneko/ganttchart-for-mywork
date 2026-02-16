@@ -104,6 +104,26 @@ export function generateTwoLevelTicks(
 }
 
 /**
+ * カスタムズーム定義を保存
+ */
+let customTickDefs: Map<number, TickGenerationDef> = new Map();
+
+/**
+ * カスタムズーム定義を追加/更新
+ */
+export function addCustomTickGenerationDef(minScale: number, def: TickGenerationDef): void {
+  customTickDefs.set(minScale, def);
+  console.log('🔄 カスタムズーム定義を更新:', minScale, def);
+}
+
+/**
+ * カスタムズーム定義をクリア
+ */
+export function clearCustomTickGenerationDefs(): void {
+  customTickDefs.clear();
+}
+
+/**
  * ズームスケールに応じた2段tick定義を取得
  * 
  * デフォルト（scale = 1.0）: 上段=月、下段=日（1日ごと）
@@ -115,6 +135,14 @@ export function generateTwoLevelTicks(
  * - 月単位: 最小50px (1ヶ月 = 50px → scale 0.06以上)
  */
 export function getTickGenerationDefForScale(scale: number): TickGenerationDef {
+  // カスタム定義をチェック
+  for (const [minScale, def] of Array.from(customTickDefs.entries()).sort((a, b) => b[0] - a[0])) {
+    if (scale >= minScale) {
+      return def;
+    }
+  }
+  
+  // デフォルト定義
   // 時間単位（最も拡大）
   // 1時間 = scale * 42 (1日42px / 24時間)
   if (scale >= 17) { // 1時間 ≈ 714px

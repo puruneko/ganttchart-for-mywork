@@ -11,11 +11,13 @@
   export let tickDef: TickGenerationDef;
   export let classPrefix: string;
   
+  // ズーム定義を編集した際のコールバック
+  export let onUpdateZoomDef: ((updates: { minScale: number; interval: Duration; majorFormat: string; minorFormat: string }) => void) | null = null;
+  
   // 編集可能な値
   let editMinScale = currentScale.toFixed(3);
-  let editMajorFormat = tickDef.majorFormat;
-  let editMinorFormat = tickDef.minorFormat;
-  let editLabel = ''; // labelはtick-generatorには無いので仮置き
+  let editMajorFormat = tickDef?.majorFormat || '';
+  let editMinorFormat = tickDef?.minorFormat || '';
   
   // minorIntervalの編集用（単位ごとに分解）
   let intervalValue = 1;
@@ -23,32 +25,86 @@
   
   // tickDefからintervalを解析
   $: {
-    const interval = tickDef.minorInterval;
-    if (interval.hours && interval.hours > 0) {
-      intervalValue = interval.hours;
-      intervalUnit = 'hours';
-    } else if (interval.days && interval.days > 0) {
-      intervalValue = interval.days;
-      intervalUnit = 'days';
-    } else if (interval.weeks && interval.weeks > 0) {
-      intervalValue = interval.weeks;
-      intervalUnit = 'weeks';
-    } else if (interval.months && interval.months > 0) {
-      intervalValue = interval.months;
-      intervalUnit = 'months';
-    } else if (interval.years && interval.years > 0) {
-      intervalValue = interval.years;
-      intervalUnit = 'years';
+    const interval = tickDef?.minorInterval;
+    if (interval) {
+      if (interval.hours && interval.hours > 0) {
+        intervalValue = interval.hours;
+        intervalUnit = 'hours';
+      } else if (interval.days && interval.days > 0) {
+        intervalValue = interval.days;
+        intervalUnit = 'days';
+      } else if (interval.weeks && interval.weeks > 0) {
+        intervalValue = interval.weeks;
+        intervalUnit = 'weeks';
+      } else if (interval.months && interval.months > 0) {
+        intervalValue = interval.months;
+        intervalUnit = 'months';
+      } else if (interval.years && interval.years > 0) {
+        intervalValue = interval.years;
+        intervalUnit = 'years';
+      }
     }
   }
   
-  // 表示用の整形
-  $: displayInterval = `${intervalValue} ${intervalUnit}`;
   
   // 現在の値を同期
   $: editMinScale = currentScale.toFixed(3);
-  $: editMajorFormat = tickDef.majorFormat;
-  $: editMinorFormat = tickDef.minorFormat;
+  $: {
+    if (tickDef?.majorFormat) editMajorFormat = tickDef.majorFormat;
+  }
+  $: {
+    if (tickDef?.minorFormat) editMinorFormat = tickDef.minorFormat;
+  }
+  
+  /**
+   * 編集内容を適用
+   */
+  function applyChanges() {
+    if (!onUpdateZoomDef) {
+      alert('編集機能は現在利用できません');
+      return;
+    }
+    
+    const newInterval = Duration.fromObject({ [intervalUnit]: intervalValue });
+    
+    onUpdateZoomDef({
+      minScale: parseFloat(editMinScale),
+      interval: newInterval,
+      majorFormat: editMajorFormat,
+      minorFormat: editMinorFormat
+    });
+    
+    console.log('✅ ズーム定義を更新しました');
+  }
+  
+  /**
+   * 編集内容をリセット
+   */
+  function resetChanges() {
+    editMinScale = currentScale.toFixed(3);
+    editMajorFormat = tickDef?.majorFormat || '';
+    editMinorFormat = tickDef?.minorFormat || '';
+    
+    const interval = tickDef?.minorInterval;
+    if (interval) {
+      if (interval.hours && interval.hours > 0) {
+        intervalValue = interval.hours;
+        intervalUnit = 'hours';
+      } else if (interval.days && interval.days > 0) {
+        intervalValue = interval.days;
+        intervalUnit = 'days';
+      } else if (interval.weeks && interval.weeks > 0) {
+        intervalValue = interval.weeks;
+        intervalUnit = 'weeks';
+      } else if (interval.months && interval.months > 0) {
+        intervalValue = interval.months;
+        intervalUnit = 'months';
+      } else if (interval.years && interval.years > 0) {
+        intervalValue = interval.years;
+        intervalUnit = 'years';
+      }
+    }
+  }
 </script>
 
 <div class="{classPrefix}-debug-panel">
@@ -85,17 +141,28 @@
   </div>
   
   <div class="{classPrefix}-debug-row">
-    <label>Interval:</label>
-    <span>{displayInterval}</span>
+    <label>Interval Value:</label>
+    <input type="number" bind:value={intervalValue} min="1" />
   </div>
   
   <div class="{classPrefix}-debug-row">
-    <label>Label:</label>
-    <input type="text" bind:value={editLabel} placeholder="(未実装)" />
+    <label>Interval Unit:</label>
+    <select bind:value={intervalUnit}>
+      <option value="hours">時間</option>
+      <option value="days">日</option>
+      <option value="weeks">週</option>
+      <option value="months">月</option>
+      <option value="years">年</option>
+    </select>
+  </div>
+  
+  <div class="{classPrefix}-debug-actions">
+    <button class="{classPrefix}-debug-btn-apply" on:click={applyChanges}>適用</button>
+    <button class="{classPrefix}-debug-btn-reset" on:click={resetChanges}>リセット</button>
   </div>
   
   <div class="{classPrefix}-debug-info">
-    <small>※ 編集機能は表示のみ。実際の適用は後ほど実装予定</small>
+    <small>※ 編集した値を「適用」ボタンで反映できます</small>
   </div>
 </div>
 
@@ -146,10 +213,56 @@
     font-family: monospace;
   }
   
+  :global(.gantt-debug-row) select {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 11px;
+    background: white;
+  }
+  
   :global(.gantt-debug-row) span {
     flex: 1;
     color: #333;
     font-family: monospace;
+  }
+  
+  :global(.gantt-debug-actions) {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  
+  :global(.gantt-debug-btn-apply),
+  :global(.gantt-debug-btn-reset) {
+    flex: 1;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  :global(.gantt-debug-btn-apply) {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+  }
+  
+  :global(.gantt-debug-btn-apply):hover {
+    background: #45a049;
+  }
+  
+  :global(.gantt-debug-btn-reset) {
+    background: #f5f5f5;
+    color: #333;
+  }
+  
+  :global(.gantt-debug-btn-reset):hover {
+    background: #e0e0e0;
   }
   
   :global(.gantt-debug-info) {

@@ -10,7 +10,7 @@
  * - スケールの変化は滑らかで、視覚的なジャンプを避ける
  */
 
-import { DateTime, Duration } from 'luxon';
+import { Duration } from 'luxon';
 
 /**
  * Tick定義
@@ -33,7 +33,7 @@ export interface TickDefinition {
  * Tick定義のリスト（スケールの小さい順）
  * markwkenの実装を参考に、より細かい粒度に対応
  */
-const TICK_DEFINITIONS: TickDefinition[] = [
+let TICK_DEFINITIONS: TickDefinition[] = [
   // 時間単位（最も拡大）
   {
     minScale: 100,
@@ -169,3 +169,44 @@ export const ZOOM_SCALE_LIMITS = {
   max: 200,  // 最大（最も拡大）
   default: 1.0, // デフォルト
 };
+
+/**
+ * カスタムズーム定義を追加
+ * 
+ * @param definition - 追加するカスタム定義
+ */
+export function addCustomTickDefinition(definition: TickDefinition): void {
+  // 既存の定義で同じminScaleがあれば置き換え
+  const existingIndex = TICK_DEFINITIONS.findIndex(d => d.minScale === definition.minScale);
+  
+  if (existingIndex >= 0) {
+    TICK_DEFINITIONS[existingIndex] = definition;
+    console.log('🔄 ズーム定義を更新:', definition);
+  } else {
+    TICK_DEFINITIONS.push(definition);
+    console.log('➕ ズーム定義を追加:', definition);
+  }
+  
+  // minScaleの降順でソート
+  TICK_DEFINITIONS.sort((a, b) => b.minScale - a.minScale);
+}
+
+/**
+ * カスタムズーム定義を削除
+ * 
+ * @param minScale - 削除する定義のminScale
+ */
+export function removeCustomTickDefinition(minScale: number): void {
+  const index = TICK_DEFINITIONS.findIndex(d => d.minScale === minScale);
+  if (index >= 0) {
+    TICK_DEFINITIONS.splice(index, 1);
+    console.log('🗑️ ズーム定義を削除:', minScale);
+  }
+}
+
+/**
+ * すべてのズーム定義を取得（読み取り専用）
+ */
+export function getAllTickDefinitions(): readonly TickDefinition[] {
+  return [...TICK_DEFINITIONS];
+}
