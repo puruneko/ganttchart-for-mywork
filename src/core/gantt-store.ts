@@ -176,29 +176,88 @@ export function createGanttStore(
   });
   
   /**
-   * ビューポートに基づいてdateRangeを拡張
+   * 初期extendedDateRangeを広く設定
    * 
-   * @param scrollLeft - スクロール位置（ピクセル）
    * @param containerWidth - 表示領域の幅（ピクセル）
    * @param dayWidth - 1日あたりの幅（ピクセル）
    */
-  function updateExtendedDateRange(scrollLeft: number, containerWidth: number, dayWidth: number) {
+  function initExtendedDateRange(containerWidth: number, dayWidth: number) {
     const baseDateRange = get(dateRange);
+    const viewportDays = Math.ceil(containerWidth / dayWidth);
+    const bufferDays = viewportDays * 10; // 前後10画面分
     
-    // ビューポートのバッファ（画面の2倍分）
-    const bufferDays = Math.ceil((containerWidth / dayWidth) * 2);
-    
-    // スクロール位置から表示開始日を計算
-    const scrollDays = Math.floor(scrollLeft / dayWidth);
-    
-    // 拡張された範囲を計算
-    const extendedStart = baseDateRange.start.minus({ days: bufferDays + scrollDays });
-    const extendedEnd = baseDateRange.end.plus({ days: bufferDays - scrollDays });
+    const extendedStart = baseDateRange.start.minus({ days: bufferDays });
+    const extendedEnd = baseDateRange.end.plus({ days: bufferDays });
     
     extendedDateRange.set({
       start: extendedStart,
       end: extendedEnd
     });
+  }
+  
+  /**
+   * スクロール端に近づいたら拡張dateRangeを拡張
+   * 
+   * @param scrollLeft - スクロール位置（ピクセル）
+   * @param containerWidth - 表示領域の幅（ピクセル）
+   * @param dayWidth - 1日あたりの幅（ピクセル）
+   * @param timelineElement - タイムライン要素（スクロール位置補正用）
+   * @returns 拡張が発生したかどうか
+   */
+  function expandExtendedDateRangeIfNeeded(
+    scrollLeft: number,
+    containerWidth: number,
+    dayWidth: number,
+    timelineElement: HTMLElement | null
+  ): boolean {
+    const current = get(extendedDateRange);
+    const baseDateRange = get(dateRange);
+    const viewportDays = Math.ceil(containerWidth / dayWidth);
+    const threshold = viewportDays * 2; // 端から2画面分
+    const bufferDays = viewportDays * 10; // 拡張時は10画面分追加
+    
+    // 現在の範囲の日数を計算
+    const totalDays = current.end.diff(current.start, 'days').days;
+    const scrollDays = scrollLeft / dayWidth;
+    
+    let needsExpansion = false;
+    let newStart = current.start;
+    let newEnd = current.end;
+    
+    // 左端に近い場合は左側を拡張
+    if (scrollDays < threshold) {
+      newStart = current.start.minus({ days: bufferDays });
+      needsExpansion = true;
+    }
+    
+    // 右端に近い場合は右側を拡張
+    if (scrollDays > totalDays - threshold) {
+      newEnd = current.end.plus({ days: bufferDays });
+      needsExpansion = true;
+    }
+    
+    // 拡張が必要な場合のみ更新
+    if (needsExpansion && timelineElement) {
+      // 拡張前のスクロール位置を記録
+      const oldScrollLeft = timelineElement.scrollLeft;
+      const oldStart = current.start;
+      
+      // dateRange拡張
+      extendedDateRange.set({ start: newStart, end: newEnd });
+      
+      // スクロール位置を補正（左側を拡張した場合のみ）
+      if (!newStart.equals(current.start)) {
+        const daysDiff = oldStart.diff(newStart, 'days').days;
+        const newScrollLeft = oldScrollLeft + (daysDiff * dayWidth);
+        
+        // 次のフレームでスクロール位置を復元
+        requestAnimationFrame(() => {
+          timelineElement.scrollLeft = newScrollLeft;
+        });
+      }
+    }
+    
+    return needsExpansion;
   }
   
   return {
@@ -218,7 +277,8 @@ export function createGanttStore(
     getNodeById,
     autoAdjustSectionDates: autoAdjustSection,
     setZoomScale: (scale: number) => zoomScale.set(scale),
-    updateExtendedDateRange,
+    initExtendedDateRange,
+    expandExtendedDateRangeIfNeeded,
     
     // テストと外部アクセス用（プライベートメソッド）
     _getRawNodes: () => get(nodes),

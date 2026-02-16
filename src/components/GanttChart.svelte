@@ -60,6 +60,12 @@
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
+  // 初期化時にextendedDateRangeを設定
+  $: if (timelineWrapperElement && chartConfig.dayWidth) {
+    const containerWidth = timelineWrapperElement.clientWidth;
+    store.initExtendedDateRange(containerWidth, chartConfig.dayWidth);
+  }
+  
   // 重要なデータ変更を監視してログ出力（showEventLogがtrueの場合のみ）
   $: {
     if (showEventLog && visibleNodes) {
@@ -382,9 +388,14 @@
           timelineHeaderWrapperElement.scrollLeft = scrollLeft;
         }
         
-        // 拡張dateRangeを更新（無限スクロール感を実現）
+        // 端に近づいたら拡張dateRangeを拡張
         const containerWidth = timelineWrapperElement.clientWidth;
-        store.updateExtendedDateRange(scrollLeft, containerWidth, chartConfig.dayWidth);
+        store.expandExtendedDateRangeIfNeeded(
+          scrollLeft,
+          containerWidth,
+          chartConfig.dayWidth,
+          timelineWrapperElement
+        );
       }
       
       // 縦スクロール: ツリーと同期
