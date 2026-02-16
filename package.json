@@ -11,7 +11,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "check": "svelte-check --tsconfig ./tsconfig.json",
-        "demo": "vite --open",
+        "demo": "vite --open --port 5177",
         "example:demo": "vite --open",
         "allowedCommit": "git commit -m ",
         "test:e2e": "playwright test",
