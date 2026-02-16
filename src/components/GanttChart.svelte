@@ -256,14 +256,34 @@
   }
   
   // DurationをUI表示用文字列に変換
-  function formatDurationForUI(duration: Duration): string {
-    const obj = duration.toObject();
-    const entries = Object.entries(obj).filter(([_, v]) => v && v !== 0);
-    if (entries.length > 0) {
-      const [unit, value] = entries[0];
-      return `${value} ${unit}`;
+  function formatDurationForUI(duration: Duration | any): string {
+    try {
+      // 文字列の場合はそのまま返す
+      if (typeof duration === 'string') {
+        return duration;
+      }
+      
+      // Durationオブジェクトでない場合は変換
+      if (!(duration instanceof Duration)) {
+        // オブジェクトの場合
+        if (typeof duration === 'object' && duration !== null) {
+          duration = Duration.fromObject(duration);
+        } else {
+          return '1 day';
+        }
+      }
+      
+      const obj = duration.toObject();
+      const entries = Object.entries(obj).filter(([_, v]) => v && v !== 0);
+      if (entries.length > 0) {
+        const [unit, value] = entries[0];
+        return `${value} ${unit}`;
+      }
+      return '1 day';
+    } catch (e) {
+      console.error('formatDurationForUI error:', e, duration);
+      return '1 day';
     }
-    return '1 day';
   }
   
   
