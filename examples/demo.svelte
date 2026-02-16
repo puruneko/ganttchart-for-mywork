@@ -342,10 +342,11 @@
   
   function saveEditTick() {
     if (editingTick) {
+      const label = editingTick.def.label;
       updateTickDefinition(editingTick.index, editingTick.def);
       tickDefinitions = getAllTickDefinitions() as TickDefinition[];
       editingTick = null;
-      logEvent(`⚙️ Tick定義を更新: ${editingTick.def.label}`);
+      logEvent(`⚙️ Tick定義を更新: ${label}`);
     }
   }
   
@@ -406,7 +407,7 @@
     </div>
   </div>
   
-  <div class="demo-content">
+  <div class="demo-content" class:has-tick-editor={showTickEditor} class:has-event-log={showEventLog}>
     <div class="gantt-wrapper">
       <GanttChart 
         {nodes}
@@ -423,6 +424,28 @@
       />
     </div>
     
+    {#if showTickEditor}
+      <div class="tick-editor">
+        <h3>Tick Definitions Editor</h3>
+        <div class="tick-list">
+          {#each tickDefinitions as tick, i}
+            <div class="tick-item">
+              <div class="tick-header">
+                <strong>{tick.label}</strong>
+                <button class="edit-btn" on:click={() => startEditTick(i)}>Edit</button>
+              </div>
+              <div class="tick-details">
+                <div>minScale: {tick.minScale}</div>
+                <div>interval: {formatDurationForUI(tick.interval)}</div>
+                <div>majorFormat: {tick.majorFormat}</div>
+                <div>minorFormat: {tick.minorFormat || '(none)'}</div>
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/if}
+    
     {#if showEventLog}
       <div class="event-log">
         <h3>Event Log</h3>
@@ -437,29 +460,6 @@
       </div>
     {/if}
   </div>
-  
-  <!-- Tick Editor Panel -->
-  {#if showTickEditor}
-    <div class="tick-editor">
-      <h3>Tick Definitions Editor</h3>
-      <div class="tick-list">
-        {#each tickDefinitions as tick, i}
-          <div class="tick-item">
-            <div class="tick-header">
-              <strong>{tick.label}</strong>
-              <button class="edit-btn" on:click={() => startEditTick(i)}>Edit</button>
-            </div>
-            <div class="tick-details">
-              <div>minScale: {tick.minScale}</div>
-              <div>interval: {formatDurationForUI(tick.interval)}</div>
-              <div>majorFormat: {tick.majorFormat}</div>
-              <div>minorFormat: {tick.minorFormat || '(none)'}</div>
-            </div>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
   
   <!-- Tick Edit Modal -->
   {#if editingTick}
@@ -574,8 +574,19 @@
     gap: 20px;
   }
   
-  .demo-content:has(.event-log) {
+  /* Tick Editorのみ表示 */
+  .demo-content.has-tick-editor:not(.has-event-log) {
+    grid-template-columns: 1fr 320px;
+  }
+  
+  /* Event Logのみ表示 */
+  .demo-content.has-event-log:not(.has-tick-editor) {
     grid-template-columns: 1fr 300px;
+  }
+  
+  /* 両方表示 */
+  .demo-content.has-tick-editor.has-event-log {
+    grid-template-columns: 1fr 320px 300px;
   }
   
   .gantt-wrapper {
@@ -627,11 +638,12 @@
   
   /* Tick Editor */
   .tick-editor {
-    margin-top: 20px;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 16px;
     background: #f9f9f9;
+    height: 600px;
+    overflow-y: auto;
   }
   
   .tick-editor h3 {

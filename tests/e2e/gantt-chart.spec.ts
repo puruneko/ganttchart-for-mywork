@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 test.describe('ガントチャート', () => {
   test.beforeEach(async ({ page }) => {
     // デモページに移動
-    await page.goto('http://localhost:5177/', { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     
     // ガントチャートが読み込まれるまで待機
     await page.waitForSelector('.gantt-container', { timeout: 30000 });

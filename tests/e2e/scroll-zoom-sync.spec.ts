@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 test.describe('スクロール・ズーム・同期機能', () => {
   test.beforeEach(async ({ page }) => {
     // デモページに移動
-    await page.goto('http://localhost:5177/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     
     // ガントチャートが読み込まれるまで待機
     await page.waitForSelector('.gantt-container', { timeout: 5000 });

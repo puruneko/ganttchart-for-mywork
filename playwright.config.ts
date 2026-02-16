@@ -8,7 +8,7 @@ export default defineConfig({
     workers: 1,
     testDir: "./tests/e2e",
     webServer: {
-        command: "npm run test:e2e:preview",
+        command: "npm run dev -- --port 5176 --strictPort",
         port: testPort,
         timeout: timeoutSecond * 1000,
         reuseExistingServer: !process.env.CI,
