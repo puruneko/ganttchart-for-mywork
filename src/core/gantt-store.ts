@@ -8,6 +8,7 @@
  * - Svelteコンポーネント外でも使用可能
  */
 
+import { DateTime } from 'luxon';
 import { writable, derived, get } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import type { GanttNode, ComputedGanttNode, GanttConfig, DateRange } from '../types';
@@ -19,6 +20,7 @@ import {
   autoAdjustSectionDates
 } from './data-manager';
 import { getTickDefinitionForScale } from '../utils/zoom-scale';
+import { LifecycleEventEmitter } from './lifecycle-events';
 
 /**
  * デフォルト設定
@@ -60,6 +62,9 @@ export function createGanttStore(
     ...DEFAULT_CONFIG,
     ...initialConfig
   });
+  
+  // ライフサイクルイベントエミッター
+  const lifecycleEvents = new LifecycleEventEmitter();
   
   // 派生計算値
   // これらはSvelte 5で$derivedに簡単に変換可能
@@ -169,8 +174,12 @@ export function createGanttStore(
   const zoomScale: Writable<number> = writable(1.0);
   
   // 拡張されたdateRange（スクロール領域に応じて動的に拡張）
-  // 初期値はbaseDateRangeと同じ、initExtendedDateRange()で正しくバッファを追加
-  const extendedDateRange: Writable<DateRange> = writable(get(dateRange));
+  // 初期値: 安全なデフォルト値（initExtendedDateRangeで正しい値に更新される）
+  const now = DateTime.now().startOf('day');
+  const extendedDateRange: Writable<DateRange> = writable({
+    start: now.minus({ days: 30 }),
+    end: now.plus({ days: 60 })
+  });
   
   /**
    * 現在のTick定義に基づいて適切なバッファ日数を計算
@@ -211,6 +220,13 @@ export function createGanttStore(
    */
   function initExtendedDateRange(containerWidth: number, dayWidth: number, zoomScale: number) {
     const baseDateRange = get(dateRange);
+    
+    // データの妥当性チェック
+    if (!baseDateRange || !baseDateRange.start || !baseDateRange.end) {
+      console.error('[gantt-store] initExtendedDateRange: Invalid baseDateRange', baseDateRange);
+      return;
+    }
+    
     const viewportDays = Math.ceil(containerWidth / dayWidth);
     const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale);
     
@@ -225,6 +241,7 @@ export function createGanttStore(
   
   /**
    * スクロール端に近づいたら拡張dateRangeを拡張
+   * ビューポート中心の日時を維持して表示飛びを防ぐ
    * 
    * @param scrollLeft - スクロール位置（ピクセル）
    * @param containerWidth - 表示領域の幅（ピクセル）
@@ -243,12 +260,16 @@ export function createGanttStore(
     const current = get(extendedDateRange);
     const baseDateRange = get(dateRange);
     const viewportDays = Math.ceil(containerWidth / dayWidth);
-    const threshold = viewportDays * 2; // 端から2画面分
+    const threshold = viewportDays * 0.5; // 端から半画面分に変更
     const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale);
     
     // 現在の範囲の日数を計算
     const totalDays = current.end.diff(current.start, 'days').days;
     const scrollDays = scrollLeft / dayWidth;
+    
+    // ビューポート中心の日時を計算（拡張前）
+    const centerDays = scrollDays + (viewportDays / 2);
+    const centerDate = current.start.plus({ days: centerDays });
     
     let needsExpansion = false;
     let newStart = current.start;
@@ -261,29 +282,24 @@ export function createGanttStore(
     }
     
     // 右端に近い場合は右側を拡張
-    if (scrollDays > totalDays - threshold) {
+    if (scrollDays > totalDays - threshold - viewportDays) {
       newEnd = current.end.plus({ days: bufferDays });
       needsExpansion = true;
     }
     
     // 拡張が必要な場合のみ更新
-    if (needsExpansion && timelineElement) {
-      // 拡張前のスクロール位置を記録
-      const oldScrollLeft = timelineElement.scrollLeft;
-      const oldStart = current.start;
-      
+    if (needsExpansion) {
       // dateRange拡張
       extendedDateRange.set({ start: newStart, end: newEnd });
       
-      // スクロール位置を補正（左側を拡張した場合のみ）
-      if (!newStart.equals(current.start)) {
-        const daysDiff = oldStart.diff(newStart, 'days').days;
-        const newScrollLeft = oldScrollLeft + (daysDiff * dayWidth);
+      // ビューポート中心の日時を維持するようスクロール位置を再計算
+      if (timelineElement) {
+        const newCenterDays = centerDate.diff(newStart, 'days').days;
+        const newScrollDays = newCenterDays - (viewportDays / 2);
+        const newScrollLeft = newScrollDays * dayWidth;
         
-        // 次のフレームでスクロール位置を復元
-        requestAnimationFrame(() => {
-          timelineElement.scrollLeft = newScrollLeft;
-        });
+        // 同期的にスクロール位置を設定（表示飛び防止）
+        timelineElement.scrollLeft = Math.max(0, newScrollLeft);
       }
     }
     
@@ -299,6 +315,9 @@ export function createGanttStore(
     dateRange: { subscribe: dateRange.subscribe },
     extendedDateRange: { subscribe: extendedDateRange.subscribe },
     zoomScale: { subscribe: zoomScale.subscribe },
+    
+    // ライフサイクルイベントエミッター
+    lifecycleEvents,
     
     // アクション関数
     setNodes,
