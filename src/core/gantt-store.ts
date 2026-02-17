@@ -249,20 +249,20 @@ export function createGanttStore(
         dayWidth: number,
         zoomScale: number,
     ) {
-        const baseDateRange = get(dateRange)
+        const currentDateRange = get(dateRange)
 
         // データの妥当性チェック
-        if (!baseDateRange || !baseDateRange.start || !baseDateRange.end) {
+        if (!currentDateRange || !currentDateRange.start || !currentDateRange.end) {
             console.error(
                 "[gantt-store] initExtendedDateRange: Invalid baseDateRange",
-                baseDateRange,
+                currentDateRange,
             )
             return
         }
 
         // 無効な DateTime は修正する
-        let start = baseDateRange.start
-        let end = baseDateRange.end
+        let start = currentDateRange.start
+        let end = currentDateRange.end
 
         if (!start.isValid) {
             start = DateTime.now().startOf("day")
@@ -302,7 +302,6 @@ export function createGanttStore(
         timelineElement: HTMLElement | null,
     ): boolean {
         const current = get(extendedDateRange)
-        const baseDateRange = get(dateRange)
         const viewportDays = Math.ceil(containerWidth / dayWidth)
         const threshold = viewportDays * 0.5 // 端から半画面分に変更
         const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale)

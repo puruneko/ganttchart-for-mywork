@@ -657,6 +657,8 @@
           on:scroll={handleTreeScroll}
           on:mousedown={handleMouseDown}
           on:contextmenu={handleContextMenu}
+          role="region"
+          aria-label="ガントチャートツリービュー"
         >
           <GanttTree
             {visibleNodes}
@@ -679,6 +681,8 @@
         on:scroll={handleHeaderScroll}
         on:mousedown={handleMouseDown}
         on:contextmenu={handleContextMenu}
+        role="region"
+        aria-label="ガントチャートタイムラインヘッダー"
       >
         <GanttHeader
           dateRange={extendedDateRange}
@@ -693,6 +697,8 @@
         on:scroll={handleTimelineScroll}
         on:mousedown={handleMouseDown}
         on:contextmenu={handleContextMenu}
+        role="region"
+        aria-label="ガントチャートタイムライン"
       >
         <GanttTimeline
           {visibleNodes}
