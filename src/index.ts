@@ -18,6 +18,10 @@ export type {
   DateRange
 } from './types';
 
+// ライフサイクルイベント（ライブラリユーザー向け）
+export { LifecycleEventEmitter, createLifecycleEventEmitter } from './core/lifecycle-events';
+export type { LifecycleEventDetail, LifecyclePhase } from './core/lifecycle-events';
+
 // ユーティリティ関数（高度な使用法向け）
 export {
   buildHierarchyMap,
