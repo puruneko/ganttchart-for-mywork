@@ -13,6 +13,7 @@
   
   import type { GanttNode, GanttEventHandlers, GanttConfig, ComputedGanttNode } from '../types';
   import { createGanttStore } from '../core/gantt-store';
+  import { createRenderLifecycle } from '../core/render-lifecycle';
   import GanttTree from './GanttTree.svelte';
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
@@ -25,7 +26,7 @@
   import { getTickGenerationDefForScale, addCustomTickGenerationDef } from '../utils/tick-generator';
   import type { TickGenerationDef } from '../utils/tick-generator';
   import { Duration } from 'luxon';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   
   // パブリックprops
   /** 表示するノードの配列 */
@@ -38,6 +39,9 @@
   // ストアインスタンスを作成
   // Svelte 5では、このストア全体を$stateと$derivedに置き換え可能
   const store = createGanttStore(nodes, config);
+  
+  // レンダリングライフサイクル管理（letで宣言してHMR互換性を向上）
+  let lifecycle = createRenderLifecycle();
   
   // 外部からストアにアクセスできるようにエクスポート（Tick Editorなどで使用）
   export function getStore() {
@@ -61,23 +65,51 @@
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
   
-  // extendedDateRange初期化フラグ
-  let isExtendedDateRangeInitialized = false;
-  
-  // 初回マウント時にextendedDateRangeを初期化
+  // 初期化をonMountで実行
   onMount(() => {
-    if (timelineWrapperElement && !isExtendedDateRangeInitialized) {
-      const containerWidth = timelineWrapperElement.clientWidth;
-      store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
-      isExtendedDateRangeInitialized = true;
-    }
+    // ライフサイクルイベント発行：初期化開始
+    store.lifecycleEvents.emit('initializing');
+    
+    lifecycle.startMounting();
+    
+    // DOM要素の準備を待つ
+    tick().then(() => {
+      // ライフサイクルイベント発行：レンダリング開始
+      store.lifecycleEvents.emit('rendering');
+      
+      lifecycle.startMeasuring();
+      
+      if (timelineWrapperElement) {
+        const containerWidth = timelineWrapperElement.clientWidth || 1000;
+        
+        // extendedDateRangeを初期化
+        store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
+        
+        // 次のフレームでレンダリング開始
+        requestAnimationFrame(() => {
+          lifecycle.startRendering();
+          
+          // さらに次のフレームで完了マーク
+          requestAnimationFrame(() => {
+            // ライフサイクルイベント発行：マウント完了
+            store.lifecycleEvents.emit('mounted', { timestamp: Date.now() });
+            
+            lifecycle.markReady();
+            
+            // レディイベントをサブコンポーネント準備後に発行
+            tick().then(() => {
+              store.lifecycleEvents.emit('ready', { 
+                allComponentsLoaded: true,
+                timestamp: Date.now()
+              });
+            });
+          });
+        });
+      } else {
+        console.error('[GanttChart] timelineWrapperElement not found during initialization');
+      }
+    });
   });
-  
-  // dateRangeが変更されたときも再初期化
-  $: if (isExtendedDateRangeInitialized && dateRange && timelineWrapperElement) {
-    const containerWidth = timelineWrapperElement.clientWidth;
-    store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
-  }
   
   // 重要なデータ変更を監視してログ出力（showEventLogがtrueの場合のみ）
   $: {
@@ -403,13 +435,18 @@
         
         // 端に近づいたら拡張dateRangeを拡張
         const containerWidth = timelineWrapperElement.clientWidth;
-        store.expandExtendedDateRangeIfNeeded(
+        const expanded = store.expandExtendedDateRangeIfNeeded(
           scrollLeft,
           containerWidth,
           chartConfig.dayWidth,
           currentZoomScale,
           timelineWrapperElement
         );
+        
+        // 拡張後、ヘッダーのスクロール位置を再同期
+        if (expanded && timelineHeaderWrapperElement) {
+          timelineHeaderWrapperElement.scrollLeft = timelineWrapperElement.scrollLeft;
+        }
       }
       
       // 縦スクロール: ツリーと同期
@@ -635,6 +672,7 @@
           rowHeight={chartConfig.rowHeight}
           dragSnapDivision={chartConfig.dragSnapDivision}
           {classPrefix}
+          renderLifecycle={lifecycle}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
           onGroupDrag={handleGroupDrag}
