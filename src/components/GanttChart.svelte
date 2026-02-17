@@ -71,43 +71,36 @@
     store.lifecycleEvents.emit('initializing');
     
     lifecycle.startMounting();
+    lifecycle.startMeasuring();
     
-    // DOM要素の準備を待つ
-    tick().then(() => {
-      // ライフサイクルイベント発行：レンダリング開始
-      store.lifecycleEvents.emit('rendering');
+    // ライフサイクルイベント発行：レンダリング開始
+    store.lifecycleEvents.emit('rendering');
+    
+    // コンテナ幅を直接測定して初期化
+    const containerWidth = timelineWrapperElement?.clientWidth || 1000;
+    
+    // extendedDateRangeを初期化
+    store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
+    
+    // 次のマイクロタスク内でレンダリング完了を通知
+    requestAnimationFrame(() => {
+      lifecycle.startRendering();
       
-      lifecycle.startMeasuring();
-      
-      if (timelineWrapperElement) {
-        const containerWidth = timelineWrapperElement.clientWidth || 1000;
+      // さらに次のフレームで完了マーク
+      requestAnimationFrame(() => {
+        // ライフサイクルイベント発行：マウント完了
+        store.lifecycleEvents.emit('mounted', { timestamp: Date.now() });
         
-        // extendedDateRangeを初期化
-        store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
+        lifecycle.markReady();
         
-        // 次のフレームでレンダリング開始
-        requestAnimationFrame(() => {
-          lifecycle.startRendering();
-          
-          // さらに次のフレームで完了マーク
-          requestAnimationFrame(() => {
-            // ライフサイクルイベント発行：マウント完了
-            store.lifecycleEvents.emit('mounted', { timestamp: Date.now() });
-            
-            lifecycle.markReady();
-            
-            // レディイベントをサブコンポーネント準備後に発行
-            tick().then(() => {
-              store.lifecycleEvents.emit('ready', { 
-                allComponentsLoaded: true,
-                timestamp: Date.now()
-              });
-            });
+        // レディイベントをサブコンポーネント準備後に発行
+        tick().then(() => {
+          store.lifecycleEvents.emit('ready', { 
+            allComponentsLoaded: true,
+            timestamp: Date.now()
           });
         });
-      } else {
-        console.error('[GanttChart] timelineWrapperElement not found during initialization');
-      }
+      });
     });
   });
   

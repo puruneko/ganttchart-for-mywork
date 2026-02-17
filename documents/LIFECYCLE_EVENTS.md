@@ -11,12 +11,12 @@ EventTarget ベースの標準ブラウザ API を使用しており、フレー
 
 コンポーネントは以下のフェーズを順序で遷移します：
 
-| フェーズ | 説明 |
-|--------|------|
-| `initializing` | 初期化開始 |
-| `rendering` | レンダリング中 |
-| `mounted` | マウント完了 |
-| `ready` | 全サブコンポーネント準備完了 |
+| フェーズ       | 説明                         |
+| -------------- | ---------------------------- |
+| `initializing` | 初期化開始                   |
+| `rendering`    | レンダリング中               |
+| `mounted`      | マウント完了                 |
+| `ready`        | 全サブコンポーネント準備完了 |
 
 ---
 
@@ -77,15 +77,15 @@ store.lifecycleEvents.off('ready', handler);
 
 ### メソッド一覧
 
-| メソッド | 説明 |
-|--------|------|
-| `on(phase, handler)` | フェーズをリッスン（複数回発火） |
-| `once(phase, handler)` | フェーズを1回限りリッスン |
-| `onLifecycle(handler)` | すべてのイベントをリッスン |
-| `off(phase, handler)` | リスナを削除 |
+| メソッド                | 説明                               |
+| ----------------------- | ---------------------------------- |
+| `on(phase, handler)`    | フェーズをリッスン（複数回発火）   |
+| `once(phase, handler)`  | フェーズを1回限りリッスン          |
+| `onLifecycle(handler)`  | すべてのイベントをリッスン         |
+| `off(phase, handler)`   | リスナを削除                       |
 | `emit(phase, details?)` | イベントを発行（ライブラリ内部用） |
-| `getEventHistory()` | イベント履歴を取得（デバッグ用） |
-| `dispose()` | リソースをクリーンアップ |
+| `getEventHistory()`     | イベント履歴を取得（デバッグ用）   |
+| `dispose()`             | リソースをクリーンアップ           |
 
 ---
 

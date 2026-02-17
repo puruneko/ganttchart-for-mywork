@@ -11,6 +11,7 @@
   
   import { DateTime } from 'luxon';
   import type { ComputedGanttNode, DateRange } from '../types';
+  import type { RenderLifecycle } from '../core/render-lifecycle';
   import {
     dateToX,
     rowToY,
@@ -51,6 +52,7 @@
   export let onAutoAdjustSection: ((nodeId: string) => void) | undefined = undefined;
   /** ズーム変更時のハンドラー（dayWidthの更新を通知） */
   export let onZoomChange: ((scale: number, dayWidth: number) => void) | undefined = undefined;
+  export let renderLifecycle: RenderLifecycle | undefined = undefined;
   
   // ズーム関連
   let svgElement: SVGSVGElement;
@@ -58,39 +60,55 @@
   let zoomDetector: ZoomGestureDetector | null = null;
   let currentZoomScale = getScaleFromDayWidth(dayWidth);
   
+  // SVGの寸法（リアクティブ式で計算される）
+  let width = 0;
+  let height = 0;
+  let dateTicks: any[] = [];
+  
+  // ready状態のローカル変数
+  let isReady = true; // デフォルトはtrue（renderLifecycleがない場合は常にready）
+  let readyUnsubscribe: (() => void) | null = null;
+  
   // ズームスケールが変更されたときのハンドラー
   // マウス位置を中心にズームするため、スクロール位置を調整
   function handleZoomChange(newScale: number, _deltaScale: number, mouseX?: number, mouseY?: number): void {
+    // ready状態でない場合はスキップ
+    if (!isReady || !timelineContainer) {
+      return;
+    }
+    
+    // データの妥当性チェック
+    if (!dateRange || !dateRange.start || !dateRange.end) return;
+    
     // スケールを制限範囲内に収める
     const clampedScale = Math.max(
       ZOOM_SCALE_LIMITS.min,
       Math.min(ZOOM_SCALE_LIMITS.max, newScale)
     );
     
-    // ズーム前のスクロール位置とマウス位置の関係を保存
-    let scrollLeft = 0;
-    let mouseOffsetX = 0;
+    // ビューポート中心またはマウス位置の日時を計算
+    let targetDate: DateTime | null = null;
+    let targetOffsetRatio = 0.5; // デフォルトは中心
     
-    if (timelineContainer && mouseX !== undefined) {
-      const rect = timelineContainer.getBoundingClientRect();
-      scrollLeft = timelineContainer.scrollLeft;
-      // マウスのコンテナ内での相対位置
-      mouseOffsetX = mouseX - rect.left;
-      // ズーム前のマウス位置のコンテンツ上での絶対位置
-      const mouseContentX = scrollLeft + mouseOffsetX;
-      // スケール比率
-      const scaleFactor = clampedScale / currentZoomScale;
-      // ズーム後のマウス位置のコンテンツ上での絶対位置
-      const newMouseContentX = mouseContentX * scaleFactor;
-      // 新しいスクロール位置を計算（マウス位置を固定）
-      const newScrollLeft = newMouseContentX - mouseOffsetX;
+    if (timelineContainer) {
+      const scrollLeft = timelineContainer.scrollLeft;
+      const containerWidth = timelineContainer.clientWidth;
       
-      // スクロール位置を後で更新するために保存
-      requestAnimationFrame(() => {
-        if (timelineContainer) {
-          timelineContainer.scrollLeft = newScrollLeft;
-        }
-      });
+      if (mouseX !== undefined) {
+        // マウス位置の日時を計算
+        const rect = timelineContainer.getBoundingClientRect();
+        const mouseOffsetX = mouseX - rect.left;
+        const mouseContentX = scrollLeft + mouseOffsetX;
+        const mouseDays = mouseContentX / dayWidth;
+        targetDate = dateRange.start.plus({ days: mouseDays });
+        targetOffsetRatio = mouseOffsetX / containerWidth;
+      } else {
+        // ビューポート中心の日時を計算
+        const centerContentX = scrollLeft + (containerWidth / 2);
+        const centerDays = centerContentX / dayWidth;
+        targetDate = dateRange.start.plus({ days: centerDays });
+        targetOffsetRatio = 0.5;
+      }
     }
     
     currentZoomScale = clampedScale;
@@ -102,27 +120,56 @@
     if (onZoomChange) {
       onZoomChange(clampedScale, newDayWidth);
     }
+    
+    // 目標日時を維持するようスクロール位置を調整
+    if (timelineContainer && targetDate) {
+      const newTargetDays = targetDate.diff(dateRange.start, 'days').days;
+      if (!isNaN(newTargetDays)) {
+        const newTargetContentX = newTargetDays * newDayWidth;
+        const newScrollLeft = newTargetContentX - (timelineContainer.clientWidth * targetOffsetRatio);
+        
+        // 同期的に設定（表示飛び防止）
+        timelineContainer.scrollLeft = Math.max(0, newScrollLeft);
+      }
+    }
   }
   
   // ズームジェスチャー検出器の初期化
+  let zoomDetectorInitialized = false;
+  
   onMount(() => {
     if (svgElement) {
       // SVG要素の親要素（スクロールコンテナ）を取得
       timelineContainer = svgElement.parentElement as HTMLElement;
-      
-      zoomDetector = new ZoomGestureDetector(
-        svgElement,
-        { onZoomChange: handleZoomChange },
-        currentZoomScale
-      );
-      zoomDetector.start();
+    }
+    
+    // renderLifecycle.isReadyを購読
+    if (renderLifecycle && renderLifecycle.isReady) {
+      readyUnsubscribe = renderLifecycle.isReady.subscribe(value => {
+        isReady = value;
+      });
     }
   });
+  
+  // レンダリング完了後にズーム検出器を初期化
+  $: if (isReady && svgElement && !zoomDetectorInitialized) {
+    const initialScale = getScaleFromDayWidth(dayWidth);
+    zoomDetector = new ZoomGestureDetector(
+      svgElement,
+      { onZoomChange: handleZoomChange },
+      initialScale
+    );
+    zoomDetector.start();
+    zoomDetectorInitialized = true;
+  }
   
   // クリーンアップ
   onDestroy(() => {
     if (zoomDetector) {
       zoomDetector.stop();
+    }
+    if (readyUnsubscribe) {
+      readyUnsubscribe();
     }
   });
   
@@ -278,12 +325,13 @@
   <!-- ガントバー -->
   <g class="{classPrefix}-bars">
     {#each visibleNodes as node (node.id)}
-      {@const x = dateToX(node.start, dateRange, dayWidth)}
-      {@const y = rowToY(node.visualIndex, rowHeight)}
-      {@const barWidth = durationToWidth(node.start, node.end, dayWidth)}
-      {@const barHeight = Math.round((rowHeight - 8) * 0.85)}
-      {@const barClass = getBarClass(node.type, classPrefix)}
-      {@const handleSize = 8}
+      {#if node.start && node.end}
+        {@const x = dateToX(node.start, dateRange, dayWidth)}
+        {@const y = rowToY(node.visualIndex, rowHeight)}
+        {@const barWidth = durationToWidth(node.start, node.end, dayWidth)}
+        {@const barHeight = Math.round((rowHeight - 8) * 0.85)}
+        {@const barClass = getBarClass(node.type, classPrefix)}
+        {@const handleSize = 8}
       
       <!-- セクション/サブセクションのグループ背景（プロジェクトは除外） -->
       {#if (node.type === 'section' || node.type === 'subsection') && node.childrenIds.length > 0}
@@ -495,6 +543,7 @@
         >
           <title>終了日をリサイズ: {node.name}</title>
         </rect>
+      {/if}
       {/if}
     {/each}
   </g>

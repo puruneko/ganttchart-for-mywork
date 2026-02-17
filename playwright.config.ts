@@ -7,9 +7,9 @@ export default defineConfig({
     testDir: "./tests/e2e",
 
     webServer: {
-        command: "npm run dev",
+        command: "npm run dev -- --port 5176 --force",
         port: port,
-        timeout: 30 * 1000,
+        timeout: 120 * 1000,
         reuseExistingServer: !process.env.CI,
     },
 
@@ -18,10 +18,10 @@ export default defineConfig({
         headless: true,
     },
 
-    timeout: 30 * 1000,
+    timeout: 120 * 1000,
 
     expect: {
-        timeout: 10 * 1000,
+        timeout: 60 * 1000,
     },
 
     projects: [

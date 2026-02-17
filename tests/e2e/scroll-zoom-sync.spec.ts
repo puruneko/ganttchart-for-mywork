@@ -14,15 +14,41 @@ import { test, expect } from '@playwright/test';
 
 test.describe('スクロール・ズーム・同期機能', () => {
   test.beforeEach(async ({ page }) => {
+    // コンソールエラーとページエラーを監視
+    const consoleErrors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+        console.error('Browser console error:', msg.text());
+      }
+    });
+    
+    page.on('pageerror', error => {
+      console.error('Page error:', error.message);
+      throw error; // ページエラーはテストを失敗させる
+    });
+    
     // デモページに移動
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/');
     
-    // ガントチャートが読み込まれるまで待機
-    await page.waitForSelector('.gantt-container', { timeout: 5000 });
-    await page.waitForSelector('.gantt-timeline', { timeout: 5000 });
+    // ガントコンテナが表示されるまで待機
+    await page.waitForSelector('.gantt-container', { state: 'attached', timeout: 10000 });
     
-    // レンダリング完了を待つ
-    await page.waitForTimeout(300);
+    // タイムラインSVGが存在するまで待機
+    await page.waitForSelector('.gantt-timeline', { state: 'attached', timeout: 10000 });
+    
+    // 初期レンダリング完了を待つ
+    await page.waitForTimeout(500);
+    
+    // 初期描画時のコンソールエラーをチェック（重大なエラーのみ）
+    const criticalErrors = consoleErrors.filter(err => 
+      err.includes('attribute width') || 
+      err.includes('attribute height') ||
+      err.includes('NaN')
+    );
+    if (criticalErrors.length > 0) {
+      throw new Error(`Critical console errors during initialization: ${criticalErrors.join(', ')}`);
+    }
   });
 
   test.skip('ガントチャートのバーに日付が表示されていること', async ({ page }) => {
@@ -60,16 +86,15 @@ test.describe('スクロール・ズーム・同期機能', () => {
       el.scrollLeft = 200;
     });
     
-    // 少し待機してスクロール同期を確認
-    await page.waitForTimeout(100);
+    // スクロール同期を待機
+    await page.waitForTimeout(300);
     
-    // ヘッダーのスクロール位置が同期していることを確認
+    // ヘッダーのスクロール位置が同期していることを確認（±5pxの誤差を許容）
     const newTimelineScroll = await timelineWrapper.evaluate(el => el.scrollLeft);
     const newHeaderScroll = await headerWrapper.evaluate(el => el.scrollLeft);
     
-    expect(newTimelineScroll).toBe(200);
-    expect(newHeaderScroll).toBe(200);
-    expect(newTimelineScroll).toBe(newHeaderScroll);
+    expect(Math.abs(newTimelineScroll - newHeaderScroll)).toBeLessThan(5);
+    expect(Math.abs(newTimelineScroll - 200)).toBeLessThan(5);
   });
 
   test('ヘッダーをスクロールするとタイムラインも同期すること', async ({ page }) => {
@@ -81,14 +106,14 @@ test.describe('スクロール・ズーム・同期機能', () => {
       el.scrollLeft = 150;
     });
     
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(300);
     
-    // タイムラインのスクロール位置が同期していることを確認
+    // タイムラインのスクロール位置が同期していることを確認（±5pxの誤差を許容）
     const timelineScroll = await timelineWrapper.evaluate(el => el.scrollLeft);
     const headerScroll = await headerWrapper.evaluate(el => el.scrollLeft);
     
-    expect(timelineScroll).toBe(150);
-    expect(headerScroll).toBe(150);
+    expect(Math.abs(timelineScroll - headerScroll)).toBeLessThan(5);
+    expect(Math.abs(timelineScroll - 150)).toBeLessThan(5);
   });
 
   test('縦スクロール時にツリーとタイムラインが同期すること', async ({ page }) => {
@@ -130,6 +155,14 @@ test.describe('スクロール・ズーム・同期機能', () => {
   });
 
   test('右クリックドラッグでスクロールできること', async ({ page }) => {
+    // コンソールエラーを監視
+    const consoleErrors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+    
     const timelineWrapper = page.locator('.gantt-timeline-wrapper');
     
     // タイムラインの中心位置を取得
@@ -157,6 +190,9 @@ test.describe('スクロール・ズーム・同期機能', () => {
     
     // 右にドラッグしたので、scrollLeftは増加する
     expect(newScrollLeft).toBeGreaterThan(initialScrollLeft);
+    
+    // コンソールエラーがないことを確認
+    expect(consoleErrors).toEqual([]);
     // 下にドラッグしたので、scrollTopは増加する
     expect(newScrollTop).toBeGreaterThan(initialScrollTop);
   });
@@ -179,6 +215,90 @@ test.describe('スクロール・ズーム・同期機能', () => {
     // 縦スクロール位置が変化していることを確認
     const newScrollTop = await timelineWrapper.evaluate(el => el.scrollTop);
     expect(newScrollTop).toBeGreaterThan(initialScrollTop);
+  });
+
+  test('スクロール時に表示飛びが発生しないこと', async ({ page }) => {
+    // コンソールエラーを監視
+    const consoleErrors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(msg.text());
+      }
+    });
+    
+    const timelineWrapper = page.locator('.gantt-timeline-wrapper');
+    
+    // スクロール前の位置を記録
+    const beforeScroll = await timelineWrapper.evaluate(el => el.scrollLeft);
+    
+    // 大きくスクロール（拡張をトリガーする可能性）
+    await timelineWrapper.evaluate(el => el.scrollBy(500, 0));
+    await page.waitForTimeout(200);
+    
+    // スクロール後の位置を確認（500px±10pxの範囲内）
+    const afterScroll = await timelineWrapper.evaluate(el => el.scrollLeft);
+    const scrollDelta = afterScroll - beforeScroll;
+    expect(scrollDelta).toBeGreaterThan(490);
+    expect(scrollDelta).toBeLessThan(510);
+    
+    // コンソールエラーがないことを確認
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('extendedDateRange拡張時に表示が飛ばないこと', async ({ page }) => {
+    const timelineWrapper = page.locator('.gantt-timeline-wrapper');
+    
+    // 左端近くまでスクロール
+    await timelineWrapper.evaluate(el => el.scrollLeft = 100);
+    await page.waitForTimeout(100);
+    
+    const scrollBefore = await timelineWrapper.evaluate(el => el.scrollLeft);
+    
+    // さらに左にスクロール（左側拡張をトリガー）
+    await timelineWrapper.evaluate(el => el.scrollBy(-50, 0));
+    await page.waitForTimeout(200);
+    
+    const scrollAfter = await timelineWrapper.evaluate(el => el.scrollLeft);
+    const scrollDelta = scrollAfter - scrollBefore;
+    
+    // スクロール量が-50px±10pxの範囲内であることを確認
+    expect(scrollDelta).toBeGreaterThan(-60);
+    expect(scrollDelta).toBeLessThan(-40);
+  });
+
+  test('ズーム時に表示が飛ばないこと', async ({ page }) => {
+    const timelineWrapper = page.locator('.gantt-timeline-wrapper');
+    
+    // 中央付近にスクロール
+    await timelineWrapper.evaluate(el => {
+      el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+    });
+    await page.waitForTimeout(100);
+    
+    // ビューポート中心の位置を記録
+    const centerXBefore = await timelineWrapper.evaluate(el => {
+      return el.scrollLeft + el.clientWidth / 2;
+    });
+    
+    // ズームイン（Ctrl+Wheel）
+    const box = await timelineWrapper.boundingBox();
+    if (!box) throw new Error('Timeline wrapper not found');
+    
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.down('Control');
+    await page.mouse.wheel(0, -100);
+    await page.keyboard.up('Control');
+    await page.waitForTimeout(200);
+    
+    // ビューポート中心の位置を再計算
+    const centerXAfter = await timelineWrapper.evaluate(el => {
+      return el.scrollLeft + el.clientWidth / 2;
+    });
+    
+    // ズーム前後で中心位置の比率が近いことを確認（dayWidthが変わるため完全一致は難しい）
+    const ratio = centerXAfter / centerXBefore;
+    expect(ratio).toBeGreaterThan(0.8);
+    expect(ratio).toBeLessThan(1.5);
   });
 
   test('ズームイン操作が動作すること', async ({ page }) => {

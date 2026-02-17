@@ -18,7 +18,7 @@
       type: 'project',
       name: 'Website Redesign Project',
       start: DateTime.fromISO('2026-01-01'),
-      end: DateTime.fromISO('2026-02-29'),
+      end: DateTime.fromISO('2026-03-15'),
       isCollapsed: false
     },
     {
