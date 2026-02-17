@@ -407,19 +407,19 @@ interface TickDefinition {
 
 **11段階の定義:**
 
-| Scale範囲 | Tick間隔 | Major Format | Minor Format | 用途 |
-|-----------|----------|--------------|--------------|------|
-| ≥100 | 1時間 | HH:mm | dd MMM | 詳細計画 |
-| ≥50 | 3時間 | HH:mm | dd MMM | 日内スケジュール |
-| ≥25 | 6時間 | HH:mm | dd MMM | 半日単位 |
-| ≥12 | 12時間 | HH:mm | dd MMM | 日単位（詳細） |
-| ≥6 | 1日 | dd | MMM yyyy | 週単位計画 |
-| ≥3 | 2日 | dd | MMM yyyy | 2週間単位 |
-| ≥1.5 | 1週間 | dd MMM | yyyy | 月単位計画 |
-| ≥0.8 | 2週間 | dd MMM | yyyy | 四半期計画 |
-| ≥0.4 | 1ヶ月 | MMM | yyyy | 半期計画 |
-| ≥0.2 | 3ヶ月 | MMM | yyyy | 年単位計画 |
-| ≥0 | 1年 | yyyy | - | 長期計画 |
+| Scale範囲 | Tick間隔 | Major Format | Minor Format | 用途             |
+| --------- | -------- | ------------ | ------------ | ---------------- |
+| ≥100      | 1時間    | HH:mm        | dd MMM       | 詳細計画         |
+| ≥50       | 3時間    | HH:mm        | dd MMM       | 日内スケジュール |
+| ≥25       | 6時間    | HH:mm        | dd MMM       | 半日単位         |
+| ≥12       | 12時間   | HH:mm        | dd MMM       | 日単位（詳細）   |
+| ≥6        | 1日      | dd           | MMM yyyy     | 週単位計画       |
+| ≥3        | 2日      | dd           | MMM yyyy     | 2週間単位        |
+| ≥1.5      | 1週間    | dd MMM       | yyyy         | 月単位計画       |
+| ≥0.8      | 2週間    | dd MMM       | yyyy         | 四半期計画       |
+| ≥0.4      | 1ヶ月    | MMM          | yyyy         | 半期計画         |
+| ≥0.2      | 3ヶ月    | MMM          | yyyy         | 年単位計画       |
+| ≥0        | 1年      | yyyy         | -            | 長期計画         |
 
 ### ズームスケールの計算
 

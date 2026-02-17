@@ -25,7 +25,7 @@
   } from '../utils/zoom-scale';
   import { getTickGenerationDefForScale, addCustomTickGenerationDef } from '../utils/tick-generator';
   import type { TickGenerationDef } from '../utils/tick-generator';
-  import { Duration } from 'luxon';
+  import { Duration, DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
   // パブリックprops
@@ -46,6 +46,42 @@
   // 外部からストアにアクセスできるようにエクスポート（Tick Editorなどで使用）
   export function getStore() {
     return store;
+  }
+  
+  /**
+   * 指定された日付に視点を移動
+   * @param targetDate 移動先の日付
+   */
+  export function scrollToDate(targetDate: DateTime) {
+    if (!timelineWrapperElement) return;
+    
+    const current = $extendedDateRangeStore;
+    const currentDayWidth = $configStore.dayWidth;
+    
+    // 目標日付が拡張範囲外の場合は範囲を拡張
+    if (targetDate < current.start || targetDate > current.end) {
+      store.initExtendedDateRange(
+        timelineWrapperElement.clientWidth,
+        currentDayWidth,
+        getScaleFromDayWidth(currentDayWidth)
+      );
+    }
+    
+    // スクロール位置を計算
+    const containerWidth = timelineWrapperElement.clientWidth;
+    const targetDays = targetDate.diff(current.start, 'days').days;
+    const targetContentX = targetDays * currentDayWidth;
+    const newScrollLeft = targetContentX - (containerWidth / 2);
+    
+    // スクロール位置を設定
+    timelineWrapperElement.scrollLeft = Math.max(0, newScrollLeft);
+  }
+  
+  /**
+   * 今日の日付に視点を移動
+   */
+  export function scrollToToday() {
+    scrollToDate(DateTime.now().startOf('day'));
   }
   
   // ストアの値を購読

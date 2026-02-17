@@ -320,6 +320,22 @@
         stroke-width="1"
       />
     {/each}
+    
+    <!-- 今日の縦ライン（赤） -->
+    {@const today = DateTime.now().startOf('day')}
+    {@const isTodayVisible = today >= dateRange.start && today <= dateRange.end}
+    {#if isTodayVisible}
+      <line
+        x1={dateToX(today, dateRange, dayWidth)}
+        y1={0}
+        x2={dateToX(today, dateRange, dayWidth)}
+        y2={height}
+        class="{classPrefix}-today-line"
+        stroke="#e74c3c"
+        stroke-width="2"
+        stroke-dasharray="4,4"
+      />
+    {/if}
   </g>
   
   <!-- ガントバー -->

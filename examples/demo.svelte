@@ -363,6 +363,56 @@
     logEvent('🔄 Data reset');
   }
   
+  function scrollToToday() {
+    if (ganttChartComponent && ganttChartComponent.scrollToToday) {
+      ganttChartComponent.scrollToToday();
+      logEvent('📍 Scrolled to today');
+    }
+  }
+  
+  async function addRandomEvents() {
+    const taskNodes = nodes.filter(n => n.type === 'task' && n.start && n.end);
+    let addedCount = 0;
+    
+    logEvent('🎲 Starting to add random events...');
+    
+    for (let i = 0; i < 10; i++) {
+      const randomTask = taskNodes[Math.floor(Math.random() * taskNodes.length)];
+      if (!randomTask) continue;
+      
+      const taskDuration = randomTask.end!.diff(randomTask.start!, 'days').days;
+      const randomDay = Math.floor(Math.random() * (taskDuration + 1));
+      const eventDate = randomTask.start!.plus({ days: randomDay });
+      
+      // イベントはmetadataに記録するのみ（デモ用）
+      const eventId = `event-${Date.now()}-${Math.random()}`;
+      nodes = nodes.map(n => {
+        if (n.id === randomTask.id) {
+          return {
+            ...n,
+            metadata: {
+              ...n.metadata,
+              events: [
+                ...(Array.isArray(n.metadata?.events) ? n.metadata.events : []),
+                { id: eventId, date: eventDate.toISO(), timestamp: Date.now() }
+              ]
+            }
+          };
+        }
+        return n;
+      });
+      
+      addedCount++;
+      logEvent(`✨ Added event ${i + 1}/10 to ${randomTask.name} on ${eventDate.toFormat('yyyy-MM-dd')}`);
+      
+      // ゆっくり追加（最大2秒の間隔）
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 2000));
+    }
+    
+    logEvent(`✅ Added ${addedCount} random events`);
+  }
+  
+
 </script>
 
 <div class="demo-container">
@@ -381,6 +431,8 @@
       <button on:click={expandAll}>Expand All</button>
       <button on:click={collapseAll}>Collapse All</button>
       <button on:click={resetData}>Reset</button>
+      <button on:click={scrollToToday}>📍 Today</button>
+      <button on:click={addRandomEvents}>🎲 Add Random Events</button>
       <button on:click={() => showEventLog = !showEventLog}>
         {showEventLog ? 'Hide' : 'Show'} Event Log
       </button>
