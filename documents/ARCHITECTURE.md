@@ -337,6 +337,55 @@ function handleBarDrag(nodeId, newStart, newEnd) {
 />
 ```
 
+### SVG初期化と幅計算の依存関係
+
+SVGの幅（width属性）の計算は、複数の依存要素に基づいています。初期化の順序が重要です。
+
+**依存チェーン:**
+```
+dateRange（ノードから計算）
+    ↓
+extendedDateRange（dateRangeから初期化） ← initExtendedDateRange()
+    ↓
+calculateTimelineWidth（extendedDateRangeから計算）
+    ↓
+SVG width属性の確定
+```
+
+**初期化フロー（GanttChart.svelte → onMount）:**
+
+1. **同期的：** GanttChart マウント時に`initExtendedDateRange()`を直ちに実行
+2. **検証：** DateTime オブジェクトの有効性をチェック（無効な場合は修正）
+3. **リアクティブ：** extendedDateRange ストア更新 → GanttTimeline 自動再計算
+4. **計算：** `$: width = calculateTimelineWidth(dateRange, dayWidth)`で自動計算
+
+**重要な注意点：**
+
+- `dateRange.end`が無効な場合（例：冬季の31日月の2月29日）、DateTime.diff()は NaN を返します
+- 無効な DateTime は`initExtendedDateRange()`でキャッチして、有効な日付に修正します
+- 非同期遅延（Promise.resolve()など）を避け、同期的に初期化することが重要です
+
+**参考実装:**
+```typescript
+// gantt-store.ts: initExtendedDateRange内部
+
+// isValidチェック - 無効なDateTimeは修正する
+let start = baseDateRange.start;
+let end = baseDateRange.end;
+
+if (!start.isValid) {
+  console.warn('start is invalid, using current date');
+  start = DateTime.now().startOf("day");
+}
+if (!end.isValid) {
+  console.warn('end is invalid, using start + 30 days');
+  end = start.plus({ days: 30 });
+}
+
+const extendedStart = start.minus({ days: bufferDays });
+const extendedEnd = end.plus({ days: bufferDays });
+```
+
 ---
 
 ## ズーム機構
