@@ -320,8 +320,10 @@
         stroke-width="1"
       />
     {/each}
-    
-    <!-- 今日の縦ライン（赤） -->
+  </g>
+  
+  <!-- 今日の縦ライン（赤） -->
+  {#if dateRange}
     {@const today = DateTime.now().startOf('day')}
     {@const isTodayVisible = today >= dateRange.start && today <= dateRange.end}
     {#if isTodayVisible}
@@ -336,7 +338,7 @@
         stroke-dasharray="4,4"
       />
     {/if}
-  </g>
+  {/if}
   
   <!-- ガントバー -->
   <g class="{classPrefix}-bars">
