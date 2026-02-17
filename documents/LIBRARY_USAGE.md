@@ -226,15 +226,59 @@ const task: GanttNode = {
 
 #### メソッド
 
-```typescript
-// ストアへのアクセス（高度な使い方）
-let ganttChart: GanttChart;
-const store = ganttChart.getStore();
+コンポーネントインスタンスから直接呼び出せるメソッドです。
 
-// ズームスケールをsubscribe
+```typescript
+// コンポーネント参照を取得
+let ganttChart: GanttChart;
+
+// 指定した日付にスクロール
+ganttChart.scrollToDate(DateTime.fromISO('2024-06-15'));
+
+// 現在時刻（今日）にスクロール
+ganttChart.scrollToToday();
+
+// ストアへのアクセス（高度な使い方）
+const store = ganttChart.getStore();
 store.zoomScale.subscribe((scale) => {
   console.log('現在のズームスケール:', scale);
 });
+```
+
+**利用可能なメソッド:**
+
+| メソッド | 説明 |
+|---------|------|
+| `scrollToDate(targetDate: DateTime)` | 指定した日付にタイムラインをスクロール。日付が現在の表示範囲外の場合は自動的に範囲を拡張します。 |
+| `scrollToToday()` | 現在時刻（今日）にタイムラインをスクロール。`scrollToDate(DateTime.now())`のショートカット。 |
+| `getStore()` | 内部ストアへのアクセス（高度な使い方）。 |
+
+**使用例:**
+
+```svelte
+<script lang="ts">
+  import { GanttChart } from 'svelte-gantt-lib';
+  import { DateTime } from 'luxon';
+  
+  let ganttChart: GanttChart;
+  let nodes = [...];
+  
+  function jumpToProjectStart() {
+    const firstTask = nodes[0];
+    if (firstTask) {
+      ganttChart.scrollToDate(firstTask.start);
+    }
+  }
+  
+  function jumpToToday() {
+    ganttChart.scrollToToday();
+  }
+</script>
+
+<button on:click={jumpToProjectStart}>プロジェクト開始日へ</button>
+<button on:click={jumpToToday}>今日へ</button>
+
+<GanttChart bind:this={ganttChart} {nodes} />
 ```
 
 ---
@@ -558,6 +602,33 @@ console.log('終了:', range.end.toISODate());
   {handlers} 
   config={{ mode: 'uncontrolled' }} 
 />
+```
+
+---
+
+## 視覚的な機能
+
+### 現在時刻ライン
+
+タイムライン上に現在時刻を示す赤い縦線が自動的に表示されます。
+
+**特徴:**
+- 赤い点線（`stroke-dasharray="4,4"`）で表示
+- 分単位の精度（`DateTime.now().startOf('minute')`）
+- 現在時刻が表示範囲内にある場合のみ表示
+- リアルタイム更新は行われません（コンポーネント再レンダリング時に更新）
+
+**カスタマイズ:**
+
+デフォルトでは`.gantt-now-line`クラスを使用します。
+
+```css
+/* 現在時刻ラインのスタイルをカスタマイズ */
+:global(.gantt-now-line) {
+  stroke: #3498db !important;  /* 青色に変更 */
+  stroke-width: 3 !important;  /* 太さを変更 */
+  stroke-dasharray: 8,4 !important;  /* 点線パターンを変更 */
+}
 ```
 
 ---
