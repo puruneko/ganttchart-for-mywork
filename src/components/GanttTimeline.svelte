@@ -322,17 +322,17 @@
     {/each}
   </g>
   
-  <!-- 今日の縦ライン（赤） -->
+  <!-- 現在時刻の縦ライン（赤） -->
   {#if dateRange}
-    {@const today = DateTime.now().startOf('day')}
-    {@const isTodayVisible = today >= dateRange.start && today <= dateRange.end}
-    {#if isTodayVisible}
+    {@const now = DateTime.now().startOf('minute')}
+    {@const isNowVisible = now >= dateRange.start && now <= dateRange.end}
+    {#if isNowVisible}
       <line
-        x1={dateToX(today, dateRange, dayWidth)}
+        x1={dateToX(now, dateRange, dayWidth)}
         y1={0}
-        x2={dateToX(today, dateRange, dayWidth)}
+        x2={dateToX(now, dateRange, dayWidth)}
         y2={height}
-        class="{classPrefix}-today-line"
+        class="{classPrefix}-now-line"
         stroke="#e74c3c"
         stroke-width="2"
         stroke-dasharray="4,4"
