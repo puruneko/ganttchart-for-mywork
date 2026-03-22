@@ -211,10 +211,13 @@ export function createGanttStore(
 
         // Tick単位ごとの適切な倍率を決定
         if (intervalDays < 1) {
-            // 時間単位（1日未満） → 少なめ（ビューポート3倍 or Tick50単位分）
-            return Math.max(
-                Math.ceil(viewportDays * 3),
-                Math.ceil(intervalDays * 50),
+            // 時間単位（1日未満） → 少なめ（ビューポート3倍 or Tick50単位分）、最大14日に制限
+            return Math.min(
+                14,
+                Math.max(
+                    Math.ceil(viewportDays * 3),
+                    Math.ceil(intervalDays * 50),
+                ),
             )
         } else if (intervalDays <= 7) {
             // 日単位（1-7日） → 中程度（ビューポート5倍 or Tick30単位分）
@@ -349,6 +352,59 @@ export function createGanttStore(
         return needsExpansion
     }
 
+    /**
+     * ズーム変更時にextendedDateRangeを再計算（縮小含む）
+     *
+     * ズームイン時にtick数が爆発するのを防ぐため、新スケールに適したバッファ日数で範囲を再計算する。
+     * ビューポート中心の日付を維持しながら範囲を調整する。
+     *
+     * @param centerDate - ビューポート中心の日付（維持対象）
+     * @param containerWidth - 表示領域の幅（ピクセル）
+     * @param newDayWidth - 新しい1日あたりの幅（ピクセル）
+     * @param newZoomScale - 新しいズームスケール
+     * @param timelineElement - タイムライン要素（スクロール位置補正用）
+     */
+    function recalculateExtendedDateRange(
+        centerDate: DateTime,
+        containerWidth: number,
+        newDayWidth: number,
+        newZoomScale: number,
+        timelineElement: HTMLElement | null,
+    ): void {
+        const currentDateRange = get(dateRange)
+
+        if (!currentDateRange?.start?.isValid || !currentDateRange?.end?.isValid) {
+            return
+        }
+
+        const newViewportDays = containerWidth / newDayWidth
+        const bufferDays = calculateAdaptiveBuffer(newViewportDays, newZoomScale)
+
+        // データ範囲を包含しつつ、ビューポート中心を基準にバッファを確保
+        const viewBasedStart = centerDate.minus({ days: bufferDays })
+        const viewBasedEnd = centerDate.plus({ days: bufferDays })
+
+        const newStart = DateTime.min(
+            currentDateRange.start.minus({ days: Math.ceil(bufferDays * 0.5) }),
+            viewBasedStart,
+        )
+        const newEnd = DateTime.max(
+            currentDateRange.end.plus({ days: Math.ceil(bufferDays * 0.5) }),
+            viewBasedEnd,
+        )
+
+        extendedDateRange.set({ start: newStart, end: newEnd })
+
+        // 次フレームでスクロール位置を補正（Svelteのリアクティブ更新後）
+        if (timelineElement) {
+            requestAnimationFrame(() => {
+                const newCenterDays = centerDate.diff(newStart, "days").days
+                const newScrollLeft = newCenterDays * newDayWidth - containerWidth / 2
+                timelineElement.scrollLeft = Math.max(0, newScrollLeft)
+            })
+        }
+    }
+
     return {
         // 読み取り専用ストア（購読可能）
         nodes: { subscribe: nodes.subscribe },
@@ -371,6 +427,7 @@ export function createGanttStore(
         setZoomScale: (scale: number) => zoomScale.set(scale),
         initExtendedDateRange,
         expandExtendedDateRangeIfNeeded,
+        recalculateExtendedDateRange,
 
         // テストと外部アクセス用（プライベートメソッド）
         _getRawNodes: () => get(nodes),

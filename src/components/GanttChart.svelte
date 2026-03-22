@@ -394,10 +394,31 @@
   
   // タイムラインからのズーム変更を処理
   function handleTimelineZoom(scale: number, newDayWidth: number): void {
+    // ビューポート中心の日付を事前に記録（extendedDateRange変更前）
+    let centerDate: import('luxon').DateTime | null = null;
+    if (timelineWrapperElement) {
+      const scrollLeft = timelineWrapperElement.scrollLeft;
+      const containerWidth = timelineWrapperElement.clientWidth;
+      const oldDayWidth = chartConfig.dayWidth;
+      const centerDays = scrollLeft / oldDayWidth + containerWidth / oldDayWidth / 2;
+      centerDate = extendedDateRange.start.plus({ days: centerDays });
+    }
+
     currentZoomScale = scale;
     store.setZoomScale(scale); // ストアにも反映
     store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
-    
+
+    // 新スケールで描画範囲を再計算（ズームイン時のtick数爆発を防ぐ）
+    if (centerDate && timelineWrapperElement) {
+      store.recalculateExtendedDateRange(
+        centerDate,
+        timelineWrapperElement.clientWidth,
+        newDayWidth,
+        scale,
+        timelineWrapperElement,
+      );
+    }
+
     // 外部ハンドラーに通知
     if (handlers.onZoomChange) {
       handlers.onZoomChange(scale);
@@ -411,19 +432,35 @@
     currentZoomScale = newScale;
     store.setZoomScale(newScale); // ストアにも反映
     store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
-    
+
+    if (timelineWrapperElement) {
+      const scrollLeft = timelineWrapperElement.scrollLeft;
+      const containerWidth = timelineWrapperElement.clientWidth;
+      const centerDays = scrollLeft / chartConfig.dayWidth + containerWidth / chartConfig.dayWidth / 2;
+      const centerDate = extendedDateRange.start.plus({ days: centerDays });
+      store.recalculateExtendedDateRange(centerDate, containerWidth, newDayWidth, newScale, timelineWrapperElement);
+    }
+
     if (handlers.onZoomChange) {
       handlers.onZoomChange(newScale);
     }
   }
-  
+
   function zoomOut() {
     const newScale = Math.max(currentZoomScale / 1.5, ZOOM_SCALE_LIMITS.min);
     const newDayWidth = getDayWidthFromScale(newScale);
     currentZoomScale = newScale;
     store.setZoomScale(newScale); // ストアにも反映
     store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
-    
+
+    if (timelineWrapperElement) {
+      const scrollLeft = timelineWrapperElement.scrollLeft;
+      const containerWidth = timelineWrapperElement.clientWidth;
+      const centerDays = scrollLeft / chartConfig.dayWidth + containerWidth / chartConfig.dayWidth / 2;
+      const centerDate = extendedDateRange.start.plus({ days: centerDays });
+      store.recalculateExtendedDateRange(centerDate, containerWidth, newDayWidth, newScale, timelineWrapperElement);
+    }
+
     if (handlers.onZoomChange) {
       handlers.onZoomChange(newScale);
     }
@@ -707,6 +744,7 @@
           rowHeight={chartConfig.rowHeight}
           dragSnapDivision={chartConfig.dragSnapDivision}
           {classPrefix}
+          zoomScale={currentZoomScale}
           renderLifecycle={lifecycle}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}

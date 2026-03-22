@@ -1,7 +1,7 @@
 import { defineConfig } from "vite"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
 
-const devPort = 5176
+const devPort = 5276
 
 export default defineConfig({
     plugins: [svelte()],

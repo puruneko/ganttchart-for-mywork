@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test"
 
-const port = 5176
+const port = 5276
 
 export default defineConfig({
     workers: 1,

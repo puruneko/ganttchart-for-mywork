@@ -16,17 +16,17 @@
     dateToX,
     rowToY,
     durationToWidth,
-    generateDateTicks,
     calculateTimelineWidth,
     calculateTimelineHeight,
     getBarClass
   } from '../utils/timeline-calculations';
+  import { generateTwoLevelTicks, getTickGenerationDefForScale } from '../utils/tick-generator';
   import { onMount, onDestroy } from 'svelte';
   import { ZoomGestureDetector } from '../utils/zoom-gesture';
-  import { 
-    getDayWidthFromScale, 
+  import {
+    getDayWidthFromScale,
     getScaleFromDayWidth,
-    ZOOM_SCALE_LIMITS 
+    ZOOM_SCALE_LIMITS
   } from '../utils/zoom-scale';
   
   // Props - Svelte 5互換性のため明示的
@@ -53,6 +53,8 @@
   /** ズーム変更時のハンドラー（dayWidthの更新を通知） */
   export let onZoomChange: ((scale: number, dayWidth: number) => void) | undefined = undefined;
   export let renderLifecycle: RenderLifecycle | undefined = undefined;
+  /** ズームスケール（グリッド描画のTick定義選択に使用） */
+  export let zoomScale: number = 1.0;
   
   // ズーム関連
   let svgElement: SVGSVGElement;
@@ -63,7 +65,6 @@
   // SVGの寸法（リアクティブ式で計算される）
   let width = 0;
   let height = 0;
-  let dateTicks: any[] = [];
   
   // ready状態のローカル変数
   let isReady = true; // デフォルトはtrue（renderLifecycleがない場合は常にready）
@@ -187,7 +188,10 @@
   // 計算値 - Svelte 5では$derivedに変換される
   $: width = calculateTimelineWidth(dateRange, dayWidth);
   $: height = calculateTimelineHeight(visibleNodes.length, rowHeight);
-  $: dateTicks = generateDateTicks(dateRange);
+  $: gridTickDef = getTickGenerationDefForScale(zoomScale);
+  $: gridTwoLevelTicks = generateTwoLevelTicks(dateRange, gridTickDef);
+  $: gridMinorTicks = gridTwoLevelTicks.minorTicks;
+  $: gridMajorTicks = gridTwoLevelTicks.majorTicks;
   
   // ドラッグ状態
   let dragState: {
@@ -309,14 +313,25 @@
   
   <!-- 背景グリッド -->
   <g class="{classPrefix}-grid">
-    {#each dateTicks as date}
+    {#each gridMinorTicks as tick (tick.start.toISO())}
       <line
-        x1={dateToX(date, dateRange, dayWidth)}
+        x1={dateToX(tick.start, dateRange, dayWidth)}
         y1={0}
-        x2={dateToX(date, dateRange, dayWidth)}
+        x2={dateToX(tick.start, dateRange, dayWidth)}
         y2={height}
         class="{classPrefix}-grid-line"
         stroke="#e0e0e0"
+        stroke-width="1"
+      />
+    {/each}
+    {#each gridMajorTicks as tick (tick.start.toISO())}
+      <line
+        x1={dateToX(tick.start, dateRange, dayWidth)}
+        y1={0}
+        x2={dateToX(tick.start, dateRange, dayWidth)}
+        y2={height}
+        class="{classPrefix}-grid-line-major"
+        stroke="#c0c0c0"
         stroke-width="1"
       />
     {/each}
@@ -572,6 +587,7 @@
   :global(.gantt-timeline) {
     display: block;
     user-select: none;
+    will-change: transform;
   }
   
   :global(.gantt-bar) {

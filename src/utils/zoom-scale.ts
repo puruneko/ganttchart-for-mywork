@@ -12,6 +12,12 @@
 
 import { Duration } from "luxon"
 
+/** scale=1.0 時の1日あたりのピクセル幅 */
+export const BASE_DAY_WIDTH = 40
+
+/** デフォルトの1em相当ピクセル数 */
+export const DEFAULT_EM_PX = 16
+
 /**
  * Tick定義（2段構成対応）
  * 特定のズーム範囲に対応する時間単位とフォーマット
@@ -20,8 +26,18 @@ import { Duration } from "luxon"
  * 下段（minor）: 小さい単位（日、時間など）
  */
 export interface TickDefinition {
-    /** この定義が適用される最小スケール値 */
+    /**
+     * この定義が適用される最小スケール値
+     * minCellWidthEmが設定されている場合は動的に計算される
+     */
     minScale: number
+
+    /**
+     * minorセルの最小幅（em単位）
+     * この幅を下回ると次の粗い定義に遷移する
+     * デフォルト: 4em（時間・日単位は2em）、フォールバックは0
+     */
+    minCellWidthEm: number
 
     // 上段（major）の定義
     /** 上段の単位 */
@@ -44,13 +60,40 @@ export interface TickDefinition {
 }
 
 /**
+ * minCellWidthEm から minScale を計算する
+ *
+ * 計算式: minScale = (minCellWidthEm * emPx) / (minorInterval_days * BASE_DAY_WIDTH)
+ *
+ * @param def - Tick定義
+ * @param emPx - 1emのピクセル数（デフォルト16px）
+ * @returns 最小スケール値
+ */
+export function calculateMinScale(def: TickDefinition, emPx: number = DEFAULT_EM_PX): number {
+    if (def.minCellWidthEm === 0) return 0
+    const intervalDays = def.minorInterval.as("days")
+    return (def.minCellWidthEm * emPx) / (intervalDays * BASE_DAY_WIDTH)
+}
+
+/**
+ * すべての定義の minScale を minCellWidthEm から再計算して同期する
+ *
+ * @param emPx - 1emのピクセル数（デフォルト16px）
+ */
+function syncMinScales(emPx: number = DEFAULT_EM_PX): void {
+    for (const def of TICK_DEFINITIONS) {
+        def.minScale = calculateMinScale(def, emPx)
+    }
+}
+
+/**
  * Tick定義のリスト（2段構成、降順ソート）
  * tick-generator.tsのデフォルト定義と統一
  */
 let TICK_DEFINITIONS: TickDefinition[] = [
-    // 時間単位（最も拡大: scale >= 17）
+    // 時間単位（minCellWidthEm: 2 → minScale ≈ 19.2）
     {
-        minScale: 17,
+        minScale: 0,
+        minCellWidthEm: 2,
         majorUnit: "day",
         majorFormat: "yyyy/MM/dd",
         minorUnit: "hour",
@@ -59,7 +102,8 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         label: "1時間",
     },
     {
-        minScale: 5.5,
+        minScale: 0,
+        minCellWidthEm: 2,
         majorUnit: "day",
         majorFormat: "MM/dd",
         minorUnit: "hour",
@@ -68,7 +112,8 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         label: "3時間",
     },
     {
-        minScale: 2.8,
+        minScale: 0,
+        minCellWidthEm: 2,
         majorUnit: "day",
         majorFormat: "MM/dd",
         minorUnit: "hour",
@@ -77,7 +122,8 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         label: "6時間",
     },
     {
-        minScale: 1.4,
+        minScale: 0,
+        minCellWidthEm: 2,
         majorUnit: "day",
         majorFormat: "MM/dd",
         minorUnit: "hour",
@@ -85,9 +131,10 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         minorInterval: Duration.fromObject({ hours: 12 }),
         label: "12時間",
     },
-    // 日単位（scale >= 0.95）
+    // 日単位（minCellWidthEm: 2 → minScale = 0.8）
     {
-        minScale: 0.95,
+        minScale: 0,
+        minCellWidthEm: 2,
         majorUnit: "month",
         majorFormat: "yyyy/MM",
         minorUnit: "day",
@@ -95,27 +142,10 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         minorInterval: Duration.fromObject({ days: 1 }),
         label: "1日",
     },
+    // 週単位（minCellWidthEm: 4 → minScale ≈ 0.229）
     {
-        minScale: 0.48,
-        majorUnit: "month",
-        majorFormat: "yyyy/MM",
-        minorUnit: "day",
-        minorFormat: "dd",
-        minorInterval: Duration.fromObject({ days: 2 }),
-        label: "2日",
-    },
-    {
-        minScale: 0.24,
-        majorUnit: "month",
-        majorFormat: "yyyy/MM",
-        minorUnit: "day",
-        minorFormat: "dd",
-        minorInterval: Duration.fromObject({ days: 4 }),
-        label: "4日",
-    },
-    // 週単位（scale >= 0.17）
-    {
-        minScale: 0.17,
+        minScale: 0,
+        minCellWidthEm: 4,
         majorUnit: "month",
         majorFormat: "yyyy/MM",
         minorUnit: "week",
@@ -124,7 +154,8 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         label: "1週間",
     },
     {
-        minScale: 0.085,
+        minScale: 0,
+        minCellWidthEm: 3,
         majorUnit: "month",
         majorFormat: "yyyy/MM",
         minorUnit: "week",
@@ -132,9 +163,10 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         minorInterval: Duration.fromObject({ weeks: 2 }),
         label: "2週間",
     },
-    // 月単位（scale >= 0.04）
+    // 月単位（minCellWidthEm: 3 → minScale ≈ 0.04）
     {
-        minScale: 0.04,
+        minScale: 0,
+        minCellWidthEm: 3,
         majorUnit: "year",
         majorFormat: "yyyy",
         minorUnit: "month",
@@ -143,7 +175,8 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         label: "1ヶ月",
     },
     {
-        minScale: 0.013,
+        minScale: 0,
+        minCellWidthEm: 3,
         majorUnit: "year",
         majorFormat: "yyyy",
         minorUnit: "month",
@@ -151,9 +184,10 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         minorInterval: Duration.fromObject({ months: 3 }),
         label: "3ヶ月",
     },
-    // 年単位（最も縮小: scale < 0.013）
+    // 年単位フォールバック（minCellWidthEm: 0 → minScale = 0、常に適用）
     {
         minScale: 0,
+        minCellWidthEm: 0,
         majorUnit: "year",
         majorFormat: "yyyy",
         minorUnit: "month",
@@ -162,6 +196,10 @@ let TICK_DEFINITIONS: TickDefinition[] = [
         label: "1年",
     },
 ]
+
+// 初期化時にminCellWidthEmからminScaleを計算してソート
+syncMinScales()
+TICK_DEFINITIONS.sort((a, b) => b.minScale - a.minScale)
 
 /**
  * 現在のズームスケールに対応するTick定義を取得
@@ -191,7 +229,6 @@ export function getTickDefinitionForScale(scale: number): TickDefinition {
  * @returns 1日あたりのピクセル幅
  */
 export function getDayWidthFromScale(scale: number): number {
-    const BASE_DAY_WIDTH = 40 // scale = 1.0のときの1日幅
     return BASE_DAY_WIDTH * scale
 }
 
@@ -202,7 +239,6 @@ export function getDayWidthFromScale(scale: number): number {
  * @returns ズームスケール値
  */
 export function getScaleFromDayWidth(dayWidth: number): number {
-    const BASE_DAY_WIDTH = 40
     return dayWidth / BASE_DAY_WIDTH
 }
 
@@ -221,6 +257,9 @@ export const ZOOM_SCALE_LIMITS = {
  * @param definition - 追加するカスタム定義
  */
 export function addCustomTickDefinition(definition: TickDefinition): void {
+    // minCellWidthEmからminScaleを計算して同期
+    definition.minScale = calculateMinScale(definition)
+
     // 既存の定義で同じminScaleがあれば置き換え
     const existingIndex = TICK_DEFINITIONS.findIndex(
         (d) => d.minScale === definition.minScale,
@@ -269,6 +308,8 @@ export function updateTickDefinition(
     definition: TickDefinition,
 ): void {
     if (index >= 0 && index < TICK_DEFINITIONS.length) {
+        // minCellWidthEmからminScaleを再計算して同期
+        definition.minScale = calculateMinScale(definition)
         TICK_DEFINITIONS[index] = definition
         // minScaleの降順でソート
         TICK_DEFINITIONS.sort((a, b) => b.minScale - a.minScale)
