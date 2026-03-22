@@ -39,7 +39,8 @@ yarn add svelte-gantt-lib
 このライブラリは以下のパッケージに依存しています：
 
 - `luxon`: 日付・時刻操作
-- `svelte`: Svelte 4以上
+- `hammerjs`: タッチジェスチャー（ピンチズーム）
+- `svelte`: Svelte 4以上（Svelte 5もpeer dependencyで対応）
 
 ---
 
@@ -203,7 +204,8 @@ const task: GanttNode = {
     dayWidth: 30,
     treePaneWidth: 300,
     indentSize: 20,
-    dragSnapDivision: 4
+    dragSnapDivision: 4,
+    showTreePane: true
   };
 </script>
 
@@ -419,14 +421,14 @@ interface GanttConfig {
 | オプション | デフォルト値 | 説明 |
 |-----------|-------------|------|
 | `mode` | `'controlled'` | データ管理モード |
-| `rowHeight` | `32` | 行の高さ（px） |
+| `rowHeight` | `40` | 行の高さ（px） |
 | `dayWidth` | `30` | 1日の幅（px） |
-| `treePaneWidth` | `250` | ツリーペインの幅（px） |
-| `indentSize` | `16` | インデント幅（px） |
+| `treePaneWidth` | `300` | ツリーペインの幅（px） |
+| `indentSize` | `20` | インデント幅（px） |
 | `classPrefix` | `'gantt'` | CSSクラスプレフィックス |
 | `dragSnapDivision` | `4` | ドラッグスナップ（0.25日単位） |
 | `showTreePane` | `true` | ツリーペイン表示 |
-| `zoomLevel` | `3` | ズームレベル |
+| `zoomLevel` | `3` | ズームレベル（UI表示用、内部は連続スケール） |
 
 ### 設定例
 
@@ -463,16 +465,29 @@ interface GanttConfig {
 
 ### エクスポートされた関数
 
-ライブラリは、データ操作用の関数もエクスポートしています。
+ライブラリは、データ操作用の関数とストアファクトリもエクスポートしています。
 
 ```typescript
 import {
+  // データ操作関数
   buildHierarchyMap,
   buildNodeMap,
   computeNodes,
   calculateDateRange,
   toggleNodeCollapse,
-  updateNode
+  updateNode,
+  // ストアファクトリ（高度な使い方・テスト用）
+  createGanttStore,
+  // ライフサイクルイベント
+  LifecycleEventEmitter,
+  createLifecycleEventEmitter
+} from 'svelte-gantt-lib';
+
+// 型定義
+import type {
+  GanttNode, GanttNodeType, GanttEventHandlers, GanttConfig,
+  GanttChartProps, DateRange, GanttStore,
+  LifecycleEventDetail, LifecyclePhase
 } from 'svelte-gantt-lib';
 ```
 
@@ -892,7 +907,7 @@ Svelte Gantt Libraryは、以下の特徴を持つ軽量で柔軟なガントチ
 
 - ✅ **階層構造サポート**: プロジェクト/セクション/タスクの階層管理
 - ✅ **ドラッグ&ドロップ**: 直感的な操作でタスクを移動・リサイズ
-- ✅ **ズーム機能**: 11段階のズームレベル
+- ✅ **ズーム機能**: 連続スケールによるスムーズなズーム（10段階のTick定義）
 - ✅ **イミュータブル**: データの不変性を保つ安全な設計
 - ✅ **TypeScript完全対応**: 型安全な開発
 - ✅ **カスタマイズ可能**: CSS変数とイベントハンドラーで柔軟に拡張

@@ -144,6 +144,60 @@ function GanttWrapper() {
 
 ---
 
+## RenderLifecycle（内部レンダリングフェーズ管理）
+
+ライフサイクルイベントとは別に、内部のレンダリングフェーズを管理する`RenderLifecycle`が存在します。
+これはSvelteストアベースの内部API（`render-lifecycle.ts`）で、コンポーネント間の状態同期に使用されます。
+
+### RenderPhase
+
+| フェーズ       | 説明                                |
+| ------------- | ----------------------------------- |
+| `initializing`| 初期化開始                          |
+| `mounting`    | マウント処理中                      |
+| `measuring`   | DOM計測中                           |
+| `rendering`   | レンダリング中                      |
+| `ready`       | 初回レンダリング完了                |
+| `updating`    | 更新中（ready後の再レンダリング）   |
+
+### 公開ストア
+
+```typescript
+const lifecycle = createRenderLifecycle();
+
+// Readable stores
+lifecycle.phase;          // 現在のフェーズ（RenderPhase型）
+lifecycle.isInitializing; // 初期化中かどうか
+lifecycle.isReady;        // 準備完了かどうか
+lifecycle.canInteract;    // 操作可能かどうか（ready or updating）
+```
+
+### 使用例
+
+GanttTimelineでは`isReady`を監視し、準備完了後にZoomGestureDetectorを初期化します：
+
+```typescript
+// GanttTimeline.svelte内
+$: if ($isReady && svgElement) {
+  // ZoomGestureDetectorの初期化
+  zoomDetector = new ZoomGestureDetector(svgElement, {
+    onZoomChange: handleZoomChange
+  }, currentZoomScale);
+  zoomDetector.start();
+}
+```
+
+### LifecycleEvents vs RenderLifecycle の違い
+
+| 項目             | LifecycleEventEmitter          | RenderLifecycle             |
+| --------------- | ------------------------------ | --------------------------- |
+| 用途            | 外部向けイベント通知            | 内部コンポーネント間の状態同期 |
+| API             | EventTarget（ブラウザ標準）     | Svelteストア                |
+| フェーズ数       | 4（initializing〜ready）       | 6（initializing〜updating） |
+| 実装ファイル     | `lifecycle-events.ts`          | `render-lifecycle.ts`       |
+
+---
+
 ## 技術仕様
 
 ### EventTarget 拡張の利点
@@ -220,5 +274,6 @@ if (history.length === 0) {
 ## 参考
 
 - [examples/demo.svelte](../examples/demo.svelte) - 実装例
-- [src/core/lifecycle-events.ts](../src/core/lifecycle-events.ts) - 実装コード
+- [src/core/lifecycle-events.ts](../src/core/lifecycle-events.ts) - LifecycleEventEmitter実装
+- [src/core/render-lifecycle.ts](../src/core/render-lifecycle.ts) - RenderLifecycle実装
 - [src/components/GanttChart.svelte](../src/components/GanttChart.svelte) - 統合部分
