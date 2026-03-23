@@ -20,6 +20,7 @@
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
   import GanttTickEditor from './GanttTickEditor.svelte';
+  import GanttConfigPanel from './GanttConfigPanel.svelte';
   import {
     getTickDefinitionForScale,
     getScaleFromDayWidth,
@@ -295,9 +296,27 @@
    * Tick定義エディタ表示切り替え
    */
   let showTickEditor = false;
-  
+
   function toggleTickEditor() {
     showTickEditor = !showTickEditor;
+    if (showTickEditor) showConfigPanel = false;
+  }
+
+  /**
+   * 設定パネル表示切り替え
+   */
+  let showConfigPanel = false;
+
+  function toggleConfigPanel() {
+    showConfigPanel = !showConfigPanel;
+    if (showConfigPanel) showTickEditor = false;
+  }
+
+  /**
+   * 設定パネルから config 変更を受け取り store に反映
+   */
+  function handleConfigPanelChange(updates: Partial<typeof chartConfig>) {
+    store.updateConfig(updates);
   }
   
   /**
@@ -486,13 +505,24 @@
     </button>
   </div>
   
+  <!-- 設定パネル切り替えボタン -->
+  <button
+    class="{classPrefix}-toggle-config-btn"
+    class:active={showConfigPanel}
+    on:click={toggleConfigPanel}
+    title={showConfigPanel ? '設定を非表示' : '設定'}
+  >
+    ☰
+  </button>
+
   <!-- Tick定義エディタ切り替えボタン -->
   <button
     class="{classPrefix}-toggle-tick-editor-btn"
+    class:active={showTickEditor}
     on:click={toggleTickEditor}
     title={showTickEditor ? 'Tick Editorを非表示' : 'Tick Editorを表示'}
   >
-    {showTickEditor ? '⚙' : '⚙'}
+    ⚙
   </button>
   
   
@@ -584,6 +614,27 @@
         </div>
       </div>
     {/if}
+
+    <!-- 設定パネル -->
+    {#if showConfigPanel}
+      <div class="{classPrefix}-config-pane">
+        <div class="{classPrefix}-config-pane-header">
+          <span>設定</span>
+          <button
+            class="{classPrefix}-config-close-btn"
+            on:click={toggleConfigPanel}
+            title="閉じる"
+          >✕</button>
+        </div>
+        <div class="{classPrefix}-config-pane-wrapper">
+          <GanttConfigPanel
+            config={chartConfig}
+            {classPrefix}
+            onConfigChange={handleConfigPanelChange}
+          />
+        </div>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -620,6 +671,34 @@
     background: #f0f0f0;
   }
   
+  :global(.gantt-toggle-config-btn) {
+    position: absolute;
+    top: 8px;
+    right: 160px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+
+  :global(.gantt-toggle-config-btn:hover) {
+    background: #f0f0f0;
+  }
+
+  :global(.gantt-toggle-config-btn.active) {
+    background: #e8f0fb;
+    border-color: #4a90e2;
+    color: #4a90e2;
+  }
+
   :global(.gantt-toggle-tick-editor-btn) {
     position: absolute;
     top: 8px;
@@ -637,9 +716,15 @@
     font-size: 16px;
     transition: background 0.2s;
   }
-  
+
   :global(.gantt-toggle-tick-editor-btn:hover) {
     background: #f0f0f0;
+  }
+
+  :global(.gantt-toggle-tick-editor-btn.active) {
+    background: #e8f0fb;
+    border-color: #4a90e2;
+    color: #4a90e2;
   }
   
   :global(.gantt-zoom-controls) {
@@ -735,7 +820,7 @@
     width: 320px;
     border-left: 1px solid #ddd;
   }
-  
+
   :global(.gantt-tick-editor-header) {
     border-bottom: 2px solid #ddd;
     background: #f5f5f5;
@@ -746,12 +831,60 @@
     box-sizing: border-box;
     height: 60px;
   }
-  
+
   :global(.gantt-tick-editor-wrapper) {
     flex: 1;
     overflow-y: auto;
     padding: 12px;
     background: #f9f9f9;
+  }
+
+  :global(.gantt-config-pane) {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 280px;
+    border-left: 1px solid #ddd;
+    background: #fafafa;
+  }
+
+  :global(.gantt-config-pane-header) {
+    border-bottom: 2px solid #ddd;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 13px;
+    box-sizing: border-box;
+    height: 60px;
+    flex-shrink: 0;
+  }
+
+  :global(.gantt-config-close-btn) {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+
+  :global(.gantt-config-close-btn:hover) {
+    background: #e0e0e0;
+    color: #333;
+  }
+
+  :global(.gantt-config-pane-wrapper) {
+    flex: 1;
+    overflow-y: auto;
   }
   
   :global(.gantt-tick-info) {
