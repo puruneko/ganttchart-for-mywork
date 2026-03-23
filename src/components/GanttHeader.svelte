@@ -8,8 +8,9 @@
   
   import type { DateRange } from '../types';
   import { dateToX, durationToWidth, calculateTimelineWidth } from '../utils/timeline-calculations';
-  import { generateTwoLevelTicks, getTickGenerationDefForScale } from '../utils/tick-generator';
-  
+  import { generateTwoLevelTicks } from '../utils/tick-generator';
+  import { getTickDefinitionForScale } from '../utils/zoom-scale';
+
   /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
   /** 1日あたりの幅（ピクセル） */
@@ -18,9 +19,9 @@
   export let classPrefix: string;
   /** ズームスケール */
   export let zoomScale: number = 1.0;
-  
+
   // ズームスケールに応じた2段tick定義を取得
-  $: tickDef = getTickGenerationDefForScale(zoomScale);
+  $: tickDef = getTickDefinitionForScale(zoomScale);
   $: twoLevelTicks = generateTwoLevelTicks(dateRange, tickDef);
   $: majorTicks = twoLevelTicks.majorTicks;
   $: minorTicks = twoLevelTicks.minorTicks;

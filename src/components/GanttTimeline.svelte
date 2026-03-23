@@ -20,7 +20,8 @@
     calculateTimelineHeight,
     getBarClass
   } from '../utils/timeline-calculations';
-  import { generateTwoLevelTicks, getTickGenerationDefForScale } from '../utils/tick-generator';
+  import { generateTwoLevelTicks } from '../utils/tick-generator';
+  import { getTickDefinitionForScale } from '../utils/zoom-scale';
   import { onMount, onDestroy } from 'svelte';
   import { ZoomGestureDetector } from '../utils/zoom-gesture';
   import {
@@ -188,7 +189,7 @@
   // 計算値 - Svelte 5では$derivedに変換される
   $: width = calculateTimelineWidth(dateRange, dayWidth);
   $: height = calculateTimelineHeight(visibleNodes.length, rowHeight);
-  $: gridTickDef = getTickGenerationDefForScale(zoomScale);
+  $: gridTickDef = getTickDefinitionForScale(zoomScale);
   $: gridTwoLevelTicks = generateTwoLevelTicks(dateRange, gridTickDef);
   $: gridMinorTicks = gridTwoLevelTicks.minorTicks;
   $: gridMajorTicks = gridTwoLevelTicks.majorTicks;

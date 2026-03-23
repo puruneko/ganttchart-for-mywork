@@ -23,8 +23,6 @@
     getScaleFromDayWidth,
     ZOOM_SCALE_LIMITS
   } from '../utils/zoom-scale';
-  import { getTickGenerationDefForScale, addCustomTickGenerationDef } from '../utils/tick-generator';
-  import type { TickGenerationDef } from '../utils/tick-generator';
   import { Duration, DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
@@ -466,11 +464,8 @@
     }
   }
   
-  // 現在のtick定義を取得（zoom-scale用）
+  // 現在のtick定義を取得
   $: currentTickDef = getTickDefinitionForScale(currentZoomScale);
-  
-  // ヘッダー用のtick定義を取得（tick-generator用）
-  $: headerTickDef = getTickGenerationDefForScale(currentZoomScale);
   
   /**
    * スクロール同期機能

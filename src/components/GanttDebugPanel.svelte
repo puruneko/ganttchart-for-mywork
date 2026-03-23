@@ -5,10 +5,10 @@
    */
   
   import { Duration } from 'luxon';
-  import type { TickGenerationDef } from '../utils/tick-generator';
+  import type { TickDefinition } from '../utils/zoom-scale';
   
   export let currentScale: number | undefined = undefined;
-  export let tickDef: TickGenerationDef | undefined = undefined;
+  export let tickDef: TickDefinition | undefined = undefined;
   export let classPrefix: string;
   
   // ズーム定義を編集した際のコールバック
