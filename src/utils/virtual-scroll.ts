@@ -89,3 +89,52 @@ export function fullWindow(dateRange: DateRange): XAxisWindow {
     endPx: Infinity,
   };
 }
+
+// ─── Y 軸仮想スクロール ───────────────────────────────────────────────────────
+
+/**
+ * Y 軸ウィンドウ（描画対象の行インデックス範囲）
+ */
+export interface YAxisWindow {
+  /** 描画開始インデックス（visibleNodes の配列インデックス） */
+  startIndex: number;
+  /** 描画終了インデックス（inclusive） */
+  endIndex: number;
+  /** 上部スペーサーの高さ（px） = startIndex * rowHeight */
+  offsetY: number;
+  /** 全行の合計高さ（px） = totalRows * rowHeight */
+  totalHeight: number;
+}
+
+/**
+ * Y 軸ウィンドウを計算する
+ *
+ * @param scrollTop      現在の垂直スクロール位置（px）
+ * @param viewportHeight ビューポートの高さ（px）
+ * @param rowHeight      1行あたりの高さ（px）
+ * @param totalRows      visibleNodes の総数
+ * @param overscanRows   オーバースキャン行数（省略時: 5）
+ */
+export function calculateYWindow(
+  scrollTop: number,
+  viewportHeight: number,
+  rowHeight: number,
+  totalRows: number,
+  overscanRows = 5,
+): YAxisWindow {
+  if (totalRows === 0 || rowHeight <= 0) {
+    return { startIndex: 0, endIndex: -1, offsetY: 0, totalHeight: 0 };
+  }
+
+  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscanRows);
+  // ceil(bottom / rowHeight) - 1 は「ビューポート底辺が含まれる行」のインデックス
+  const lastVisibleIndex = Math.ceil((scrollTop + viewportHeight) / rowHeight) - 1;
+  const endIndex = Math.min(totalRows - 1, lastVisibleIndex + overscanRows);
+
+  return {
+    startIndex,
+    endIndex,
+    offsetY: startIndex * rowHeight,
+    totalHeight: totalRows * rowHeight,
+  };
+}

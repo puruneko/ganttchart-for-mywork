@@ -9,6 +9,7 @@
    */
   
   import type { ComputedGanttNode } from '../types';
+  import type { YAxisWindow } from '../utils/virtual-scroll';
   
   // Props
   /** 表示される（可視な）ノードの配列 */
@@ -25,6 +26,13 @@
   export let onNameClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
   /** 折り畳み切り替え時のハンドラー */
   export let onToggleCollapse: ((nodeId: string) => void) | undefined = undefined;
+  /** Y 軸仮想スクロールウィンドウ */
+  export let yWindow: YAxisWindow | undefined = undefined;
+
+  // Y 軸仮想スクロール: ウィンドウ内の行だけにスライス
+  $: windowedNodes = yWindow
+    ? visibleNodes.slice(yWindow.startIndex, yWindow.endIndex + 1)
+    : visibleNodes;
   
   /**
    * ノード名クリックハンドラー
@@ -61,11 +69,16 @@
   }
 </script>
 
-<div 
+<div
   class="{classPrefix}-tree"
-  style="width: {treePaneWidth}px;"
+  style="width: {treePaneWidth}px; {yWindow ? `min-height: ${yWindow.totalHeight}px;` : ''}"
 >
-  {#each visibleNodes as node (node.id)}
+  <!-- Y 軸仮想スクロール: 上部スペーサー -->
+  {#if yWindow && yWindow.offsetY > 0}
+    <div style="height: {yWindow.offsetY}px;" aria-hidden="true"></div>
+  {/if}
+
+  {#each windowedNodes as node (node.id)}
     <div
       class="{classPrefix}-tree-row {classPrefix}-tree-row--{node.type}"
       style="height: {rowHeight}px; {getIndentStyle(node.depth)}"
@@ -85,7 +98,7 @@
         {:else}
           <span class="{classPrefix}-toggle-spacer"></span>
         {/if}
-        
+
         <span
           class="{classPrefix}-node-name"
           on:click={(e) => handleNameClick(node, e)}

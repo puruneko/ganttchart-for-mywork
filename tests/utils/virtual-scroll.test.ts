@@ -8,6 +8,7 @@ import {
   calculateXWindow,
   filterTicksByWindow,
   filterNodesByWindow,
+  calculateYWindow,
 } from '../../src/utils/virtual-scroll';
 import type { Tick } from '../../src/utils/tick-generator';
 import type { ComputedGanttNode } from '../../src/types';
@@ -179,5 +180,72 @@ describe('filterNodesByWindow', () => {
 
   it('should return empty for empty input', () => {
     expect(filterNodesByWindow([], window)).toHaveLength(0);
+  });
+});
+
+describe('calculateYWindow', () => {
+  const ROW_HEIGHT = 40;
+
+  it('should return startIndex=0 when scrollTop=0', () => {
+    const w = calculateYWindow(0, 400, ROW_HEIGHT, 100);
+    expect(w.startIndex).toBe(0);
+  });
+
+  it('should include overscan rows above visible area', () => {
+    // scrollTop=200 → first visible row=5, overscan=5 → startIndex=0
+    const w = calculateYWindow(200, 400, ROW_HEIGHT, 100);
+    expect(w.startIndex).toBe(0); // max(0, 5-5)
+  });
+
+  it('should include overscan rows below visible area', () => {
+    // scrollTop=0, viewportHeight=200 → last visible row=4, overscan=5 → endIndex=9
+    const w = calculateYWindow(0, 200, ROW_HEIGHT, 100);
+    expect(w.endIndex).toBe(9); // ceil(200/40)+5-1 = 5+5-1 = 9
+  });
+
+  it('should clamp startIndex to 0', () => {
+    const w = calculateYWindow(0, 400, ROW_HEIGHT, 100, 10);
+    expect(w.startIndex).toBe(0);
+  });
+
+  it('should clamp endIndex to totalRows-1', () => {
+    const w = calculateYWindow(0, 5000, ROW_HEIGHT, 10); // viewport taller than content
+    expect(w.endIndex).toBe(9); // totalRows-1
+  });
+
+  it('should calculate offsetY correctly', () => {
+    // scrollTop=800 → first visible row=20, overscan=5 → startIndex=15
+    const w = calculateYWindow(800, 400, ROW_HEIGHT, 100);
+    expect(w.startIndex).toBe(15); // max(0, 20-5)
+    expect(w.offsetY).toBe(15 * ROW_HEIGHT); // 600
+  });
+
+  it('should calculate totalHeight correctly', () => {
+    const w = calculateYWindow(0, 400, ROW_HEIGHT, 50);
+    expect(w.totalHeight).toBe(50 * ROW_HEIGHT); // 2000
+  });
+
+  it('should handle totalRows=0', () => {
+    const w = calculateYWindow(0, 400, ROW_HEIGHT, 0);
+    expect(w.startIndex).toBe(0);
+    expect(w.endIndex).toBe(-1);
+    expect(w.totalHeight).toBe(0);
+  });
+
+  it('should handle custom overscanRows', () => {
+    // scrollTop=400 → first visible row=10, overscanRows=2 → startIndex=8
+    const w = calculateYWindow(400, 400, ROW_HEIGHT, 100, 2);
+    expect(w.startIndex).toBe(8); // max(0, 10-2)
+  });
+
+  it('should correctly window mid-scroll position', () => {
+    // scrollTop=1000, viewportHeight=300, rowHeight=40, totalRows=200, overscan=5
+    // firstVisible = floor(1000/40) = 25, startIndex = max(0, 25-5) = 20
+    // lastVisible = ceil(1300/40) - 1 = 33 - 1 = 32, endIndex = min(199, 32+5) = 37
+    const w = calculateYWindow(1000, 300, ROW_HEIGHT, 200);
+    expect(w.startIndex).toBe(20);
+    expect(w.endIndex).toBe(37);
+    expect(w.offsetY).toBe(20 * ROW_HEIGHT);
+    expect(w.totalHeight).toBe(200 * ROW_HEIGHT);
   });
 });

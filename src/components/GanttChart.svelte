@@ -26,7 +26,7 @@
     getScaleFromDayWidth,
     ZOOM_SCALE_LIMITS,
   } from '../utils/zoom-scale';
-  import { calculateXWindow, fullWindow } from '../utils/virtual-scroll';
+  import { calculateXWindow, fullWindow, calculateYWindow } from '../utils/virtual-scroll';
   import { DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
@@ -122,9 +122,11 @@
     ? `min(${contentHeight}px, ${chartConfig.height})`
     : chartConfig.height;
 
-  // X 軸仮想スクロール: スクロール位置とビューポート幅からウィンドウを計算
+  // X / Y 軸仮想スクロール: スクロール位置とビューポートサイズからウィンドウを計算
   let timelineScrollLeft = 0;
   let timelineViewportWidth = 0;
+  let timelineScrollTop = 0;
+  let timelineViewportHeight = 0;
 
   $: xWindow = (timelineViewportWidth > 0 && chartConfig.dayWidth > 0)
     ? calculateXWindow(
@@ -134,6 +136,15 @@
         extendedDateRange.start,
       )
     : fullWindow(extendedDateRange);
+
+  $: yWindow = (timelineViewportHeight > 0 && chartConfig.rowHeight > 0)
+    ? calculateYWindow(
+        timelineScrollTop,
+        timelineViewportHeight,
+        chartConfig.rowHeight,
+        visibleNodes.length,
+      )
+    : undefined;
 
   // 初期化をonMountで実行
   onMount(() => {
@@ -149,9 +160,11 @@
     // コンテナ幅を直接測定して初期化
     const containerWidth = timelineWrapperElement?.clientWidth || 1000;
 
-    // X 軸仮想スクロール用に初期ビューポート幅を設定
+    // X / Y 軸仮想スクロール用に初期ビューポートサイズを設定
     timelineScrollLeft = timelineWrapperElement?.scrollLeft ?? 0;
     timelineViewportWidth = containerWidth;
+    timelineScrollTop = timelineWrapperElement?.scrollTop ?? 0;
+    timelineViewportHeight = timelineWrapperElement?.clientHeight ?? 0;
 
     // extendedDateRangeを初期化
     store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
@@ -427,9 +440,13 @@
         treeWrapper: treeWrapperElement ?? null,
       }),
       (scrollLeft, containerWidth) => {
-        // X 軸仮想スクロール用にスクロール位置とビューポート幅を更新
+        // X / Y 軸仮想スクロール用にスクロール位置とビューポートサイズを更新
         timelineScrollLeft = scrollLeft;
         timelineViewportWidth = containerWidth;
+        if (timelineWrapperElement) {
+          timelineScrollTop = timelineWrapperElement.scrollTop;
+          timelineViewportHeight = timelineWrapperElement.clientHeight;
+        }
 
         const result = store.expandExtendedDateRangeIfNeeded(
           scrollLeft,
@@ -592,6 +609,7 @@
             indentSize={chartConfig.indentSize}
             treePaneWidth={chartConfig.treePaneWidth}
             {classPrefix}
+            {yWindow}
             onNameClick={handleNameClick}
             onToggleCollapse={handleToggleCollapse}
           />
@@ -637,6 +655,7 @@
           zoomScale={currentZoomScale}
           renderLifecycle={lifecycle}
           {xWindow}
+          {yWindow}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
           onGroupDrag={handleGroupDrag}

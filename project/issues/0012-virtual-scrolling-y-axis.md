@@ -2,7 +2,7 @@
 
 ## Status
 
-open
+closed
 
 ---
 
@@ -129,15 +129,16 @@ function calculateYWindow(
 
 ## TODO
 
-* [ ] `src/utils/virtual-scroll.ts` に `calculateYWindow` を追加
-* [ ] `tests/utils/virtual-scroll.test.ts` に Y 軸ウィンドウ計算のテストを追加
-* [ ] `src/components/GanttChart.svelte` に scrollTop 監視と YAxisWindow 計算を追加
-* [ ] `src/components/GanttTimeline.svelte` のバー行をフィルタリング
-* [ ] `src/components/GanttTreePane.svelte` のツリー行をフィルタリング
-* [ ] `npm test` / `npm run check` で検証
+* [x] `src/utils/virtual-scroll.ts` に `calculateYWindow` を追加
+* [x] `tests/utils/virtual-scroll.test.ts` に Y 軸ウィンドウ計算のテストを追加
+* [x] `src/components/GanttChart.svelte` に scrollTop 監視と YAxisWindow 計算を追加
+* [x] `src/components/GanttTimeline.svelte` のバー行をフィルタリング
+* [x] `src/components/GanttTree.svelte` のツリー行をフィルタリング
+* [x] `npm test` / `npm run check` で検証
 
 ---
 
 ## Notes (Append Only)
 
 * 2026-03-23 — Issue起票。元 0011 の Y 軸仮想化を分離。X 軸仮想化（Issue 0011）完了後に着手予定。
+* 2026-03-23 — 実装完了。calculateYWindow 追加・10テスト追加（96件中93通過、3件は zoom-gesture の pre-existing failure）。svelte-check 新規エラーなし。デモデータを 125 行（5プロジェクト×4セクション×5タスク）に拡充。

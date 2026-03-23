@@ -33,7 +33,7 @@
   import type { SnapDurationMap } from '../types';
   import { createDragHandler } from '../utils/drag-handler';
   import { filterTicksByWindow, filterNodesByWindow, fullWindow } from '../utils/virtual-scroll';
-  import type { XAxisWindow } from '../utils/virtual-scroll';
+  import type { XAxisWindow, YAxisWindow } from '../utils/virtual-scroll';
   import GanttGroupBackground from './GanttGroupBackground.svelte';
   import GanttSectionBar from './GanttSectionBar.svelte';
   import GanttTaskBar from './GanttTaskBar.svelte';
@@ -66,6 +66,8 @@
   export let zoomScale: number = 1.0;
   /** X 軸仮想スクロールウィンドウ */
   export let xWindow: XAxisWindow | undefined = undefined;
+  /** Y 軸仮想スクロールウィンドウ */
+  export let yWindow: YAxisWindow | undefined = undefined;
 
   // ズーム関連
   let svgElement: SVGSVGElement;
@@ -195,11 +197,16 @@
   $: gridMinorTicks = gridTwoLevelTicks.minorTicks;
   $: gridMajorTicks = gridTwoLevelTicks.majorTicks;
 
-  // X 軸仮想スクロール: ウィンドウ内の要素だけをフィルタリング
+  // Y 軸仮想スクロール: Y ウィンドウ内の行だけにスライス
+  $: yWindowedNodes = yWindow
+    ? visibleNodes.slice(yWindow.startIndex, yWindow.endIndex + 1)
+    : visibleNodes;
+
+  // X 軸仮想スクロール: さらに X ウィンドウでフィルタリング
   $: _window = xWindow ?? fullWindow(dateRange);
   $: windowedMinorTicks = filterTicksByWindow(gridMinorTicks, _window);
   $: windowedMajorTicks = filterTicksByWindow(gridMajorTicks, _window);
-  $: windowedNodes = filterNodesByWindow(visibleNodes, _window);
+  $: windowedNodes = filterNodesByWindow(yWindowedNodes, _window);
 </script>
 
 <svg
