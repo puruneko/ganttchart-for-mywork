@@ -49,6 +49,8 @@ const DEFAULT_CONFIG: Required<GanttConfig> = {
     indentSize: 20,
     classPrefix: "gantt",
     showTreePane: true,
+    width: "100%",
+    height: "100%",
     snapDurationMap: DEFAULT_SNAP_DURATION_MAP,
 }
 

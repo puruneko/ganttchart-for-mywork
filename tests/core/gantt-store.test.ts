@@ -53,6 +53,8 @@ describe('createGanttStore', () => {
       week: { days: 1 },
       day: { hours: 1 },
     });
+    expect(config.width).toBe('100%');
+    expect(config.height).toBe('100%');
   });
   
   it('should allow custom config', () => {
@@ -66,6 +68,23 @@ describe('createGanttStore', () => {
     expect(config.mode).toBe('uncontrolled');
     expect(config.rowHeight).toBe(50);
     expect(config.classPrefix).toBe('custom');
+  });
+
+  it('should allow custom width and height', () => {
+    const store = createGanttStore([], {
+      width: '800px',
+      height: '600px'
+    });
+    const config = store._getConfig();
+    expect(config.width).toBe('800px');
+    expect(config.height).toBe('600px');
+  });
+
+  it('should keep default width/height when not specified', () => {
+    const store = createGanttStore([], { rowHeight: 50 });
+    const config = store._getConfig();
+    expect(config.width).toBe('100%');
+    expect(config.height).toBe('100%');
   });
 
   it('should deep-merge snapDurationMap with defaults when partial map is given', () => {

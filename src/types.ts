@@ -159,6 +159,12 @@ export interface GanttConfig {
   /** 左側のツリーペインを表示するかどうか */
   showTreePane?: boolean;
 
+  /** コンテナの幅。CSSの値（例: '800px', '100%'）。未指定時は '100%' */
+  width?: string;
+
+  /** コンテナの高さ。CSSの値（例: '600px', '80vh'）。未指定時は '100%' */
+  height?: string;
+
   /**
    * ズームレベル（majorUnit）ごとのスナップ粒度マッピング
    *

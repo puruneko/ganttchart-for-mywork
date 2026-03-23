@@ -101,7 +101,26 @@
   $: extendedDateRange = $extendedDateRangeStore;
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
-  
+
+  // コンテナサイズ計算
+  // ヘッダー高さ（60px + border 2px）+ 行数 × 行高さ
+  const HEADER_HEIGHT = 62;
+  $: contentHeight = HEADER_HEIGHT + visibleNodes.length * chartConfig.rowHeight;
+
+  /**
+   * 相対単位（%、vh、vw など）かどうかを判定
+   * 相対単位の場合は min(contentHeight, configValue) で
+   * コンテンツが小さければ縮小、大きければスクロールする動作にする。
+   * 固定単位（px）の場合はそのまま使用する。
+   */
+  function isRelativeUnit(value: string): boolean {
+    return value.includes('%') || value.includes('v');
+  }
+
+  $: containerHeight = isRelativeUnit(chartConfig.height)
+    ? `min(${contentHeight}px, ${chartConfig.height})`
+    : chartConfig.height;
+
   // 初期化をonMountで実行
   onMount(() => {
     // ライフサイクルイベント発行：初期化開始
@@ -472,7 +491,7 @@
   }
 </script>
 
-<div class="{classPrefix}-container">
+<div class="{classPrefix}-container" style="width: {chartConfig.width}; height: {containerHeight};">
   <!-- ツリーペイン切り替えボタン -->
   <button
     class="{classPrefix}-toggle-tree-btn"
@@ -646,7 +665,6 @@
     background: white;
     overflow: hidden;
     position: relative;
-    height: 600px; /* デフォルトの高さを設定 */
   }
   
   :global(.gantt-toggle-tree-btn) {

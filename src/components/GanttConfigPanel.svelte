@@ -100,6 +100,26 @@
     <div class="{classPrefix}-config-section-title">レイアウト</div>
 
     <label class="{classPrefix}-config-row">
+      <span>幅</span>
+      <input
+        type="text"
+        class="{classPrefix}-config-text-input"
+        value={config.width}
+        on:change={(e) => onConfigChange({ width: e.currentTarget.value })}
+      />
+    </label>
+
+    <label class="{classPrefix}-config-row">
+      <span>高さ</span>
+      <input
+        type="text"
+        class="{classPrefix}-config-text-input"
+        value={config.height}
+        on:change={(e) => onConfigChange({ height: e.currentTarget.value })}
+      />
+    </label>
+
+    <label class="{classPrefix}-config-row">
       <span>行の高さ <em>{config.rowHeight}px</em></span>
       <input
         type="range" min="24" max="80" step="4"
@@ -222,6 +242,16 @@
     background: #fff;
     color: #333;
     max-width: 120px;
+  }
+
+  :global(.gantt-config-text-input) {
+    font-size: 11px;
+    padding: 2px 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    background: #fff;
+    color: #333;
+    width: 80px;
   }
 
   :global(.gantt-config-row input[type="checkbox"]) {
