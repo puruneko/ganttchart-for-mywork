@@ -1,166 +1,169 @@
-# 仮想スクロール（Virtual Scrolling）の実装
+# X 軸仮想スクロール（列方向のウィンドウイング）
 
 ## Status
 
-open
+closed
 
 ---
 
 ## Summary
 
-現在、ガントチャートは全ての表示行（`visibleNodes`）を一度に DOM/SVG にレンダリングしている。ノード数が数百〜数千になるとパフォーマンスが大幅に低下する。仮想スクロールを導入し、ビューポートに表示される行とその付近のみをレンダリングすることで大量データにも対応する。
+ズームインすると `extendedDateRange` の広い日付範囲に対して大量のグリッド線・ヘッダーセルが生成され、描画負荷が急増しユーザ体験が悪化する。ビューポートに表示されている X 座標範囲のみの列要素をレンダリングする「X 軸仮想スクロール」を導入し、ズームレベルに関わらず一定の描画コストに抑える。
 
 ---
 
 ## 背景：現状の問題
 
-### DOM 要素数の爆発
+### 列要素数の爆発
 
-| ノード数 | ツリー側 DOM 要素 | タイムライン側 SVG 要素 | 合計 |
-|----------|-------------------|-------------------------|------|
-| 100      | ~400              | ~500-700               | ~1,100 |
-| 1,000    | ~4,000            | ~5,000-7,000           | ~11,000 |
-| 5,000    | ~20,000           | ~25,000-35,000         | ~55,000 |
+ズームインすると `extendedDateRange` 内の Tick 数が急増する：
 
-- **ツリー行（GanttTree.svelte）**: 1行あたり 3〜4 個の HTML 要素
-- **タイムラインバー**: 1行あたり 4〜7 個の SVG 要素（バー本体・リサイズハンドル・ラベル・グループ背景）
-- **グリッド線**: 全行を縦断する共有要素（行数とは独立だが、SVG 高さが巨大になる）
+| 表示範囲 | Tick 単位 | minor Tick 数 | major Tick 数 | グリッド `<line>` | ヘッダー `<div>` |
+|----------|-----------|---------------|---------------|-------------------|------------------|
+| 90 日    | 1 日      | ~90           | ~3            | ~93               | ~93              |
+| 90 日    | 1 時間    | ~2,160        | ~90           | ~2,250            | ~2,250           |
+| 365 日   | 1 時間    | ~8,760        | ~365          | ~9,125            | ~9,125           |
 
-### 仮想化しやすい条件（既に満たしている）
+### 現状で描画されている X 軸要素
 
-- **行高さが固定**: `rowHeight`（デフォルト 40px）で全行一律
-- **Y座標が決定的**: `y = visualIndex × rowHeight` で計算可能
-- **フラット配列で管理**: `visibleNodes` が既にフラット化された表示順配列
-- **水平方向は対応済み**: `extendedDateRange` による日付範囲の動的拡縮が既に実装済み
+**GanttTimeline.svelte（グリッド線）**:
+- `{#each gridMinorTicks}` → 全 minor Tick 分の `<line>` SVG 要素
+- `{#each gridMajorTicks}` → 全 major Tick 分の `<line>` SVG 要素
+- ビューポート外の線も全て描画されている
+
+**GanttHeader.svelte（ヘッダーセル）**:
+- `{#each majorTicks}` → 全 major Tick 分の `<div>` 要素
+- `{#each minorTicks}` → 全 minor Tick 分の `<div>` 要素
+- 絶対配置（`position: absolute; left: Xpx`）だが全て DOM に存在
+
+**GanttTimeline.svelte（バー）**:
+- `{#each visibleNodes}` でビューポート外の X 範囲にあるバーも全て描画
+
+### 既存の対策（不十分）
+
+`extendedDateRange` + `recalculateExtendedDateRange`（Issue 0007）はズーム時に日付バッファを調整するが、これは**範囲の縮小**であって、ビューポート外の列を描画しない仕組みではない。バッファが広いほど Tick 数は膨大になる。
 
 ---
 
 ## 仕様
 
+### 基本方針
+
+`scrollLeft` と `viewportWidth` から、ビューポート内 ± オーバースキャン範囲に含まれる要素だけを描画する。
+
 ### 用語
 
 | 用語 | 意味 |
 |------|------|
-| **ビューポート** | ユーザーに見えているスクロール領域 |
-| **ウィンドウ** | 実際にレンダリングする行の範囲 |
-| **オーバースキャン** | ビューポート外に余分にレンダリングする行数（スクロール時のちらつき防止） |
+| **ビューポート X 範囲** | ユーザーに見えている水平方向のピクセル範囲 |
+| **可視日付範囲** | ビューポート X 範囲に対応する日付範囲 |
+| **オーバースキャン** | ビューポート外に余分に描画するピクセル幅（スクロール時のちらつき防止） |
 
-### 基本アルゴリズム
+### アルゴリズム
 
 ```
 入力:
-  scrollTop     — 現在のスクロール位置（px）
-  viewportHeight — ビューポートの高さ（px）
-  rowHeight      — 1行の高さ（px）
-  totalRows      — visibleNodes.length
-  overscan       — オーバースキャン行数（デフォルト: 5）
+  scrollLeft      — 現在の水平スクロール位置（px）
+  viewportWidth   — ビューポートの幅（px）
+  dayWidth        — 1日あたりの幅（px）
+  dateRangeStart  — extendedDateRange の開始日
+  overscanPx      — X 方向のオーバースキャン幅（デフォルト: viewportWidth × 0.5）
 
 計算:
-  startIndex = max(0, floor(scrollTop / rowHeight) - overscan)
-  endIndex   = min(totalRows - 1, ceil((scrollTop + viewportHeight) / rowHeight) + overscan)
+  visibleStartPx = scrollLeft - overscanPx
+  visibleEndPx   = scrollLeft + viewportWidth + overscanPx
 
-出力:
-  windowedNodes = visibleNodes.slice(startIndex, endIndex + 1)
-  offsetY       = startIndex * rowHeight     ← レンダリング開始位置のオフセット
-  totalHeight   = totalRows * rowHeight       ← スクロール領域の全体高さ
+  visibleStartDate = dateRangeStart + (visibleStartPx / dayWidth) 日
+  visibleEndDate   = dateRangeStart + (visibleEndPx / dayWidth) 日
+
+フィルタリング:
+  windowedMinorTicks = minorTicks.filter(tick => tick.end >= visibleStartDate && tick.start <= visibleEndDate)
+  windowedMajorTicks = majorTicks.filter(tick => tick.end >= visibleStartDate && tick.start <= visibleEndDate)
+  windowedBars       = visibleNodes.filter(node => node.end >= visibleStartDate && node.start <= visibleEndDate)
 ```
+
+### 効果
+
+| 状況 | 改善前 Tick 数 | 改善後 Tick 数 |
+|------|----------------|----------------|
+| 365 日 × 1 時間 Tick、ビューポート 1000px | ~9,125 | ~60-80 |
+| 90 日 × 1 時間 Tick、ビューポート 1000px | ~2,250 | ~60-80 |
+
+ビューポート幅に比例した一定数に抑えられる。
 
 ### 対象コンポーネントと変更内容
 
-#### 1. 仮想スクロールコア（新規）
+#### 1. X 軸ウィンドウ計算（新規）
 
 **`src/utils/virtual-scroll.ts`** を新規作成:
 
 ```typescript
-interface VirtualScrollState {
-  startIndex: number;   // レンダリング開始行
-  endIndex: number;     // レンダリング終了行
-  offsetY: number;      // 開始行のY座標オフセット
-  totalHeight: number;  // 全体の論理的な高さ
+interface XAxisWindow {
+  startDate: DateTime;   // ウィンドウ開始日時
+  endDate: DateTime;     // ウィンドウ終了日時
+  startPx: number;       // ウィンドウ開始 X 座標
+  endPx: number;         // ウィンドウ終了 X 座標
 }
 
-function calculateVirtualWindow(
-  scrollTop: number,
-  viewportHeight: number,
-  rowHeight: number,
-  totalRows: number,
-  overscan?: number
-): VirtualScrollState
+function calculateXWindow(
+  scrollLeft: number,
+  viewportWidth: number,
+  dayWidth: number,
+  dateRangeStart: DateTime,
+  overscanPx?: number
+): XAxisWindow
+```
+
+Tick 配列・ノード配列のフィルタリング関数も提供:
+
+```typescript
+function filterTicksByWindow(ticks: Tick[], window: XAxisWindow): Tick[]
+function filterNodesByWindow(nodes: ComputedGanttNode[], window: XAxisWindow): ComputedGanttNode[]
 ```
 
 - 純粋関数として実装（テストしやすい）
 - コンポーネント非依存
 
-#### 2. GanttTree.svelte（ツリーペイン）
+#### 2. GanttChart.svelte（親コンポーネント）
 
-- **スペーサー方式**: 実際の行の前後に高さだけのスペーサー `<div>` を配置し、スクロールバーの見た目を維持
-- `{#each visibleNodes}` → `{#each windowedNodes}` に変更
-- 各行の `style` にオフセットを適用
-
-```
-スクロール領域の構造:
-┌─────────────────────┐
-│ 上スペーサー          │ height = startIndex × rowHeight
-├─────────────────────┤
-│ 実際にレンダリングされる行 │ windowedNodes (startIndex 〜 endIndex)
-├─────────────────────┤
-│ 下スペーサー          │ height = (totalRows - endIndex - 1) × rowHeight
-└─────────────────────┘
-```
-
-#### 3. GanttTimeline.svelte（タイムラインペイン）
-
-- SVG の `height` は引き続き `totalRows × rowHeight`（スクロール領域全体）
-- **バーのレンダリング**: `{#each visibleNodes}` → `{#each windowedNodes}` に変更
-- `rowToY()` はそのまま使用（`visualIndex` ベースなので仮想化しても正しい座標を返す）
-- **グリッド線**: SVG 高さ全体を描くのは維持（線は行数に依存しないため軽量）
-
-#### 4. GanttChart.svelte（親コンポーネント）
-
-- スクロールイベントで `scrollTop` を取得し、仮想ウィンドウを再計算
-- `windowedNodes` を派生値として Tree と Timeline に渡す
-- 既存の `scroll-sync` との統合: 縦スクロール同期時にも仮想ウィンドウを更新
-
-### グループ背景の処理
-
-`GanttGroupBackground` はセクション/サブセクションの子行全体を囲む矩形を描画する。子行がウィンドウ外にある場合の対応:
-
-- **方針**: グループ背景の描画は、そのセクションノード自体がウィンドウ内にある場合のみ描画する（現状と同じ条件）
-- グループ背景の高さは `visibleNodes` 全体から計算するが、描画は開始ノードがウィンドウ内のときのみ
-
-### 折り畳み/展開時の処理
-
-- `toggleCollapse` → `visibleNodes` が変化 → `totalRows` が変化 → 仮想ウィンドウを再計算
-- スクロール位置のジャンプを防ぐため、折り畳み時は `scrollTop` を調整する必要がある場合がある
-
-### ズーム時の処理
-
-- ズーム変更は `dayWidth` を変えるが `rowHeight` は不変 → 仮想スクロールの Y 軸計算に影響なし
-- ズーム時の `recalculateExtendedDateRange`（水平方向の仮想化）とは独立して動作
-
-### パフォーマンス目標
-
-- **レンダリング行数の上限**: ビューポート内の行数 + overscan × 2（通常 20〜40 行程度）
-- **10,000 行でも 60fps スクロール** を目標
+- タイムラインの `scrollLeft` を監視し、`XAxisWindow` をリアクティブに計算
+- 計算した `XAxisWindow` を `GanttTimeline` と `GanttHeader` に prop として渡す
+- 既存の `handleTimelineScroll` 内で計算（scroll-sync と統合）
 - スクロールイベントの処理は `requestAnimationFrame` でスロットリング
 
----
+#### 3. GanttTimeline.svelte（グリッド線 + バー）
 
-## 設定
+- **グリッド線**: `{#each gridMinorTicks}` → `{#each windowedMinorTicks}` に変更
+  - `windowedMinorTicks = filterTicksByWindow(gridMinorTicks, xWindow)` で計算
+- **グリッド線（major）**: 同様にフィルタリング
+- **バー**: `{#each visibleNodes}` → `{#each windowedVisibleNodes}` に変更
+  - ビューポート X 範囲外のバーは描画しない
+  - ただし日付未設定のバー（`isDateUnset`）はフォールバック位置で描画するため除外しない
+- SVG の `width` / `height` は変更なし（スクロール領域サイズを維持するため）
 
-`GanttConfig` にオプションを追加:
+#### 4. GanttHeader.svelte（ヘッダーセル）
 
-```typescript
-interface GanttConfig {
-  // ... 既存フィールド ...
+- `{#each majorTicks}` → `{#each windowedMajorTicks}` に変更
+- `{#each minorTicks}` → `{#each windowedMinorTicks}` に変更
+- ヘッダーの全体 `width` は変更なし（スクロール幅を維持するため）
+- `XAxisWindow` を新しい prop として受け取る
 
-  /** 仮想スクロールのオーバースキャン行数（デフォルト: 5） */
-  virtualScrollOverscan?: number;
-}
-```
+### スクロール時のちらつき防止
 
-- 仮想スクロールはデフォルトで有効（行数が少ない場合も軽量なので問題なし）
-- `virtualScrollOverscan` でスクロール時のバッファを調整可能
+- オーバースキャン幅のデフォルト: `viewportWidth × 0.5`（片側）
+- 高速スクロール時でもオーバースキャン分があるため、描画が追いつく
+- `requestAnimationFrame` でスクロールイベントをバッチ処理
+
+### extendedDateRange との関係
+
+- `extendedDateRange` は引き続き「スクロール可能な最大範囲」を定義する役割を維持
+- X 軸仮想化はその範囲内で「実際に描画する列」をさらに絞り込む
+- `expandExtendedDateRangeIfNeeded` による動的拡張はそのまま動作
+
+### ズーム変更時の処理
+
+- ズーム変更 → `dayWidth` 変化 → `XAxisWindow` 再計算 → 描画更新
+- `recalculateExtendedDateRange` との連携は既存のまま
 
 ---
 
@@ -168,39 +171,34 @@ interface GanttConfig {
 
 | ファイル | 変更種別 |
 |----------|----------|
-| `src/utils/virtual-scroll.ts` | **新規** — 仮想ウィンドウ計算の純粋関数 |
-| `src/types.ts` | 変更 — `virtualScrollOverscan` を `GanttConfig` に追加 |
-| `src/core/gantt-store.ts` | 変更 — `DEFAULT_CONFIG` 更新 |
-| `src/components/GanttChart.svelte` | 変更 — スクロール監視、仮想ウィンドウ計算、windowedNodes の配信 |
-| `src/components/GanttTree.svelte` | 変更 — スペーサー方式の仮想レンダリング |
-| `src/components/GanttTimeline.svelte` | 変更 — windowedNodes ベースのバーレンダリング |
-| `tests/utils/virtual-scroll.test.ts` | **新規** — 仮想ウィンドウ計算のテスト |
-| `tests/core/gantt-store.test.ts` | 変更 — デフォルト config テスト更新 |
+| `src/utils/virtual-scroll.ts` | **新規** — X 軸ウィンドウ計算の純粋関数 |
+| `src/components/GanttChart.svelte` | 変更 — scrollLeft 監視、XAxisWindow 計算、prop 追加 |
+| `src/components/GanttTimeline.svelte` | 変更 — グリッド線とバーのフィルタリング |
+| `src/components/GanttHeader.svelte` | 変更 — ヘッダーセルのフィルタリング |
+| `tests/utils/virtual-scroll.test.ts` | **新規** — X 軸ウィンドウ計算のテスト |
 
 ---
 
 ## スコープ外
 
-- **水平方向の仮想化**: `extendedDateRange` で既に対応済み。本 Issue では扱わない
-- **可変行高さ**: 現状は全行 `rowHeight` 固定。可変対応は別 Issue で検討
-- **ヘッダーの仮想化**: ヘッダー（GanttHeader）は行方向に1段しかないため不要
+- **Y 軸（行方向）の仮想化**: Issue 0012 で対応
+- **extendedDateRange ロジックの変更**: 既存のバッファ制御はそのまま維持
+- **Tick 生成ロジック自体の変更**: `generateTwoLevelTicks` は全範囲分を生成し続ける（フィルタリングは描画側で行う）
 
 ---
 
 ## TODO
 
-* [ ] `src/utils/virtual-scroll.ts` を新規作成（純粋関数）
-* [ ] `tests/utils/virtual-scroll.test.ts` を新規作成（単体テスト）
-* [ ] `src/types.ts` に `virtualScrollOverscan` を追加
-* [ ] `src/core/gantt-store.ts` の `DEFAULT_CONFIG` 更新
-* [ ] `src/components/GanttChart.svelte` にスクロール監視と仮想ウィンドウ計算を追加
-* [ ] `src/components/GanttTree.svelte` をスペーサー方式に変更
-* [ ] `src/components/GanttTimeline.svelte` を windowedNodes ベースに変更
-* [ ] `tests/core/gantt-store.test.ts` のデフォルト config テスト更新
-* [ ] `npm test` / `npm run check` で検証
+* [x] `src/utils/virtual-scroll.ts` を新規作成（`calculateXWindow`, `filterTicksByWindow`, `filterNodesByWindow`）
+* [x] `tests/utils/virtual-scroll.test.ts` を新規作成（X 軸ウィンドウ計算のテスト）
+* [x] `src/components/GanttChart.svelte` に scrollLeft 監視と XAxisWindow 計算を追加
+* [x] `src/components/GanttTimeline.svelte` のグリッド線・バーをフィルタリング
+* [x] `src/components/GanttHeader.svelte` のヘッダーセルをフィルタリング
+* [x] `npm test` / `npm run check` で検証
 
 ---
 
 ## Notes (Append Only)
 
-* 2026-03-23 — Issue起票。現状分析: ツリーは1行3〜4 DOM要素、タイムラインは1行4〜7 SVG要素。行高さ固定・Y座標決定的・フラット配列管理により仮想化の前提条件は整っている。水平方向は extendedDateRange で対応済み。
+* 2026-03-23 — Issue起票。元 0011（Y 軸仮想化）を X 軸に変更。現状の問題: ズームインすると extendedDateRange 内の全 Tick がグリッド線・ヘッダーセルとして描画され、要素数が数千〜数万に達する。ビューポート X 範囲 ± オーバースキャンのみ描画するフィルタリング方式で対応する。
+* 2026-03-23 — 実装完了。テスト 18件追加（86件中83通過、3件は zoom-gesture の pre-existing failure）。svelte-check 新規エラーなし。

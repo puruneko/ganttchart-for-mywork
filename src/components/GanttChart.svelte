@@ -26,6 +26,7 @@
     getScaleFromDayWidth,
     ZOOM_SCALE_LIMITS,
   } from '../utils/zoom-scale';
+  import { calculateXWindow, fullWindow } from '../utils/virtual-scroll';
   import { DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
@@ -121,6 +122,19 @@
     ? `min(${contentHeight}px, ${chartConfig.height})`
     : chartConfig.height;
 
+  // X 軸仮想スクロール: スクロール位置とビューポート幅からウィンドウを計算
+  let timelineScrollLeft = 0;
+  let timelineViewportWidth = 0;
+
+  $: xWindow = (timelineViewportWidth > 0 && chartConfig.dayWidth > 0)
+    ? calculateXWindow(
+        timelineScrollLeft,
+        timelineViewportWidth,
+        chartConfig.dayWidth,
+        extendedDateRange.start,
+      )
+    : fullWindow(extendedDateRange);
+
   // 初期化をonMountで実行
   onMount(() => {
     // ライフサイクルイベント発行：初期化開始
@@ -134,7 +148,11 @@
     
     // コンテナ幅を直接測定して初期化
     const containerWidth = timelineWrapperElement?.clientWidth || 1000;
-    
+
+    // X 軸仮想スクロール用に初期ビューポート幅を設定
+    timelineScrollLeft = timelineWrapperElement?.scrollLeft ?? 0;
+    timelineViewportWidth = containerWidth;
+
     // extendedDateRangeを初期化
     store.initExtendedDateRange(containerWidth, chartConfig.dayWidth, currentZoomScale);
     
@@ -409,6 +427,10 @@
         treeWrapper: treeWrapperElement ?? null,
       }),
       (scrollLeft, containerWidth) => {
+        // X 軸仮想スクロール用にスクロール位置とビューポート幅を更新
+        timelineScrollLeft = scrollLeft;
+        timelineViewportWidth = containerWidth;
+
         const result = store.expandExtendedDateRangeIfNeeded(
           scrollLeft,
           containerWidth,
@@ -593,6 +615,7 @@
           dayWidth={chartConfig.dayWidth}
           {classPrefix}
           zoomScale={currentZoomScale}
+          {xWindow}
         />
       </div>
       <div 
@@ -613,6 +636,7 @@
           {classPrefix}
           zoomScale={currentZoomScale}
           renderLifecycle={lifecycle}
+          {xWindow}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
           onGroupDrag={handleGroupDrag}

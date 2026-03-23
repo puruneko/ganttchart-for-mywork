@@ -32,6 +32,8 @@
   } from '../utils/zoom-scale';
   import type { SnapDurationMap } from '../types';
   import { createDragHandler } from '../utils/drag-handler';
+  import { filterTicksByWindow, filterNodesByWindow, fullWindow } from '../utils/virtual-scroll';
+  import type { XAxisWindow } from '../utils/virtual-scroll';
   import GanttGroupBackground from './GanttGroupBackground.svelte';
   import GanttSectionBar from './GanttSectionBar.svelte';
   import GanttTaskBar from './GanttTaskBar.svelte';
@@ -62,6 +64,8 @@
   export let renderLifecycle: RenderLifecycle | undefined = undefined;
   /** ズームスケール（グリッド描画のTick定義選択に使用） */
   export let zoomScale: number = 1.0;
+  /** X 軸仮想スクロールウィンドウ */
+  export let xWindow: XAxisWindow | undefined = undefined;
 
   // ズーム関連
   let svgElement: SVGSVGElement;
@@ -190,6 +194,12 @@
   $: gridTwoLevelTicks = generateTwoLevelTicks(dateRange, gridTickDef);
   $: gridMinorTicks = gridTwoLevelTicks.minorTicks;
   $: gridMajorTicks = gridTwoLevelTicks.majorTicks;
+
+  // X 軸仮想スクロール: ウィンドウ内の要素だけをフィルタリング
+  $: _window = xWindow ?? fullWindow(dateRange);
+  $: windowedMinorTicks = filterTicksByWindow(gridMinorTicks, _window);
+  $: windowedMajorTicks = filterTicksByWindow(gridMajorTicks, _window);
+  $: windowedNodes = filterNodesByWindow(visibleNodes, _window);
 </script>
 
 <svg
@@ -209,7 +219,7 @@
 
   <!-- 背景グリッド -->
   <g class="{classPrefix}-grid">
-    {#each gridMinorTicks as tick (tick.start.toISO())}
+    {#each windowedMinorTicks as tick (tick.start.toISO())}
       <line
         x1={dateToX(tick.start, dateRange, dayWidth)}
         y1={0}
@@ -220,7 +230,7 @@
         stroke-width="1"
       />
     {/each}
-    {#each gridMajorTicks as tick (tick.start.toISO())}
+    {#each windowedMajorTicks as tick (tick.start.toISO())}
       <line
         x1={dateToX(tick.start, dateRange, dayWidth)}
         y1={0}
@@ -253,7 +263,7 @@
 
   <!-- ガントバー -->
   <g class="{classPrefix}-bars">
-    {#each visibleNodes as node (node.id)}
+    {#each windowedNodes as node (node.id)}
       {#if node.start && node.end}
         {@const x = dateToX(node.start, dateRange, dayWidth)}
         {@const y = rowToY(node.visualIndex, rowHeight)}

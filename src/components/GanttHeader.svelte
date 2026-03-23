@@ -10,6 +10,8 @@
   import { dateToX, durationToWidth, calculateTimelineWidth } from '../utils/timeline-calculations';
   import { generateTwoLevelTicks } from '../utils/tick-generator';
   import { getTickDefinitionForScale } from '../utils/zoom-scale';
+  import { filterTicksByWindow, fullWindow } from '../utils/virtual-scroll';
+  import type { XAxisWindow } from '../utils/virtual-scroll';
 
   /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
@@ -19,12 +21,19 @@
   export let classPrefix: string;
   /** ズームスケール */
   export let zoomScale: number = 1.0;
+  /** X 軸仮想スクロールウィンドウ */
+  export let xWindow: XAxisWindow | undefined = undefined;
 
   // ズームスケールに応じた2段tick定義を取得
   $: tickDef = getTickDefinitionForScale(zoomScale);
   $: twoLevelTicks = generateTwoLevelTicks(dateRange, tickDef);
   $: majorTicks = twoLevelTicks.majorTicks;
   $: minorTicks = twoLevelTicks.minorTicks;
+
+  // X 軸仮想スクロール: ウィンドウ内の tick だけをフィルタリング
+  $: _window = xWindow ?? fullWindow(dateRange);
+  $: windowedMajorTicks = filterTicksByWindow(majorTicks, _window);
+  $: windowedMinorTicks = filterTicksByWindow(minorTicks, _window);
   
   // タイムライン全体の幅を計算（SVGと同じ幅）
   $: timelineWidth = calculateTimelineWidth(dateRange, dayWidth);
@@ -34,7 +43,7 @@
 <div class="{classPrefix}-header" style="width: {timelineWidth}px;">
   <!-- 上段: 大きい単位 -->
   <div class="{classPrefix}-header-major">
-    {#each majorTicks as tick (tick.start.toISO())}
+    {#each windowedMajorTicks as tick (tick.start.toISO())}
       {@const x = dateToX(tick.start, dateRange, dayWidth)}
       {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
       <div
@@ -45,10 +54,10 @@
       </div>
     {/each}
   </div>
-  
+
   <!-- 下段: 小さい単位 -->
   <div class="{classPrefix}-header-minor">
-    {#each minorTicks as tick (tick.start.toISO())}
+    {#each windowedMinorTicks as tick (tick.start.toISO())}
       {@const x = dateToX(tick.start, dateRange, dayWidth)}
       {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
       <div
