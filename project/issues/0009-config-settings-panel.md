@@ -2,7 +2,7 @@
 
 ## Status
 
-closed
+open
 
 ---
 
@@ -49,6 +49,8 @@ closed
 * [x] `GanttChart.svelte` に設定ボタン追加（`showConfigPanel` トグル）
 * [x] `GanttChart.svelte` のテンプレートにパネル表示部分を追加
 * [x] `GanttChart.svelte` の style にパネル用スタイルを追加
+* [x] Svelte テンプレート内 TypeScript `as` キャストによるパースエラーを修正
+* [x] `npm test` 実行 — 全テスト通過確認（pre-existing 3件失敗のみ）
 
 ---
 

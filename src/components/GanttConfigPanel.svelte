@@ -58,6 +58,23 @@
       snapDurationMap: { [unit]: opt.value } as SnapDurationMap,
     });
   }
+
+  function handleModeChange(e: Event) {
+    const value = (e.currentTarget as HTMLSelectElement).value as 'controlled' | 'uncontrolled';
+    onConfigChange({ mode: value });
+  }
+
+  function makeSnapHandler(unit: 'year' | 'month' | 'week' | 'day') {
+    return (e: Event) => {
+      const value = (e.currentTarget as HTMLSelectElement).value;
+      handleSnapChange(unit, value);
+    };
+  }
+
+  const snapUnits: Array<'year' | 'month' | 'week' | 'day'> = ['year', 'month', 'week', 'day'];
+  const snapUnitLabel: Record<'year' | 'month' | 'week' | 'day', string> = {
+    year: '年表示時', month: '月表示時', week: '週表示時', day: '日表示時',
+  };
 </script>
 
 <div class="{classPrefix}-config-panel">
@@ -70,7 +87,7 @@
       <span>モード</span>
       <select
         value={config.mode}
-        on:change={(e) => onConfigChange({ mode: e.currentTarget.value as 'controlled' | 'uncontrolled' })}
+        on:change={handleModeChange}
       >
         <option value="uncontrolled">uncontrolled（内部管理）</option>
         <option value="controlled">controlled（外部管理）</option>
@@ -124,13 +141,12 @@
     <div class="{classPrefix}-config-section-title">スナップ粒度</div>
     <div class="{classPrefix}-config-snap-hint">ズームレベルごとのDnD・表示最小単位</div>
 
-    {#each (['year', 'month', 'week', 'day'] as const) as unit}
-      {@const unitLabel = { year: '年表示時', month: '月表示時', week: '週表示時', day: '日表示時' }[unit]}
+    {#each snapUnits as unit}
       <label class="{classPrefix}-config-row">
-        <span>{unitLabel}</span>
+        <span>{snapUnitLabel[unit]}</span>
         <select
           value={currentSnapKey(unit)}
-          on:change={(e) => handleSnapChange(unit, e.currentTarget.value)}
+          on:change={makeSnapHandler(unit)}
         >
           {#each snapOptionsFor[unit] as opt}
             <option value={toKey(opt.value)}>{opt.label}</option>

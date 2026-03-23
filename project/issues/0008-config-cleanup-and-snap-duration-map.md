@@ -2,7 +2,7 @@
 
 ## Status
 
-closed
+open
 
 ---
 
@@ -44,6 +44,8 @@ closed
 * [x] `src/index.ts`: `SnapDurationMap` / `getSnapDays` をエクスポートに追加
 * [x] `tests/core/gantt-store.test.ts`: デフォルト設定テストを新しい形状に合わせて修正
 * [x] `npm test` 実行 — 全テスト通過確認（pre-existing 3件失敗のみ）
+* [x] `tests/utils/zoom-scale.test.ts` 追加 — `getSnapDays` の単体テスト（9件）
+* [x] `tests/core/gantt-store.test.ts` 追加 — `snapDurationMap` deep-merge テスト（3件）
 
 ---
 

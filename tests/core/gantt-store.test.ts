@@ -61,11 +61,47 @@ describe('createGanttStore', () => {
       rowHeight: 50,
       classPrefix: 'custom'
     });
-    
+
     const config = store._getConfig();
     expect(config.mode).toBe('uncontrolled');
     expect(config.rowHeight).toBe(50);
     expect(config.classPrefix).toBe('custom');
+  });
+
+  it('should deep-merge snapDurationMap with defaults when partial map is given', () => {
+    const store = createGanttStore([], {
+      snapDurationMap: { day: { minutes: 30 } }
+    });
+    const config = store._getConfig();
+    // day はカスタム値、他はデフォルト値を保持
+    expect(config.snapDurationMap.day).toEqual({ minutes: 30 });
+    expect(config.snapDurationMap.year).toEqual({ weeks: 1 });
+    expect(config.snapDurationMap.month).toEqual({ days: 1 });
+    expect(config.snapDurationMap.week).toEqual({ days: 1 });
+  });
+});
+
+describe('updateConfig - snapDurationMap deep merge', () => {
+  it('should merge snapDurationMap keys instead of replacing the whole map', () => {
+    const store = createGanttStore([]);
+    store.updateConfig({ snapDurationMap: { day: { minutes: 15 } } });
+    const config = store._getConfig();
+    // day だけ更新、他のキーはそのまま
+    expect(config.snapDurationMap.day).toEqual({ minutes: 15 });
+    expect(config.snapDurationMap.year).toEqual({ weeks: 1 });
+    expect(config.snapDurationMap.month).toEqual({ days: 1 });
+  });
+
+  it('should allow overriding multiple snapDurationMap keys at once', () => {
+    const store = createGanttStore([]);
+    store.updateConfig({
+      snapDurationMap: { year: { months: 1 }, day: { hours: 6 } }
+    });
+    const config = store._getConfig();
+    expect(config.snapDurationMap.year).toEqual({ months: 1 });
+    expect(config.snapDurationMap.day).toEqual({ hours: 6 });
+    expect(config.snapDurationMap.month).toEqual({ days: 1 }); // 変更なし
+    expect(config.snapDurationMap.week).toEqual({ days: 1 });  // 変更なし
   });
 });
 
