@@ -61,13 +61,15 @@ export function createZoomController(deps: ZoomControllerDeps) {
 
         const el = deps.getTimelineWrapper()
         if (centerDate && el) {
-            store.recalculateExtendedDateRange(
+            const { newScrollLeft } = store.recalculateExtendedDateRange(
                 centerDate,
                 el.clientWidth,
                 newDayWidth,
                 scale,
-                el,
             )
+            requestAnimationFrame(() => {
+                el.scrollLeft = newScrollLeft
+            })
         }
 
         deps.onZoomChange?.(scale)
@@ -95,13 +97,15 @@ export function createZoomController(deps: ZoomControllerDeps) {
         if (el) {
             const centerDate = getCenterDate(extendedDateRangeStart, currentDayWidth)
             if (centerDate) {
-                store.recalculateExtendedDateRange(
+                const { newScrollLeft } = store.recalculateExtendedDateRange(
                     centerDate,
                     el.clientWidth,
                     newDayWidth,
                     newScale,
-                    el,
                 )
+                requestAnimationFrame(() => {
+                    el.scrollLeft = newScrollLeft
+                })
             }
         }
 
@@ -131,13 +135,15 @@ export function createZoomController(deps: ZoomControllerDeps) {
         if (el) {
             const centerDate = getCenterDate(extendedDateRangeStart, currentDayWidth)
             if (centerDate) {
-                store.recalculateExtendedDateRange(
+                const { newScrollLeft } = store.recalculateExtendedDateRange(
                     centerDate,
                     el.clientWidth,
                     newDayWidth,
                     newScale,
-                    el,
                 )
+                requestAnimationFrame(() => {
+                    el.scrollLeft = newScrollLeft
+                })
             }
         }
 

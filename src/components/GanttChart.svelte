@@ -333,13 +333,15 @@
         treeWrapper: treeWrapperElement ?? null,
       }),
       (scrollLeft, containerWidth) => {
-        store.expandExtendedDateRangeIfNeeded(
+        const result = store.expandExtendedDateRangeIfNeeded(
           scrollLeft,
           containerWidth,
           chartConfig.dayWidth,
           currentZoomScale,
-          timelineWrapperElement ?? null,
-        )
+        );
+        if (result.expanded && result.newScrollLeft !== null && timelineWrapperElement) {
+          timelineWrapperElement.scrollLeft = result.newScrollLeft;
+        }
       },
     );
   

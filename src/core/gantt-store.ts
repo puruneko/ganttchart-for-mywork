@@ -294,26 +294,21 @@ export function createGanttStore(
      * @param containerWidth - 表示領域の幅（ピクセル）
      * @param dayWidth - 1日あたりの幅（ピクセル）
      * @param zoomScale - 現在のズームスケール
-     * @param timelineElement - タイムライン要素（スクロール位置補正用）
-     * @returns 拡張が発生したかどうか
+     * @returns 拡張が発生した場合はnewScrollLeft（同期的に設定すべき位置）、未拡張はnull
      */
     function expandExtendedDateRangeIfNeeded(
         scrollLeft: number,
         containerWidth: number,
         dayWidth: number,
         zoomScale: number,
-        timelineElement: HTMLElement | null,
-    ): boolean {
+    ): { expanded: boolean; newScrollLeft: number | null } {
         const current = get(extendedDateRange)
         const viewportDays = Math.ceil(containerWidth / dayWidth)
-        const threshold = viewportDays * 0.5 // 端から半画面分に変更
+        const threshold = viewportDays * 0.5
         const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale)
 
-        // 現在の範囲の日数を計算
         const totalDays = current.end.diff(current.start, "days").days
         const scrollDays = scrollLeft / dayWidth
-
-        // ビューポート中心の日時を計算（拡張前）
         const centerDays = scrollDays + viewportDays / 2
         const centerDate = current.start.plus({ days: centerDays })
 
@@ -321,35 +316,28 @@ export function createGanttStore(
         let newStart = current.start
         let newEnd = current.end
 
-        // 左端に近い場合は左側を拡張
         if (scrollDays < threshold) {
             newStart = current.start.minus({ days: bufferDays })
             needsExpansion = true
         }
 
-        // 右端に近い場合は右側を拡張
         if (scrollDays > totalDays - threshold - viewportDays) {
             newEnd = current.end.plus({ days: bufferDays })
             needsExpansion = true
         }
 
-        // 拡張が必要な場合のみ更新
         if (needsExpansion) {
-            // dateRange拡張
             extendedDateRange.set({ start: newStart, end: newEnd })
-
-            // ビューポート中心の日時を維持するようスクロール位置を再計算
-            if (timelineElement) {
-                const newCenterDays = centerDate.diff(newStart, "days").days
-                const newScrollDays = newCenterDays - viewportDays / 2
-                const newScrollLeft = newScrollDays * dayWidth
-
-                // 同期的にスクロール位置を設定（表示飛び防止）
-                timelineElement.scrollLeft = Math.max(0, newScrollLeft)
+            // スクロール位置補正値を計算して返す（実際の設定はUI層が行う）
+            const newCenterDays = centerDate.diff(newStart, "days").days
+            const newScrollDays = newCenterDays - viewportDays / 2
+            return {
+                expanded: true,
+                newScrollLeft: Math.max(0, newScrollDays * dayWidth),
             }
         }
 
-        return needsExpansion
+        return { expanded: false, newScrollLeft: null }
     }
 
     /**
@@ -362,25 +350,23 @@ export function createGanttStore(
      * @param containerWidth - 表示領域の幅（ピクセル）
      * @param newDayWidth - 新しい1日あたりの幅（ピクセル）
      * @param newZoomScale - 新しいズームスケール
-     * @param timelineElement - タイムライン要素（スクロール位置補正用）
+     * @returns 次フレームで設定すべきスクロール位置
      */
     function recalculateExtendedDateRange(
         centerDate: DateTime,
         containerWidth: number,
         newDayWidth: number,
         newZoomScale: number,
-        timelineElement: HTMLElement | null,
-    ): void {
+    ): { newScrollLeft: number } {
         const currentDateRange = get(dateRange)
 
         if (!currentDateRange?.start?.isValid || !currentDateRange?.end?.isValid) {
-            return
+            return { newScrollLeft: 0 }
         }
 
         const newViewportDays = containerWidth / newDayWidth
         const bufferDays = calculateAdaptiveBuffer(newViewportDays, newZoomScale)
 
-        // データ範囲を包含しつつ、ビューポート中心を基準にバッファを確保
         const viewBasedStart = centerDate.minus({ days: bufferDays })
         const viewBasedEnd = centerDate.plus({ days: bufferDays })
 
@@ -395,14 +381,10 @@ export function createGanttStore(
 
         extendedDateRange.set({ start: newStart, end: newEnd })
 
-        // 次フレームでスクロール位置を補正（Svelteのリアクティブ更新後）
-        if (timelineElement) {
-            requestAnimationFrame(() => {
-                const newCenterDays = centerDate.diff(newStart, "days").days
-                const newScrollLeft = newCenterDays * newDayWidth - containerWidth / 2
-                timelineElement.scrollLeft = Math.max(0, newScrollLeft)
-            })
-        }
+        // スクロール位置補正値を計算して返す（rAFによる設定はUI層が行う）
+        const newCenterDays = centerDate.diff(newStart, "days").days
+        const newScrollLeft = Math.max(0, newCenterDays * newDayWidth - containerWidth / 2)
+        return { newScrollLeft }
     }
 
     return {
