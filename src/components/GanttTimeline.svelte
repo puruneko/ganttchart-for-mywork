@@ -27,8 +27,10 @@
   import {
     getDayWidthFromScale,
     getScaleFromDayWidth,
+    getSnapDays,
     ZOOM_SCALE_LIMITS
   } from '../utils/zoom-scale';
+  import type { SnapDurationMap } from '../types';
   import { createDragHandler } from '../utils/drag-handler';
   import GanttGroupBackground from './GanttGroupBackground.svelte';
   import GanttSectionBar from './GanttSectionBar.svelte';
@@ -45,8 +47,8 @@
   export let rowHeight: number;
   /** CSSクラスのプレフィックス */
   export let classPrefix: string;
-  /** ドラッグスナップ分割数 */
-  export let dragSnapDivision: number;
+  /** スナップ粒度マッピング */
+  export let snapDurationMap: SnapDurationMap;
   /** バークリック時のハンドラー */
   export let onBarClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
   /** バードラッグ時のハンドラー */
@@ -75,9 +77,18 @@
   let isReady = true;
   let readyUnsubscribe: (() => void) | null = null;
 
-  // ドラッグハンドラー
+  // ドラッグハンドラー（スナップ単位は snapDurationMap から計算）
   const { handleMouseDown } = createDragHandler({
-    getParams: () => ({ dayWidth, dragSnapDivision, onBarDrag, onGroupDrag }),
+    getParams: () => {
+      const tickDef = getTickDefinitionForScale(zoomScale);
+      const snapDays = getSnapDays(tickDef.majorUnit, snapDurationMap);
+      return {
+        dayWidth,
+        snapUnit: snapDays * dayWidth,
+        onBarDrag,
+        onGroupDrag,
+      };
+    },
   });
 
   const handleSize = 8;
@@ -246,7 +257,8 @@
       {#if node.start && node.end}
         {@const x = dateToX(node.start, dateRange, dayWidth)}
         {@const y = rowToY(node.visualIndex, rowHeight)}
-        {@const barWidth = durationToWidth(node.start, node.end, dayWidth)}
+        {@const snapDays = getSnapDays(gridTickDef.majorUnit, snapDurationMap)}
+        {@const barWidth = Math.max(durationToWidth(node.start, node.end, dayWidth), snapDays * dayWidth)}
         {@const barHeight = Math.round((rowHeight - 8) * 0.85)}
         {@const barClass = getBarClass(node.type, classPrefix)}
 

@@ -11,6 +11,7 @@
  */
 
 import { Duration } from "luxon"
+import type { SnapDurationMap } from "../types"
 
 /** scale=1.0 時の1日あたりのピクセル幅 */
 export const BASE_DAY_WIDTH = 40
@@ -240,6 +241,27 @@ export function getDayWidthFromScale(scale: number): number {
  */
 export function getScaleFromDayWidth(dayWidth: number): number {
     return dayWidth / BASE_DAY_WIDTH
+}
+
+/**
+ * majorUnit と snapDurationMap からスナップ単位の日数を計算
+ *
+ * @param majorUnit - 現在の表示単位（tick定義の majorUnit）
+ * @param snapDurationMap - ユーザー設定のスナップ粒度マップ
+ * @returns スナップ単位（日数）
+ */
+export function getSnapDays(
+    majorUnit: "year" | "month" | "week" | "day",
+    snapDurationMap: SnapDurationMap,
+): number {
+    const fallback: Required<SnapDurationMap> = {
+        year: { weeks: 1 },
+        month: { days: 1 },
+        week: { days: 1 },
+        day: { hours: 1 },
+    }
+    const obj = snapDurationMap[majorUnit] ?? fallback[majorUnit]
+    return Duration.fromObject(obj).as("days")
 }
 
 /**

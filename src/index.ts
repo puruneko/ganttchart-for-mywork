@@ -17,6 +17,7 @@ export type {
     GanttConfig,
     GanttChartProps,
     DateRange,
+    SnapDurationMap,
 } from "./types"
 
 // ライフサイクルイベント（ライブラリユーザー向け）
@@ -44,4 +45,4 @@ export { createGanttStore } from "./core/gantt-store"
 export type { GanttStore } from "./core/gantt-store"
 
 // ズームスケールユーティリティ
-export { getTickDefinitionForScale } from "./utils/zoom-scale"
+export { getTickDefinitionForScale, getSnapDays } from "./utils/zoom-scale"

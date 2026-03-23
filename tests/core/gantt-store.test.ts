@@ -42,11 +42,17 @@ describe('createGanttStore', () => {
     const store = createGanttStore([]);
     const config = store._getConfig();
     
-    expect(config.mode).toBe('controlled');
+    expect(config.mode).toBe('uncontrolled');
     expect(config.rowHeight).toBe(40);
     expect(config.dayWidth).toBe(30);
     expect(config.treePaneWidth).toBe(300);
     expect(config.classPrefix).toBe('gantt');
+    expect(config.snapDurationMap).toEqual({
+      year: { weeks: 1 },
+      month: { days: 1 },
+      week: { days: 1 },
+      day: { hours: 1 },
+    });
   });
   
   it('should allow custom config', () => {

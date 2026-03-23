@@ -179,22 +179,60 @@
   }
   
   /**
-   * バードラッグハンドラー
-   * 内部イベントを外部ハンドラーに橋渡し
+   * ノードの全子孫IDを収集
    */
-  function handleBarDrag(nodeId: string, newStart: any, newEnd: any) {
+  function collectDescendantIds(nodeId: string, allNodes: GanttNode[]): Set<string> {
+    const result = new Set<string>();
+    const queue = [nodeId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const child of allNodes.filter(n => n.parentId === current)) {
+        result.add(child.id);
+        queue.push(child.id);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * バードラッグハンドラー
+   * Uncontrolledモードでは内部状態を更新、Controlledモードでは外部に通知のみ
+   */
+  function handleBarDrag(nodeId: string, newStart: DateTime, newEnd: DateTime) {
     if (handlers.onBarDrag) {
       handlers.onBarDrag(nodeId, newStart, newEnd);
     }
+    if (chartConfig.mode === 'uncontrolled') {
+      const updated = store._getRawNodes().map(n =>
+        n.id === nodeId ? { ...n, start: newStart, end: newEnd } : n
+      );
+      store.setNodes(updated);
+      if (handlers.onDataChange) handlers.onDataChange(updated);
+    }
   }
-  
+
   /**
    * グループドラッグハンドラー
-   * グループ全体を移動する際のハンドラー
+   * Uncontrolledモードでは配下ノードをまとめて移動
    */
   function handleGroupDrag(nodeId: string, daysDelta: number) {
     if (handlers.onGroupDrag) {
       handlers.onGroupDrag(nodeId, daysDelta);
+    }
+    if (chartConfig.mode === 'uncontrolled') {
+      const currentNodes = store._getRawNodes();
+      const idsToMove = collectDescendantIds(nodeId, currentNodes);
+      idsToMove.add(nodeId);
+      const updated = currentNodes.map(n => {
+        if (!idsToMove.has(n.id)) return n;
+        return {
+          ...n,
+          start: n.start?.plus({ days: daysDelta }),
+          end: n.end?.plus({ days: daysDelta }),
+        };
+      });
+      store.setNodes(updated);
+      if (handlers.onDataChange) handlers.onDataChange(updated);
     }
   }
   
@@ -522,7 +560,7 @@
           dateRange={extendedDateRange}
           dayWidth={chartConfig.dayWidth}
           rowHeight={chartConfig.rowHeight}
-          dragSnapDivision={chartConfig.dragSnapDivision}
+          snapDurationMap={chartConfig.snapDurationMap}
           {classPrefix}
           zoomScale={currentZoomScale}
           renderLifecycle={lifecycle}

@@ -8,6 +8,16 @@
  */
 
 import type { DateTime } from 'luxon';
+import type { DurationLikeObject } from 'luxon';
+
+/**
+ * ズームレベル（majorUnit）ごとのスナップ粒度マッピング
+ *
+ * majorUnit（年・月・週・日）をキーとし、その単位が表示中のときの
+ * スナップ単位とバー最低幅を Duration で指定する。
+ * 省略したキーはデフォルト値が使われる。
+ */
+export type SnapDurationMap = Partial<Record<'year' | 'month' | 'week' | 'day', DurationLikeObject>>;
 
 /**
  * ノードタイプ識別子
@@ -146,21 +156,20 @@ export interface GanttConfig {
   /** カスタムスタイリング用のCSSクラスプレフィックス */
   classPrefix?: string;
   
-  /** ドラッグ時のスナップ単位（1セルの何分の1か、デフォルト: 4） */
-  dragSnapDivision?: number;
-  
   /** 左側のツリーペインを表示するかどうか */
   showTreePane?: boolean;
-  
-  /** 
-   * ズームレベル（1-5）
-   * - 1: 最小（月単位）
-   * - 2: 週単位
-   * - 3: デフォルト（日単位）
-   * - 4: 半日単位
-   * - 5: 最大（時間単位）
+
+  /**
+   * ズームレベル（majorUnit）ごとのスナップ粒度マッピング
+   *
+   * 表示中の majorUnit に応じてスナップ単位とバー最低幅が決まる。
+   * 省略したキーはデフォルト値（年→1週、月→1日、週→1日、日→1時間）が使われる。
+   *
+   * @example
+   * // 日単位表示のとき30分スナップにする
+   * { day: { minutes: 30 } }
    */
-  zoomLevel?: number;
+  snapDurationMap?: SnapDurationMap;
 }
 
 /**

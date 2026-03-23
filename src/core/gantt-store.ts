@@ -16,6 +16,7 @@ import type {
     ComputedGanttNode,
     GanttConfig,
     DateRange,
+    SnapDurationMap,
 } from "../types"
 import {
     computeNodes,
@@ -33,16 +34,22 @@ import { LifecycleEventEmitter } from "./lifecycle-events"
  * ガントチャートのデフォルト動作と見た目を定義。
  * ユーザーが設定を省略した場合にこれらの値が使用される。
  */
+const DEFAULT_SNAP_DURATION_MAP: Required<SnapDurationMap> = {
+    year: { weeks: 1 },
+    month: { days: 1 },
+    week: { days: 1 },
+    day: { hours: 1 },
+}
+
 const DEFAULT_CONFIG: Required<GanttConfig> = {
-    mode: "controlled",
+    mode: "uncontrolled",
     rowHeight: 40,
     dayWidth: 30,
     treePaneWidth: 300,
     indentSize: 20,
     classPrefix: "gantt",
-    dragSnapDivision: 4,
     showTreePane: true,
-    zoomLevel: 3,
+    snapDurationMap: DEFAULT_SNAP_DURATION_MAP,
 }
 
 /**
@@ -66,6 +73,10 @@ export function createGanttStore(
     const config: Writable<Required<GanttConfig>> = writable({
         ...DEFAULT_CONFIG,
         ...initialConfig,
+        snapDurationMap: {
+            ...DEFAULT_CONFIG.snapDurationMap,
+            ...initialConfig.snapDurationMap,
+        },
     })
 
     // ライフサイクルイベントエミッター
@@ -114,7 +125,14 @@ export function createGanttStore(
      * @param updates - 更新する設定項目（部分的に指定可能）
      */
     function updateConfig(updates: Partial<GanttConfig>) {
-        config.update((current) => ({ ...current, ...updates }))
+        config.update((current) => ({
+            ...current,
+            ...updates,
+            snapDurationMap: {
+                ...current.snapDurationMap,
+                ...updates.snapDurationMap,
+            },
+        }))
     }
 
     /**
