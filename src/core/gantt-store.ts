@@ -52,6 +52,7 @@ const DEFAULT_CONFIG: Required<GanttConfig> = {
     width: "100%",
     height: "100%",
     snapDurationMap: DEFAULT_SNAP_DURATION_MAP,
+    xOverscanPx: 500,
 }
 
 /**

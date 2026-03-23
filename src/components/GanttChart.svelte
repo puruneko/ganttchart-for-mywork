@@ -134,6 +134,7 @@
         timelineViewportWidth,
         chartConfig.dayWidth,
         extendedDateRange.start,
+        chartConfig.xOverscanPx,
       )
     : fullWindow(extendedDateRange);
 
@@ -172,17 +173,20 @@
     // 次のマイクロタスク内でレンダリング完了を通知
     requestAnimationFrame(() => {
       lifecycle.startRendering();
-      
+
       // さらに次のフレームで完了マーク
       requestAnimationFrame(() => {
         // ライフサイクルイベント発行：マウント完了
         store.lifecycleEvents.emit('mounted', { timestamp: Date.now() });
-        
+
         lifecycle.markReady();
-        
+
+        // 初期表示位置を現在日時に合わせる
+        scrollToToday();
+
         // レディイベントをサブコンポーネント準備後に発行
         tick().then(() => {
-          store.lifecycleEvents.emit('ready', { 
+          store.lifecycleEvents.emit('ready', {
             allComponentsLoaded: true,
             timestamp: Date.now()
           });

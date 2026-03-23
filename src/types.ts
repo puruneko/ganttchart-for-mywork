@@ -176,6 +176,15 @@ export interface GanttConfig {
    * { day: { minutes: 30 } }
    */
   snapDurationMap?: SnapDurationMap;
+
+  /**
+   * X 軸仮想スクロールのオーバースキャン幅（px、片側）
+   *
+   * ビューポート左右にそれぞれこのピクセル数だけ余分に描画し、
+   * 高速スクロール時のちらつきを防ぐ。
+   * 0 を指定するとオーバースキャンなし。デフォルト: 500
+   */
+  xOverscanPx?: number;
 }
 
 /**

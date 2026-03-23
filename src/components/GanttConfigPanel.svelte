@@ -154,6 +154,15 @@
         on:change={(e) => onConfigChange({ showTreePane: e.currentTarget.checked })}
       />
     </label>
+
+    <label class="{classPrefix}-config-row">
+      <span>X オーバースキャン <em>{config.xOverscanPx}px</em></span>
+      <input
+        type="range" min="0" max="2000" step="100"
+        value={config.xOverscanPx}
+        on:input={(e) => onConfigChange({ xOverscanPx: Number(e.currentTarget.value) })}
+      />
+    </label>
   </div>
 
   <!-- スナップ設定 -->

@@ -55,8 +55,9 @@ describe('createGanttStore', () => {
     });
     expect(config.width).toBe('100%');
     expect(config.height).toBe('100%');
+    expect(config.xOverscanPx).toBe(500);
   });
-  
+
   it('should allow custom config', () => {
     const store = createGanttStore([], {
       mode: 'uncontrolled',
@@ -78,6 +79,18 @@ describe('createGanttStore', () => {
     const config = store._getConfig();
     expect(config.width).toBe('800px');
     expect(config.height).toBe('600px');
+  });
+
+  it('should allow custom xOverscanPx', () => {
+    const store = createGanttStore([], { xOverscanPx: 1000 });
+    const config = store._getConfig();
+    expect(config.xOverscanPx).toBe(1000);
+  });
+
+  it('should keep default xOverscanPx when not specified', () => {
+    const store = createGanttStore([], { rowHeight: 50 });
+    const config = store._getConfig();
+    expect(config.xOverscanPx).toBe(500);
   });
 
   it('should keep default width/height when not specified', () => {
