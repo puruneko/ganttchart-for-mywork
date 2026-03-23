@@ -14,16 +14,18 @@
   import type { GanttNode, GanttEventHandlers, GanttConfig, ComputedGanttNode } from '../types';
   import { createGanttStore } from '../core/gantt-store';
   import { createRenderLifecycle } from '../core/render-lifecycle';
+  import { createZoomController } from '../core/zoom-controller';
+  import { createScrollSyncHandlers } from '../utils/scroll-sync';
   import GanttTree from './GanttTree.svelte';
   import GanttTimeline from './GanttTimeline.svelte';
   import GanttHeader from './GanttHeader.svelte';
-  import { 
-    getTickDefinitionForScale, 
-    getDayWidthFromScale,
+  import GanttTickEditor from './GanttTickEditor.svelte';
+  import {
+    getTickDefinitionForScale,
     getScaleFromDayWidth,
-    ZOOM_SCALE_LIMITS
+    ZOOM_SCALE_LIMITS,
   } from '../utils/zoom-scale';
-  import { Duration, DateTime } from 'luxon';
+  import { DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
   // パブリックprops
@@ -270,109 +272,6 @@
   }
   
   /**
-   * Tick定義エディタ用
-   */
-  import { getAllTickDefinitions, updateTickDefinition, type TickDefinition } from '../utils/zoom-scale';
-  
-  let tickDefinitions: TickDefinition[] = [];
-  let editingTick: { index: number; def: TickDefinition } | null = null;
-  
-  // Tick定義を初期化（降順でソートされている：大きい→小さい）
-  $: tickDefinitions = getAllTickDefinitions() as TickDefinition[];
-  
-  // 現在のスケールに対応するTick定義のインデックスを取得
-  // TICK_DEFINITIONSは降順ソート済み（minScale: 100, 50, 25, ..., 0）
-  $: currentTickIndex = (() => {
-    if (tickDefinitions.length === 0) return -1;
-    
-    // 降順でチェック：最初にscale >= minScaleとなる定義を探す
-    for (let i = 0; i < tickDefinitions.length; i++) {
-      if (currentZoomScale >= tickDefinitions[i].minScale) {
-        return i;
-      }
-    }
-    
-    // どれにも該当しない（scaleが最小のminScaleより小さい）場合は最後の定義
-    return tickDefinitions.length - 1;
-  })();
-  
-  function startEditTick(index: number) {
-    const original = tickDefinitions[index];
-    // DurationオブジェクトをディープコピーするためにtoObject()を使用
-    editingTick = { 
-      index, 
-      def: {
-        ...original,
-        majorInterval: original.majorInterval ? Duration.fromObject(original.majorInterval.toObject()) : undefined,
-        minorInterval: Duration.fromObject(original.minorInterval.toObject()),
-      }
-    };
-  }
-  
-  function cancelEditTick() {
-    editingTick = null;
-  }
-  
-  function saveEditTick() {
-    if (editingTick) {
-      const label = editingTick.def.label;
-      updateTickDefinition(editingTick.index, editingTick.def);
-      tickDefinitions = getAllTickDefinitions() as TickDefinition[];
-      editingTick = null;
-    }
-  }
-  
-  // Duration文字列をパース
-  function parseDurationString(str: string): Duration {
-    try {
-      const parts = str.trim().split(' ');
-      if (parts.length !== 2) throw new Error('Invalid format');
-      
-      const value = parseFloat(parts[0]);
-      const unit = parts[1].toLowerCase().replace(/s$/, '');
-      
-      const durationObj: any = {};
-      durationObj[unit] = value;
-      
-      return Duration.fromObject(durationObj);
-    } catch (e) {
-      return Duration.fromObject({ days: 1 });
-    }
-  }
-  
-  // DurationをUI表示用文字列に変換
-  function formatDurationForUI(duration: Duration | any): string {
-    try {
-      // 文字列の場合はそのまま返す
-      if (typeof duration === 'string') {
-        return duration;
-      }
-      
-      // Durationオブジェクトでない場合は変換
-      if (!(duration instanceof Duration)) {
-        // オブジェクトの場合
-        if (typeof duration === 'object' && duration !== null) {
-          duration = Duration.fromObject(duration);
-        } else {
-          return '1 day';
-        }
-      }
-      
-      const obj = duration.toObject();
-      const entries = Object.entries(obj).filter(([_, v]) => v && v !== 0);
-      if (entries.length > 0) {
-        const [unit, value] = entries[0];
-        return `${value} ${unit}`;
-      }
-      return '1 day';
-    } catch (e) {
-      console.error('formatDurationForUI error:', e, duration);
-      return '1 day';
-    }
-  }
-  
-  
-  /**
    * ズーム機能（ジェスチャーベース + ボタン操作）
    */
   let currentZoomScale = 1.0; // 初期値
@@ -390,80 +289,29 @@
   // scale 1.0 → log2(1.0) = 0 → 0 + 3 = 3
   $: displayZoomLevel = Math.max(1, Math.min(5, Math.round(Math.log2(currentZoomScale) + 3)));
   
+  // ズームコントローラーを初期化
+  const zoomCtrl = createZoomController({
+    store,
+    getTimelineWrapper: () => timelineWrapperElement ?? null,
+    onZoomChange: (scale) => handlers.onZoomChange?.(scale),
+  });
+
   // タイムラインからのズーム変更を処理
   function handleTimelineZoom(scale: number, newDayWidth: number): void {
-    // ビューポート中心の日付を事前に記録（extendedDateRange変更前）
-    let centerDate: import('luxon').DateTime | null = null;
-    if (timelineWrapperElement) {
-      const scrollLeft = timelineWrapperElement.scrollLeft;
-      const containerWidth = timelineWrapperElement.clientWidth;
-      const oldDayWidth = chartConfig.dayWidth;
-      const centerDays = scrollLeft / oldDayWidth + containerWidth / oldDayWidth / 2;
-      centerDate = extendedDateRange.start.plus({ days: centerDays });
-    }
-
+    const oldDayWidth = chartConfig.dayWidth;
     currentZoomScale = scale;
-    store.setZoomScale(scale); // ストアにも反映
-    store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
-
-    // 新スケールで描画範囲を再計算（ズームイン時のtick数爆発を防ぐ）
-    if (centerDate && timelineWrapperElement) {
-      store.recalculateExtendedDateRange(
-        centerDate,
-        timelineWrapperElement.clientWidth,
-        newDayWidth,
-        scale,
-        timelineWrapperElement,
-      );
-    }
-
-    // 外部ハンドラーに通知
-    if (handlers.onZoomChange) {
-      handlers.onZoomChange(scale);
-    }
+    zoomCtrl.handleTimelineZoom(scale, newDayWidth, extendedDateRange.start, oldDayWidth);
   }
-  
+
   // ボタンからのズーム操作
   function zoomIn() {
-    const newScale = Math.min(currentZoomScale * 1.5, ZOOM_SCALE_LIMITS.max);
-    const newDayWidth = getDayWidthFromScale(newScale);
-    currentZoomScale = newScale;
-    store.setZoomScale(newScale); // ストアにも反映
-    store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
-
-    if (timelineWrapperElement) {
-      const scrollLeft = timelineWrapperElement.scrollLeft;
-      const containerWidth = timelineWrapperElement.clientWidth;
-      const centerDays = scrollLeft / chartConfig.dayWidth + containerWidth / chartConfig.dayWidth / 2;
-      const centerDate = extendedDateRange.start.plus({ days: centerDays });
-      store.recalculateExtendedDateRange(centerDate, containerWidth, newDayWidth, newScale, timelineWrapperElement);
-    }
-
-    if (handlers.onZoomChange) {
-      handlers.onZoomChange(newScale);
-    }
+    currentZoomScale = zoomCtrl.zoomIn(currentZoomScale, extendedDateRange.start, chartConfig.dayWidth);
   }
 
   function zoomOut() {
-    const newScale = Math.max(currentZoomScale / 1.5, ZOOM_SCALE_LIMITS.min);
-    const newDayWidth = getDayWidthFromScale(newScale);
-    currentZoomScale = newScale;
-    store.setZoomScale(newScale); // ストアにも反映
-    store.updateConfig({ ...chartConfig, dayWidth: newDayWidth });
-
-    if (timelineWrapperElement) {
-      const scrollLeft = timelineWrapperElement.scrollLeft;
-      const containerWidth = timelineWrapperElement.clientWidth;
-      const centerDays = scrollLeft / chartConfig.dayWidth + containerWidth / chartConfig.dayWidth / 2;
-      const centerDate = extendedDateRange.start.plus({ days: centerDays });
-      store.recalculateExtendedDateRange(centerDate, containerWidth, newDayWidth, newScale, timelineWrapperElement);
-    }
-
-    if (handlers.onZoomChange) {
-      handlers.onZoomChange(newScale);
-    }
+    currentZoomScale = zoomCtrl.zoomOut(currentZoomScale, extendedDateRange.start, chartConfig.dayWidth);
   }
-  
+
   // 現在のtick定義を取得
   $: currentTickDef = getTickDefinitionForScale(currentZoomScale);
   
@@ -475,90 +323,25 @@
   let timelineHeaderWrapperElement: HTMLElement;
   let timelineWrapperElement: HTMLElement;
   let treeWrapperElement: HTMLElement;
-  
-  // スクロール同期処理中のフラグ（ループ防止）
-  let isScrolling = false;
-  
-  /**
-   * タイムラインの横スクロールとヘッダーを同期
-   */
-  function handleTimelineScroll(_event: Event) {
-    if (isScrolling) return;
-    isScrolling = true;
-    
-    try {
-      // 横スクロール: ヘッダーと同期
-      if (timelineWrapperElement && timelineHeaderWrapperElement) {
-        const scrollLeft = timelineWrapperElement.scrollLeft;
-        if (timelineHeaderWrapperElement.scrollLeft !== scrollLeft) {
-          timelineHeaderWrapperElement.scrollLeft = scrollLeft;
-        }
-        
-        // 端に近づいたら拡張dateRangeを拡張
-        const containerWidth = timelineWrapperElement.clientWidth;
-        const expanded = store.expandExtendedDateRangeIfNeeded(
+
+  // スクロール同期ハンドラーを生成（各要素はbind:thisで後から設定される）
+  const { handleTimelineScroll, handleTreeScroll, handleHeaderScroll, suppressSync } =
+    createScrollSyncHandlers(
+      () => ({
+        timelineWrapper: timelineWrapperElement ?? null,
+        headerWrapper: timelineHeaderWrapperElement ?? null,
+        treeWrapper: treeWrapperElement ?? null,
+      }),
+      (scrollLeft, containerWidth) => {
+        store.expandExtendedDateRangeIfNeeded(
           scrollLeft,
           containerWidth,
           chartConfig.dayWidth,
           currentZoomScale,
-          timelineWrapperElement
-        );
-        
-        // 拡張後、ヘッダーのスクロール位置を再同期
-        if (expanded && timelineHeaderWrapperElement) {
-          timelineHeaderWrapperElement.scrollLeft = timelineWrapperElement.scrollLeft;
-        }
-      }
-      
-      // 縦スクロール: ツリーと同期
-      if (timelineWrapperElement && treeWrapperElement) {
-        const scrollTop = timelineWrapperElement.scrollTop;
-        if (treeWrapperElement.scrollTop !== scrollTop) {
-          treeWrapperElement.scrollTop = scrollTop;
-        }
-      }
-    } finally {
-      setTimeout(() => { isScrolling = false; }, 0);
-    }
-  }
-  
-  /**
-   * ツリーの縦スクロールとタイムラインを同期
-   */
-  function handleTreeScroll(_event: Event) {
-    if (isScrolling) return;
-    isScrolling = true;
-    
-    try {
-      if (timelineWrapperElement && treeWrapperElement) {
-        const scrollTop = treeWrapperElement.scrollTop;
-        if (timelineWrapperElement.scrollTop !== scrollTop) {
-          timelineWrapperElement.scrollTop = scrollTop;
-        }
-      }
-    } finally {
-      setTimeout(() => { isScrolling = false; }, 0);
-    }
-  }
-  
-  /**
-   * ヘッダーの横スクロールとタイムラインを同期
-   */
-  function handleHeaderScroll(_event: Event) {
-    if (isScrolling) return;
-    isScrolling = true;
-    
-    try {
-      if (timelineWrapperElement && timelineHeaderWrapperElement) {
-        const scrollLeft = timelineHeaderWrapperElement.scrollLeft;
-        if (timelineWrapperElement.scrollLeft !== scrollLeft) {
-          timelineWrapperElement.scrollLeft = scrollLeft;
-        }
-      }
-    } finally {
-      setTimeout(() => { isScrolling = false; }, 0);
-    }
-  }
+          timelineWrapperElement ?? null,
+        )
+      },
+    );
   
   /**
    * 右クリックドラッグでスクロール
@@ -608,12 +391,12 @@
     
     const deltaX = event.clientX - panState.startX;
     const deltaY = event.clientY - panState.startY;
-    
-    // スクロール同期フラグを一時的に無効化
-    isScrolling = true;
-    timelineWrapperElement.scrollLeft = panState.scrollLeft - deltaX;
-    timelineWrapperElement.scrollTop = panState.scrollTop - deltaY;
-    isScrolling = false;
+
+    // スクロール同期を一時的に抑制してスクロール位置を直接操作
+    suppressSync(() => {
+      timelineWrapperElement.scrollLeft = panState!.scrollLeft - deltaX;
+      timelineWrapperElement.scrollTop = panState!.scrollTop - deltaY;
+    });
   }
   
   function handlePanEnd() {
@@ -757,102 +540,11 @@
           <span class="{classPrefix}-tick-editor-label">Tick Definitions</span>
         </div>
         <div class="{classPrefix}-tick-editor-wrapper">
-          <div class="{classPrefix}-tick-info">
-            <small>Current Scale: {currentZoomScale.toFixed(2)} | Active Index: {currentTickIndex}</small>
-          </div>
-          <div class="{classPrefix}-tick-list">
-            {#each tickDefinitions as tick, i}
-              <div class="{classPrefix}-tick-item" class:active={i === currentTickIndex}>
-                <div class="{classPrefix}-tick-header">
-                  <strong>{tick.label}</strong>
-                  <button class="{classPrefix}-edit-btn" on:click={() => startEditTick(i)}>Edit</button>
-                </div>
-                <div class="{classPrefix}-tick-details">
-                  <div>minScale: {tick.minScale}</div>
-                  <div>Major: {tick.majorUnit} / {tick.majorFormat}</div>
-                  <div>Minor: {tick.minorUnit} / {tick.minorFormat}</div>
-                  <div>Minor Interval: {formatDurationForUI(tick.minorInterval)}</div>
-                </div>
-              </div>
-            {/each}
-          </div>
+          <GanttTickEditor {classPrefix} {currentZoomScale} />
         </div>
       </div>
     {/if}
   </div>
-  
-  <!-- Tick Edit Modal -->
-  {#if editingTick}
-    <div class="{classPrefix}-modal-backdrop" on:click={cancelEditTick}>
-      <div class="{classPrefix}-modal-content" on:click|stopPropagation>
-        <h3>Edit Tick Definition</h3>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Label:
-            <input type="text" bind:value={editingTick.def.label} />
-          </label>
-        </div>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Min Scale:
-            <input type="number" step="0.1" bind:value={editingTick.def.minScale} />
-          </label>
-        </div>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Major Unit:
-            <select bind:value={editingTick.def.majorUnit}>
-              <option value="year">year</option>
-              <option value="month">month</option>
-              <option value="week">week</option>
-              <option value="day">day</option>
-            </select>
-          </label>
-        </div>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Major Format:
-            <input type="text" bind:value={editingTick.def.majorFormat} />
-          </label>
-        </div>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Minor Unit:
-            <select bind:value={editingTick.def.minorUnit}>
-              <option value="month">month</option>
-              <option value="week">week</option>
-              <option value="day">day</option>
-              <option value="hour">hour</option>
-            </select>
-          </label>
-        </div>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Minor Format:
-            <input type="text" bind:value={editingTick.def.minorFormat} />
-          </label>
-        </div>
-        <div class="{classPrefix}-form-group">
-          <label>
-            Minor Interval (e.g., "1 day", "3 hours", "2 weeks"):
-            <input 
-              type="text" 
-              value={formatDurationForUI(editingTick.def.minorInterval)}
-              on:input={(e) => {
-                if (editingTick) {
-                  editingTick.def.minorInterval = parseDurationString(e.currentTarget.value);
-                }
-              }}
-            />
-          </label>
-        </div>
-        <div class="{classPrefix}-modal-actions">
-          <button on:click={saveEditTick}>Save</button>
-          <button on:click={cancelEditTick}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style>
