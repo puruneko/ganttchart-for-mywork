@@ -22,7 +22,7 @@ interface DragState {
 export interface DragHandlerDeps {
     getParams: () => {
         dayWidth: number
-        dragSnapDivision: number
+        snapUnit: number // ドラッグスナップ単位（ピクセル）
         onBarDrag?: (
             nodeId: string,
             newStart: DateTime,
@@ -44,10 +44,9 @@ export function createDragHandler(deps: DragHandlerDeps) {
     function handleMouseMove(event: MouseEvent): void {
         if (!dragState) return
 
-        const { dayWidth, dragSnapDivision, onBarDrag, onGroupDrag } =
+        const { dayWidth, snapUnit, onBarDrag, onGroupDrag } =
             deps.getParams()
         const deltaX = event.clientX - dragState.startX
-        const snapUnit = dayWidth / dragSnapDivision
         const snappedDelta = Math.round(deltaX / snapUnit) * snapUnit
         const daysDelta = snappedDelta / dayWidth
 
