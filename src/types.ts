@@ -18,11 +18,30 @@ import type { DateTime } from 'luxon';
 export type GanttNodeType = 'project' | 'section' | 'subsection' | 'task';
 
 /**
+ * ガントバーのカスタムスタイル定義
+ *
+ * タスクバーの外観を個別にカスタマイズするためのオプションプロパティ群。
+ * すべてのフィールドはオプショナルで、省略時はデフォルトスタイルが適用される。
+ */
+export interface GanttNodeStyle {
+  /** バーの塗りつぶし色（CSSカラー文字列） */
+  fill?: string;
+  /** バーの枠線色（CSSカラー文字列） */
+  stroke?: string;
+  /** バーの枠線幅（ピクセル） */
+  strokeWidth?: number;
+  /** バーの角丸半径（ピクセル、デフォルト: 6） */
+  rx?: number;
+  /** ラベルテキストの色（CSSカラー文字列） */
+  labelColor?: string;
+}
+
+/**
  * ガントチャートノードのコアデータ構造
- * 
+ *
  * 階層構造における基本単位を表す。
  * ライブラリの観点では全フィールドがイミュータブル（不変）として扱われる。
- * 
+ *
  * @property id - 全ノード間で一意な識別子（必須）
  * @property parentId - 親ノードのID。ルートレベルのノードの場合はnull
  * @property type - 描画と動作を決定するノードタイプ
@@ -30,6 +49,7 @@ export type GanttNodeType = 'project' | 'section' | 'subsection' | 'task';
  * @property start - 開始日時（luxon DateTimeオブジェクト、未設定の場合はundefined）
  * @property end - 終了日時（luxon DateTimeオブジェクト、未設定の場合はundefined）
  * @property isCollapsed - UI状態: このノードの子要素を非表示にするかどうか
+ * @property style - バーの外観カスタマイズ（タスクタイプのみ有効）
  * @property metadata - 任意のメタデータ。ライブラリは無視するが、イベント経由で渡される
  */
 export interface GanttNode {
@@ -53,7 +73,10 @@ export interface GanttNode {
   
   /** UI状態: このノードの子要素が非表示かどうか */
   isCollapsed?: boolean;
-  
+
+  /** バーの外観カスタマイズ（タスクタイプのみ有効） */
+  style?: GanttNodeStyle;
+
   /** 任意のメタデータ - ライブラリは無視するが、イベント経由で渡される */
   metadata?: Record<string, unknown>;
 }

@@ -12,6 +12,7 @@ export { default as GanttChart } from "./components/GanttChart.svelte"
 export type {
     GanttNode,
     GanttNodeType,
+    GanttNodeStyle,
     GanttEventHandlers,
     GanttConfig,
     GanttChartProps,
