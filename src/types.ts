@@ -116,7 +116,10 @@ export interface GanttEventHandlers {
   
   /** バーがドラッグされたときに発火（controlled モードでは必須） */
   onBarDrag?: (nodeId: string, newStart: DateTime, newEnd: DateTime) => void;
-  
+
+  /** バーのドラッグが確定したとき（mouseup）に発火。最終的な start/end を通知する */
+  onBarDragEnd?: (nodeId: string, finalStart: DateTime, finalEnd: DateTime) => void;
+
   /** グループ全体がドラッグされたときに発火 */
   onGroupDrag?: (nodeId: string, daysDelta: number) => void;
   

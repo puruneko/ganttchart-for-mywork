@@ -17,6 +17,8 @@ interface DragState {
     originalEnd: DateTime
     startX: number
     lastAppliedDelta: number
+    currentStart: DateTime
+    currentEnd: DateTime
 }
 
 export interface DragHandlerDeps {
@@ -27,6 +29,11 @@ export interface DragHandlerDeps {
             nodeId: string,
             newStart: DateTime,
             newEnd: DateTime,
+        ) => void
+        onBarDragEnd?: (
+            nodeId: string,
+            finalStart: DateTime,
+            finalEnd: DateTime,
         ) => void
         onGroupDrag?: (nodeId: string, daysDelta: number) => void
     }
@@ -75,12 +82,16 @@ export function createDragHandler(deps: DragHandlerDeps) {
                 }
             }
 
+            dragState.currentStart = newStart
+            dragState.currentEnd = newEnd
             onBarDrag(dragState.nodeId, newStart, newEnd)
         }
     }
 
     function handleMouseUp(): void {
         if (dragState) {
+            const { onBarDragEnd } = deps.getParams()
+            onBarDragEnd?.(dragState.nodeId, dragState.currentStart, dragState.currentEnd)
             console.debug(
                 "🎯 [GanttTimeline] Drag completed:",
                 dragState.mode,
@@ -108,6 +119,8 @@ export function createDragHandler(deps: DragHandlerDeps) {
             originalEnd: node.end,
             startX: event.clientX,
             lastAppliedDelta: 0,
+            currentStart: node.start,
+            currentEnd: node.end,
         }
 
         window.addEventListener("mousemove", handleMouseMove)
