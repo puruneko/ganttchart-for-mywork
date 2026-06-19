@@ -55,6 +55,8 @@
   export let onBarClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
   /** バードラッグ時のハンドラー */
   export let onBarDrag: ((nodeId: string, newStart: DateTime, newEnd: DateTime) => void) | undefined = undefined;
+  /** バードラッグ確定時（mouseup）のハンドラー */
+  export let onBarDragEnd: ((nodeId: string, finalStart: DateTime, finalEnd: DateTime) => void) | undefined = undefined;
   /** グループドラッグ時のハンドラー */
   export let onGroupDrag: ((nodeId: string, daysDelta: number) => void) | undefined = undefined;
   /** セクション日付自動調整時のハンドラー */
@@ -92,6 +94,7 @@
         dayWidth,
         snapUnit: snapDays * dayWidth,
         onBarDrag,
+        onBarDragEnd,
         onGroupDrag,
       };
     },

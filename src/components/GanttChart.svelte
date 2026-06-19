@@ -257,12 +257,23 @@
     if (handlers.onBarDrag) {
       handlers.onBarDrag(nodeId, newStart, newEnd);
     }
-    if (chartConfig.mode === 'uncontrolled') {
-      const updated = store._getRawNodes().map(n =>
-        n.id === nodeId ? { ...n, start: newStart, end: newEnd } : n
-      );
-      store.setNodes(updated);
-      if (handlers.onDataChange) handlers.onDataChange(updated);
+    // 全モードでストアを更新して視覚プレビューを提供する。
+    // controlled モードでは onBarDragEnd 後に外部から nodes が更新されて正規位置に確定する。
+    const updated = store._getRawNodes().map(n =>
+      n.id === nodeId ? { ...n, start: newStart, end: newEnd } : n
+    );
+    store.setNodes(updated);
+    if (chartConfig.mode === 'uncontrolled' && handlers.onDataChange) {
+      handlers.onDataChange(updated);
+    }
+  }
+
+  /**
+   * バードラッグ確定ハンドラー（mouseup 時）
+   */
+  function handleBarDragEnd(nodeId: string, finalStart: DateTime, finalEnd: DateTime) {
+    if (handlers.onBarDragEnd) {
+      handlers.onBarDragEnd(nodeId, finalStart, finalEnd);
     }
   }
 
@@ -662,6 +673,7 @@
           {yWindow}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
+          onBarDragEnd={handleBarDragEnd}
           onGroupDrag={handleGroupDrag}
           onAutoAdjustSection={handleAutoAdjustSection}
           onZoomChange={handleTimelineZoom}
