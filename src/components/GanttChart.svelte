@@ -27,6 +27,7 @@
     ZOOM_SCALE_LIMITS,
   } from '../utils/zoom-scale';
   import { calculateXWindow, fullWindow, calculateYWindow } from '../utils/virtual-scroll';
+  import { dateToX } from '../utils/timeline-calculations';
   import { DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
@@ -84,6 +85,23 @@
    */
   export function scrollToToday() {
     scrollToDate(DateTime.now().startOf('day'));
+  }
+
+  /**
+   * 指定ノードのバー左端（start）が視野内に入るよう横スクロールを調整する。
+   * すでに左端が見えている場合は何もしない。ズームレベルは変更しない。
+   */
+  function scrollToNodeBarStart(node: ComputedGanttNode): void {
+    if (!timelineWrapperElement) return;
+
+    const barLeftX = dateToX(node.start, extendedDateRange, chartConfig.dayWidth);
+    const viewLeft = timelineScrollLeft;
+    const viewRight = timelineScrollLeft + timelineViewportWidth;
+
+    if (barLeftX >= viewLeft && barLeftX < viewRight) return;
+
+    const PADDING_PX = 40;
+    timelineWrapperElement.scrollLeft = Math.max(0, barLeftX - PADDING_PX);
   }
   
   // ストアの値を購読
@@ -218,6 +236,7 @@
     if (handlers.onNameClick) {
       handlers.onNameClick(node, event);
     }
+    scrollToNodeBarStart(node);
   }
   
   /**
