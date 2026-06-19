@@ -131,6 +131,44 @@ export interface GanttEventHandlers {
 }
 
 /**
+ * ユーザーインタラクションイベントの種別
+ */
+export type GanttUserEventType =
+  | 'nodeClick'
+  | 'barClick'
+  | 'nameClick'
+  | 'barDrag'
+  | 'barDragEnd'
+  | 'groupDrag'
+  | 'toggleCollapse'
+  | 'dataChange'
+  | 'autoAdjustSection'
+  | 'zoomChange'
+  | 'panStart'
+  | 'panEnd'
+
+/**
+ * イベント種別ごとの detail 型マップ
+ */
+export type GanttUserEventDetailMap = {
+  nodeClick:         { node: GanttNode }
+  barClick:          { node: GanttNode; originalEvent: MouseEvent }
+  nameClick:         { node: GanttNode; originalEvent: MouseEvent }
+  barDrag:           { nodeId: string; newStart: DateTime; newEnd: DateTime }
+  barDragEnd:        { nodeId: string; finalStart: DateTime; finalEnd: DateTime }
+  groupDrag:         { nodeId: string; daysDelta: number }
+  toggleCollapse:    { nodeId: string; newCollapsedState: boolean }
+  dataChange:        { nodes: GanttNode[] }
+  autoAdjustSection: { nodeId: string }
+  zoomChange:        { zoomLevel: number }
+  panStart:          { startX: number; startY: number }
+  panEnd:            Record<string, never>
+}
+
+export type GanttUserEventDetail<T extends GanttUserEventType = GanttUserEventType> =
+  GanttUserEventDetailMap[T]
+
+/**
  * ガントチャートの設定オプション
  * 
  * ライブラリの動作と見た目をカスタマイズするための設定。

@@ -18,6 +18,9 @@ export type {
     GanttChartProps,
     DateRange,
     SnapDurationMap,
+    GanttUserEventType,
+    GanttUserEventDetail,
+    GanttUserEventDetailMap,
 } from "./types"
 
 // ライフサイクルイベント（ライブラリユーザー向け）
@@ -29,6 +32,12 @@ export type {
     LifecycleEventDetail,
     LifecyclePhase,
 } from "./core/lifecycle-events"
+
+// ユーザーインタラクションイベントバス
+export {
+    GanttEventEmitter,
+    createGanttEventEmitter,
+} from "./core/gantt-event-emitter"
 
 // ユーティリティ関数（高度な使用法向け）
 export {

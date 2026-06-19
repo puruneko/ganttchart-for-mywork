@@ -236,6 +236,8 @@
     if (handlers.onNameClick) {
       handlers.onNameClick(node, event);
     }
+    store.events.emit('nodeClick', { node });
+    store.events.emit('nameClick', { node, originalEvent: event });
     scrollToNodeBarStart(node);
   }
   
@@ -250,6 +252,8 @@
     if (handlers.onBarClick) {
       handlers.onBarClick(node, event);
     }
+    store.events.emit('nodeClick', { node });
+    store.events.emit('barClick', { node, originalEvent: event });
   }
   
   /**
@@ -276,6 +280,7 @@
     if (handlers.onBarDrag) {
       handlers.onBarDrag(nodeId, newStart, newEnd);
     }
+    store.events.emit('barDrag', { nodeId, newStart, newEnd });
     // 全モードでストアを更新して視覚プレビューを提供する。
     // controlled モードでは onBarDragEnd 後に外部から nodes が更新されて正規位置に確定する。
     const updated = store._getRawNodes().map(n =>
@@ -284,6 +289,7 @@
     store.setNodes(updated);
     if (chartConfig.mode === 'uncontrolled' && handlers.onDataChange) {
       handlers.onDataChange(updated);
+      store.events.emit('dataChange', { nodes: updated });
     }
   }
 
@@ -294,6 +300,7 @@
     if (handlers.onBarDragEnd) {
       handlers.onBarDragEnd(nodeId, finalStart, finalEnd);
     }
+    store.events.emit('barDragEnd', { nodeId, finalStart, finalEnd });
   }
 
   /**
@@ -304,6 +311,7 @@
     if (handlers.onGroupDrag) {
       handlers.onGroupDrag(nodeId, daysDelta);
     }
+    store.events.emit('groupDrag', { nodeId, daysDelta });
     if (chartConfig.mode === 'uncontrolled') {
       const currentNodes = store._getRawNodes();
       const idsToMove = collectDescendantIds(nodeId, currentNodes);
@@ -317,7 +325,10 @@
         };
       });
       store.setNodes(updated);
-      if (handlers.onDataChange) handlers.onDataChange(updated);
+      if (handlers.onDataChange) {
+        handlers.onDataChange(updated);
+        store.events.emit('dataChange', { nodes: updated });
+      }
     }
   }
   
@@ -335,13 +346,15 @@
     if (handlers.onToggleCollapse) {
       handlers.onToggleCollapse(nodeId, newCollapsedState);
     }
-    
+    store.events.emit('toggleCollapse', { nodeId, newCollapsedState });
+
     // ストアで切り替え（uncontrolledモードの場合のみ適用される）
     const newNodes = store.toggleCollapse(nodeId);
-    
+
     // uncontrolledモードの場合、データ変更ハンドラーに通知
     if (chartConfig.mode === 'uncontrolled' && handlers.onDataChange) {
       handlers.onDataChange(newNodes);
+      store.events.emit('dataChange', { nodes: newNodes });
     }
   }
   
@@ -353,14 +366,16 @@
     if (handlers.onAutoAdjustSection) {
       handlers.onAutoAdjustSection(nodeId);
     }
-    
+    store.events.emit('autoAdjustSection', { nodeId });
+
     // uncontrolledモードの場合、内部で自動調整
     if (chartConfig.mode === 'uncontrolled') {
       const newNodes = store.autoAdjustSectionDates(nodeId);
-      
+
       // データ変更ハンドラーに通知
       if (handlers.onDataChange) {
         handlers.onDataChange(newNodes);
+        store.events.emit('dataChange', { nodes: newNodes });
       }
     }
   }
@@ -434,7 +449,10 @@
   const zoomCtrl = createZoomController({
     store,
     getTimelineWrapper: () => timelineWrapperElement ?? null,
-    onZoomChange: (scale) => handlers.onZoomChange?.(scale),
+    onZoomChange: (scale) => {
+      handlers.onZoomChange?.(scale);
+      store.events.emit('zoomChange', { zoomLevel: scale });
+    },
   });
 
   // タイムラインからのズーム変更を処理
@@ -518,7 +536,8 @@
       scrollLeft: timelineWrapperElement.scrollLeft,
       scrollTop: timelineWrapperElement.scrollTop
     };
-    
+    store.events.emit('panStart', { startX: event.clientX, startY: event.clientY });
+
     window.addEventListener('mousemove', handlePanMove);
     window.addEventListener('mouseup', handlePanEnd);
     window.addEventListener('contextmenu', preventContextMenu);
@@ -551,6 +570,9 @@
   }
   
   function handlePanEnd() {
+    if (panState) {
+      store.events.emit('panEnd', {});
+    }
     panState = null;
     window.removeEventListener('mousemove', handlePanMove);
     window.removeEventListener('mouseup', handlePanEnd);

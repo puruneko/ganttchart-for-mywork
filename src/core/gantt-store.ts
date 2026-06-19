@@ -27,6 +27,7 @@ import {
 } from "./data-manager"
 import { getTickDefinitionForScale } from "../utils/zoom-scale"
 import { LifecycleEventEmitter } from "./lifecycle-events"
+import { GanttEventEmitter } from "./gantt-event-emitter"
 
 /**
  * デフォルト設定
@@ -84,6 +85,9 @@ export function createGanttStore(
 
     // ライフサイクルイベントエミッター
     const lifecycleEvents = new LifecycleEventEmitter()
+
+    // ユーザーインタラクションイベントエミッター
+    const events = new GanttEventEmitter()
 
     // 派生計算値
     // これらはSvelte 5で$derivedに簡単に変換可能
@@ -420,6 +424,9 @@ export function createGanttStore(
 
         // ライフサイクルイベントエミッター
         lifecycleEvents,
+
+        // ユーザーインタラクションイベントエミッター
+        events,
 
         // アクション関数
         setNodes,
