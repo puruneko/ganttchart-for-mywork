@@ -48,7 +48,7 @@
   <text
     x={x + 8}
     y={sectionBarY + sectionBarHeight / 2}
-    class="{classPrefix}-section-label"
+    class="{classPrefix}-section-label {classPrefix}-section-label--{node.type}"
     dominant-baseline="middle"
     pointer-events="none"
   >

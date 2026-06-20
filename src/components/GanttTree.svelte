@@ -159,6 +159,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #000;
+    font-size: var(--gantt-font-size, 14px);
   }
   
   :global(.gantt-node-name:hover) {

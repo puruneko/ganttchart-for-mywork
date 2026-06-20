@@ -360,27 +360,28 @@
     fill: #f5a623;
   }
 
-  /* セクションバー：全体を濃い色で塗りつぶし */
+  /* セクションバー：枠線のみ（塗りつぶしなし） */
   :global(.gantt-section-bar-full) {
     cursor: pointer;
     transition: opacity 0.2s;
-    stroke: none;
+    fill: none;
+    stroke-width: 2;
   }
 
   :global(.gantt-section-bar-full:hover) {
-    opacity: 0.9;
+    opacity: 0.7;
   }
 
   :global(.gantt-section-bar-full--section) {
-    fill: #50c878;
+    stroke: #50c878;
   }
 
   :global(.gantt-section-bar-full--subsection) {
-    fill: #f5a623;
+    stroke: #f5a623;
   }
 
   :global(.gantt-section-bar-full--project) {
-    fill: #4a90e2;
+    stroke: #4a90e2;
   }
 
   :global(.gantt-bar--task) {
@@ -439,16 +440,28 @@
 
   /* セクション/プロジェクト名ラベル */
   :global(.gantt-section-label) {
-    fill: #fff;
-    font-size: 11px;
+    fill: #2c3e50;
+    font-size: calc(var(--gantt-font-size, 14px) * 0.93);
     font-weight: 600;
     user-select: none;
+  }
+
+  :global(.gantt-section-label--section) {
+    fill: #3aaf62;
+  }
+
+  :global(.gantt-section-label--subsection) {
+    fill: #d4891a;
+  }
+
+  :global(.gantt-section-label--project) {
+    fill: #2d7dd2;
   }
 
   /* タスク名ラベル */
   :global(.gantt-task-label) {
     fill: #2c3e50;
-    font-size: 10px;
+    font-size: calc(var(--gantt-font-size, 14px) * 0.71);
     font-weight: 500;
     user-select: none;
   }

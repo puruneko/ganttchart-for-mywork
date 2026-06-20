@@ -163,6 +163,15 @@
         on:input={(e) => onConfigChange({ xOverscanPx: Number(e.currentTarget.value) })}
       />
     </label>
+
+    <label class="{classPrefix}-config-row">
+      <span>フォントサイズ <em>{config.fontSize}px</em></span>
+      <input
+        type="range" min="10" max="20" step="1"
+        value={config.fontSize}
+        on:input={(e) => onConfigChange({ fontSize: Number(e.currentTarget.value) })}
+      />
+    </label>
   </div>
 
   <!-- スナップ設定 -->

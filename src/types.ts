@@ -226,6 +226,9 @@ export interface GanttConfig {
    * 0 を指定するとオーバースキャンなし。デフォルト: 500
    */
   xOverscanPx?: number;
+
+  /** ベースフォントサイズ（px）。タスク名・ラベル等に適用される。デフォルト: 14 */
+  fontSize?: number;
 }
 
 /**

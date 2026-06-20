@@ -586,7 +586,7 @@
   }
 </script>
 
-<div class="{classPrefix}-container" style="width: {chartConfig.width}; height: {containerHeight};">
+<div class="{classPrefix}-container" style="width: {chartConfig.width}; height: {containerHeight}; --gantt-font-size: {chartConfig.fontSize}px;">
   <!-- ツリーペイン切り替えボタン -->
   <button
     class="{classPrefix}-toggle-tree-btn"
