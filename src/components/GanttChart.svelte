@@ -57,10 +57,10 @@
    */
   export function scrollToDate(targetDate: DateTime) {
     if (!timelineWrapperElement) return;
-    
-    const current = $extendedDateRangeStore;
+
+    let current = $extendedDateRangeStore;
     const currentDayWidth = $configStore.dayWidth;
-    
+
     // 目標日付が拡張範囲外の場合は範囲を拡張
     if (targetDate < current.start || targetDate > current.end) {
       store.initExtendedDateRange(
@@ -68,14 +68,16 @@
         currentDayWidth,
         getScaleFromDayWidth(currentDayWidth)
       );
+      // 範囲を拡張した後は最新値を再取得して計算に使う
+      current = $extendedDateRangeStore;
     }
-    
+
     // スクロール位置を計算
     const containerWidth = timelineWrapperElement.clientWidth;
     const targetDays = targetDate.diff(current.start, 'days').days;
     const targetContentX = targetDays * currentDayWidth;
     const newScrollLeft = targetContentX - (containerWidth / 2);
-    
+
     // スクロール位置を設定
     timelineWrapperElement.scrollLeft = Math.max(0, newScrollLeft);
   }
@@ -199,11 +201,9 @@
 
         lifecycle.markReady();
 
-        // 初期表示位置を現在日時に合わせる
-        scrollToToday();
-
-        // レディイベントをサブコンポーネント準備後に発行
+        // DOM更新（markReady 起因）が反映された後にスクロールを適用する
         tick().then(() => {
+          scrollToToday();
           store.lifecycleEvents.emit('ready', {
             allComponentsLoaded: true,
             timestamp: Date.now()
@@ -211,6 +211,17 @@
         });
       });
     });
+
+    // ブラウザのスクロール復元（再読み込み時に発生）が scrollToToday() を上書きする場合に備えて
+    // pageshow イベント後（復元完了後）に今日へのスクロールを再適用する
+    const handlePageShow = () => {
+      requestAnimationFrame(() => scrollToToday());
+    };
+    window.addEventListener('pageshow', handlePageShow, { once: true });
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   });
   
   // 重要なデータ変更を監視してログ出力（showEventLogがtrueの場合のみ）
