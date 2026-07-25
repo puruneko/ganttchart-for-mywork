@@ -26,6 +26,8 @@ import {
     autoAdjustSectionDates,
 } from "./data-manager"
 import { getTickDefinitionForScale } from "../utils/zoom-scale"
+import { businessDayOffset, addBusinessDayOffset } from "../utils/business-days"
+import { DEFAULT_WEEKEND_DAYS } from "../utils/day-kind"
 import { LifecycleEventEmitter } from "./lifecycle-events"
 import { GanttEventEmitter } from "./gantt-event-emitter"
 
@@ -44,10 +46,10 @@ const DEFAULT_SNAP_DURATION_MAP: Required<SnapDurationMap> = {
 
 const DEFAULT_CONFIG: Required<GanttConfig> = {
     mode: "uncontrolled",
-    rowHeight: 40,
+    rowHeight: 24.5, // 1.75em（デフォルトfontSize 14px基準）
     dayWidth: 30,
-    treePaneWidth: 300,
-    indentSize: 20,
+    treePaneWidth: 180, // issue-gantt-phase004-001: 現行250pxから約28%縮小
+    indentSize: 10, // issue-gantt-phase004-001: 現行20pxの約半分
     classPrefix: "gantt",
     showTreePane: true,
     width: "100%",
@@ -55,6 +57,13 @@ const DEFAULT_CONFIG: Required<GanttConfig> = {
     snapDurationMap: DEFAULT_SNAP_DURATION_MAP,
     xOverscanPx: 500,
     fontSize: 14,
+    showWeekends: true,
+    weekendBackground: true,
+    holidays: [],
+    weekend: DEFAULT_WEEKEND_DAYS,
+    defaultDurationMinutes: 60,
+    defaultStartHour: 9,
+    showUnscheduledSubtasks: true,
 }
 
 /**
@@ -93,8 +102,9 @@ export function createGanttStore(
     // 派生計算値
     // これらはSvelte 5で$derivedに簡単に変換可能
     const computedNodes: Readable<ComputedGanttNode[]> = derived(
-        nodes,
-        ($nodes) => computeNodes($nodes),
+        [nodes, config],
+        ([$nodes, $config]) =>
+            computeNodes($nodes, { showUnscheduledSubtasks: $config.showUnscheduledSubtasks }),
     )
 
     const visibleNodes: Readable<ComputedGanttNode[]> = derived(
@@ -188,11 +198,12 @@ export function createGanttStore(
      * 実際の更新は外部で行う。
      *
      * @param nodeId - 調整するセクション/サブセクションのID
+     * @param edge - 調整対象（'start' | 'end' | 'both'、既定 'both'）
      * @returns 更新された新しいノード配列（イベント通知用）
      */
-    function autoAdjustSection(nodeId: string): GanttNode[] {
+    function autoAdjustSection(nodeId: string, edge: "start" | "end" | "both" = "both"): GanttNode[] {
         const currentNodes = get(nodes)
-        const newNodes = autoAdjustSectionDates(currentNodes, nodeId)
+        const newNodes = autoAdjustSectionDates(currentNodes, nodeId, edge)
 
         // Uncontrolledモードの場合のみ更新
         const currentConfig = get(config)
@@ -329,14 +340,19 @@ export function createGanttStore(
         zoomScale: number,
     ): { expanded: boolean; newScrollLeft: number | null } {
         const current = get(extendedDateRange)
+        const hideWeekends = !get(config).showWeekends
         const viewportDays = Math.ceil(containerWidth / dayWidth)
         const threshold = viewportDays * 0.5
         const bufferDays = calculateAdaptiveBuffer(viewportDays, zoomScale)
 
-        const totalDays = current.end.diff(current.start, "days").days
+        const totalDays = hideWeekends
+            ? businessDayOffset(current.end, current.start)
+            : current.end.diff(current.start, "days").days
         const scrollDays = scrollLeft / dayWidth
         const centerDays = scrollDays + viewportDays / 2
-        const centerDate = current.start.plus({ days: centerDays })
+        const centerDate = hideWeekends
+            ? addBusinessDayOffset(current.start, centerDays)
+            : current.start.plus({ days: centerDays })
 
         let needsExpansion = false
         let newStart = current.start
@@ -355,7 +371,9 @@ export function createGanttStore(
         if (needsExpansion) {
             extendedDateRange.set({ start: newStart, end: newEnd })
             // スクロール位置補正値を計算して返す（実際の設定はUI層が行う）
-            const newCenterDays = centerDate.diff(newStart, "days").days
+            const newCenterDays = hideWeekends
+                ? businessDayOffset(centerDate, newStart)
+                : centerDate.diff(newStart, "days").days
             const newScrollDays = newCenterDays - viewportDays / 2
             return {
                 expanded: true,
@@ -390,6 +408,7 @@ export function createGanttStore(
             return { newScrollLeft: 0 }
         }
 
+        const hideWeekends = !get(config).showWeekends
         const newViewportDays = containerWidth / newDayWidth
         const bufferDays = calculateAdaptiveBuffer(newViewportDays, newZoomScale)
 
@@ -408,7 +427,9 @@ export function createGanttStore(
         extendedDateRange.set({ start: newStart, end: newEnd })
 
         // スクロール位置補正値を計算して返す（rAFによる設定はUI層が行う）
-        const newCenterDays = centerDate.diff(newStart, "days").days
+        const newCenterDays = hideWeekends
+            ? businessDayOffset(centerDate, newStart)
+            : centerDate.diff(newStart, "days").days
         const newScrollLeft = Math.max(0, newCenterDays * newDayWidth - containerWidth / 2)
         return { newScrollLeft }
     }

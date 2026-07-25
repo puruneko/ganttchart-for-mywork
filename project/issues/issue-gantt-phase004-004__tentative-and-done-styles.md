@@ -1,0 +1,101 @@
+# [gantt] 仮置き（半透明＋?）と完了（done）の描き分け
+
+## 1. 課題と方針  — 人間が読む
+
+### このissueで解決すること
+1. **仮置き**: `@schedule?:` 等の仮置き予定を、確定予定と見分けられるようにする（オーナー要望: 透明度を上げ「?」マークを表示）。仮置きが確定と同じ見た目だと「確定したつもり」事故が起きる。
+2. **done**: 完了タスクのバーが未完と同じ見た目で、「終わったもの」と「これからやるもの」がガント上で区別できない。**バーは消さない**（実績の記録として残す — オーナーの progress 報告ニーズに将来つながるため）。
+
+### 方針
+GanttNode に `tentative?: boolean` と `status?: string` を追加し、描画スタイルを分岐するだけ。値の意味づけは本体（issue-phase004-004）。
+
+---
+
+## 2. 進捗・実装メモ  — AIが読む
+
+### 遵守事項（毎回）
+- **実装前に本体リポジトリの `project/governance/`・`issue-phase004-000__phase-overview.md`・`issue-gantt-phase004-000__gantt-overview.md` を必ず読むこと。** prop 型の正は issue-phase004-004。
+- **既存テストの見直しは機能実装と同等に重要。** バー描画のクラス/スタイル分岐テストを更新・追加。
+
+### 対象・既存資産
+- `../ganttchart-for-mywork/src/types.ts` … `tentative?: boolean` / `status?: string` を GanttNode に追加。
+- `src/components/GanttTaskBar.svelte` … バー描画。既存の `gantt-bar--task` 等のクラス設計に倣い modifier クラスで分岐する。
+
+### 仕様
+1. **tentative**:
+   - バー（および plan 枠・milestone。issue-gantt-phase004-002/003 の成果物）を `opacity: 0.5` 程度に。
+   - バー右端の近くに「?」バッジ（小さい円＋?、または単純なテキスト）。SVG `<text>` で可。
+   - クラス例: `gantt-bar--tentative`。
+2. **done**（`status === 'done'` のとき）:
+   - 彩度を落とす（グレー寄せ）＋バー内または左に ✓ マーク。
+   - クラス例: `gantt-bar--done`。
+   - tentative と done が同時なら done を優先（完了した仮予定は「終わった事実」が勝つ）。
+3. status は `'todo' | 'doing' | 'blocked' | 'hold' | 'done'` が来る想定だが、**ライブラリは 'done' 以外を特別扱いしない**（他ステータスの色分けは将来の別 Issue。今回のスコープを広げない）。
+4. 色・透明度は CSS 変数化。
+
+### 実装の要点・つまずき
+- ドラッグ挙動: tentative バーも**ドラッグ可**（仮置きの日程調整はよくある操作）。ドラッグ書き戻しで `?` が保持されるのは本体 upsert-meta の責務（issue-phase004-002 で実装済みのはず — 結合確認は本体 E2E で）。
+- `?` バッジがバー幅より大きい極小バーのケース: バッジをバー外右側に出す等、潰れない配置にする。
+
+### TODO
+- [ ] 型追加（tentative / status）
+- [ ] tentative 描画（バー・枠・◆ に適用＋?バッジ）
+- [ ] done 描画（彩度＋✓、tentative との優先順位）
+- [ ] lib テスト見直し＋新テスト、本体 E2E 回帰
+
+### 受け入れ基準
+- tentative の要素が半透明＋?付きで描かれ、ドラッグは可能。
+- done のバーがグレー寄せ＋✓で描かれ、未完バーは従来どおり（回帰）。
+- tentative かつ done は done 表示。
+- lib テスト・本体 `npm run test:obs:e2e` 全通過。
+
+### テスト観点
+- クラス付与の分岐 unit（tentative / done / 両方 / どちらも無し）。
+- 極小バーでのバッジ配置。
+
+### 履歴（追記のみ）
+- 2026-07-04 — 起票。
+
+### 2026-07-22 09:40
+
+- User Instruction:
+  - 「外部ライブラリのganttにdoneの場合グレーアウトする機能を追加したが、本体拡張機能で動かすとdoneでもグレーアウトやチェックアイコンが出ない」という不具合報告への対応を、推奨解決案で実装するよう指示された。
+
+- Change:
+  - 原因を特定した。`../ganttchart-for-mywork` 側は本Issueの成果物とは別に、`GanttNode.completed?: boolean`（トップレベルの真偽値フィールド）によるグレーアウト＋チェックアイコン機構を既に実装済みだった（`GanttTaskBar.svelte`・`GanttTree.svelte` が `node.completed` を参照）。一方、本体側の `src/lib/gantt/ast-to-gantt.ts` は `node.status` を `metadata.status` にのみ格納しており（GR-019 準拠）、トップレベルの `completed` フィールドを一切設定していなかったため、ライブラリの既存グレーアウト機構が発火しなかった。
+  - `src/lib/gantt/ast-to-gantt.ts` の GanttNode 生成箇所（通常タスク・@repeat オカレンス双方）に `completed: node.status === 'done'` を追加し、ライブラリの `completed` フィールドへ橋渡しした。
+  - `src/lib/gantt/ast-to-gantt.test.ts` に completed=true/false の単体テストを追加（@repeat オカレンス分も含む）。
+  - `tests/obs-e2e/gantt-view.e2e.ts` に、完了タスクのバーへ `gantt-bar--completed` クラスが付与されることを確認する E2E テストを追加。実機（Obsidian + wdio）で本修正により正しくグレーアウトされることを確認済み。
+  - 単体テスト（vitest, 448件）・obs E2E（wdio, 8ファイル25件）とも全通過。
+
+- Rationale:
+  - ユーザーが不在のため、報告された不具合（doneタスクのグレーアウト・チェックアイコン欠落）を確認できる最小かつ確実な修正として、既にライブラリ側に実装済みの `completed` フィールドへ本体側の status を橋渡しする方式を選んだ。
+  - **注意（次回作業者へ）**: 本Issueが元々定義していた `status?: string` ベースの設計（バー上への✓バッジ描画、tentativeとの優先順位ロジック、`gantt-bar--done` クラス）は今回のスコープに含まれない。現状ライブラリにあるのは `completed: boolean` による簡易版（グレーアウトのみ、バー上に✓は無し。✓アイコンはツリーペインのみ）であり、本Issue本来の受け入れ基準（バー上✓・tentative半透明+?バッジ・優先順位）は依然未達成のまま open とする。ユーザーの今回の不具合報告（グレーアウト・チェックアイコンが出ない）は解消したが、Issueのクローズには至らない。
+
+### 2026-07-23 10:00
+
+- User Instruction:
+  - issue-gantt-phase004-001〜007 を一括実装するよう指示された（オーナー不在のため曖昧な点は実装者の推奨案で進める）。前回（2026-07-22）の履歴に「本Issue本来の受け入れ基準は未達成」と記録されていたため、今回そのギャップを埋めた。
+
+- Change:
+  - `GanttNode` に `tentative?: boolean` と `status?: string` を追加。
+  - 判定ロジックを純粋関数 `resolveTaskBarStyle()`（新規 `src/utils/task-bar-style.ts`）に切り出し、unit test（`tests/utils/task-bar-style.test.ts`）で「tentative のみ／done のみ（completed経由）／done のみ（status経由）／両方／どちらも無し」の分岐を検証。
+  - `isDone = completed === true || status === 'done'` とし、既存の `completed` フィールド（前回対応で本体から橋渡し済み）と新設の `status` フィールドの**両方**を done 判定のトリガーにした。理由: 本体側はまだ `status` プロパティを配線していない可能性があるため、`completed` 経由の既存疎通を壊さずに `status` 経由の新経路を追加する後方互換な設計にした。
+  - `GanttTaskBar.svelte` に done バッジ（緑丸+✓、バー左側）と tentative バッジ（グレー丸+?、バー右端付近）を追加。バー幅がバッジ2個分より狭い極小バーでは tentative バッジをバー外右側にずらして潰れを防止。
+  - CSS クラスは既存の `gantt-bar--completed`（`completed` 発火、無変更）とは別に `gantt-bar--done`（`status==='done'` 発火）を新設し、両方が同じグレー配色を指すようにした。既存クラスを再利用・変更しなかったのは、本体側 E2E（`gantt-view.e2e.ts`）が `gantt-bar--completed` クラスに依存しているため（`markdownEditor-for-mywork` リポジトリを確認し依存を確認済み）。
+  - done が tentative より優先されることを `resolveTaskBarStyle()` で保証（`isTentative = tentative && !isDone`）。
+  - plan 枠・milestone にも tentative 時の opacity 低下を適用済み（issue-gantt-phase004-002/003 側で実装）。
+
+- Rationale:
+  - 前回の応急対応（`completed` のみ）を壊さず、Issue 原文が定めた `status` ベースの設計を追加する形で両立させた。バー上 ✓・tentative 半透明+?バッジ・優先順位という前回未達成だった受け入れ基準を本対応で満たした。
+
+---
+
+## 3. メタデータ
+- id: issue-gantt-phase004-004__tentative-and-done-styles
+- status: implemented（ユーザー承認待ち）
+- phase: 004
+- target_repo: ../ganttchart-for-mywork
+- related_issues: issue-phase004-000, issue-phase004-004（prop 型の正）, issue-gantt-phase004-002, issue-gantt-phase004-003
+- created: 2026-07-04
+- updated: 2026-07-23

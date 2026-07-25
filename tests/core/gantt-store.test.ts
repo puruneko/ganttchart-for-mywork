@@ -43,9 +43,10 @@ describe('createGanttStore', () => {
     const config = store._getConfig();
     
     expect(config.mode).toBe('uncontrolled');
-    expect(config.rowHeight).toBe(40);
+    expect(config.rowHeight).toBe(24.5);
     expect(config.dayWidth).toBe(30);
-    expect(config.treePaneWidth).toBe(300);
+    expect(config.treePaneWidth).toBe(180); // issue-gantt-phase004-001: 縮小後デフォルト
+    expect(config.indentSize).toBe(10); // issue-gantt-phase004-001: 縮小後デフォルト
     expect(config.classPrefix).toBe('gantt');
     expect(config.snapDurationMap).toEqual({
       year: { weeks: 1 },
@@ -56,6 +57,10 @@ describe('createGanttStore', () => {
     expect(config.width).toBe('100%');
     expect(config.height).toBe('100%');
     expect(config.xOverscanPx).toBe(500);
+    expect(config.showWeekends).toBe(true);
+    expect(config.weekendBackground).toBe(true);
+    expect(config.holidays).toEqual([]);
+    expect(config.weekend).toEqual([6, 7]);
   });
 
   it('should allow custom config', () => {

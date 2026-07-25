@@ -12,6 +12,7 @@
   import { getTickDefinitionForScale } from '../utils/zoom-scale';
   import { filterTicksByWindow, fullWindow } from '../utils/virtual-scroll';
   import type { XAxisWindow } from '../utils/virtual-scroll';
+  import { dayKind, buildHolidaySet, DEFAULT_WEEKEND_DAYS } from '../utils/day-kind';
 
   /** タイムラインの日付範囲 */
   export let dateRange: DateRange;
@@ -23,10 +24,18 @@
   export let zoomScale: number = 1.0;
   /** X 軸仮想スクロールウィンドウ */
   export let xWindow: XAxisWindow | undefined = undefined;
+  /** 土日を詰めて非表示にするかどうか */
+  export let hideWeekends: boolean = false;
+  /** 土日をグレー背景で強調するかどうか（hideWeekends が false の場合のみ有効） */
+  export let weekendBackground: boolean = true;
+  /** 祝日リスト（YYYY-MM-DD） */
+  export let holidays: string[] = [];
+  /** 週末とみなす曜日（luxon weekday 規約） */
+  export let weekend: number[] = DEFAULT_WEEKEND_DAYS;
 
   // ズームスケールに応じた2段tick定義を取得
   $: tickDef = getTickDefinitionForScale(zoomScale);
-  $: twoLevelTicks = generateTwoLevelTicks(dateRange, tickDef);
+  $: twoLevelTicks = generateTwoLevelTicks(dateRange, tickDef, hideWeekends);
   $: majorTicks = twoLevelTicks.majorTicks;
   $: minorTicks = twoLevelTicks.minorTicks;
 
@@ -34,9 +43,12 @@
   $: _window = xWindow ?? fullWindow(dateRange);
   $: windowedMajorTicks = filterTicksByWindow(majorTicks, _window);
   $: windowedMinorTicks = filterTicksByWindow(minorTicks, _window);
-  
+
   // タイムライン全体の幅を計算（SVGと同じ幅）
-  $: timelineWidth = calculateTimelineWidth(dateRange, dayWidth);
+  $: timelineWidth = calculateTimelineWidth(dateRange, dayWidth, hideWeekends);
+
+  $: showWeekendHighlight = !hideWeekends && weekendBackground;
+  $: holidaySet = buildHolidaySet(holidays);
 </script>
 
 <!-- ヘッダー全体のコンテナ（スクロールはラッパーが管理） -->
@@ -44,8 +56,8 @@
   <!-- 上段: 大きい単位 -->
   <div class="{classPrefix}-header-major">
     {#each windowedMajorTicks as tick (tick.start.toISO())}
-      {@const x = dateToX(tick.start, dateRange, dayWidth)}
-      {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
+      {@const x = dateToX(tick.start, dateRange, dayWidth, hideWeekends)}
+      {@const width = durationToWidth(tick.start, tick.end, dayWidth, hideWeekends)}
       <div
         class="{classPrefix}-header-major-cell"
         style="left: {x}px; width: {width}px;"
@@ -58,10 +70,13 @@
   <!-- 下段: 小さい単位 -->
   <div class="{classPrefix}-header-minor">
     {#each windowedMinorTicks as tick (tick.start.toISO())}
-      {@const x = dateToX(tick.start, dateRange, dayWidth)}
-      {@const width = durationToWidth(tick.start, tick.end, dayWidth)}
+      {@const x = dateToX(tick.start, dateRange, dayWidth, hideWeekends)}
+      {@const width = durationToWidth(tick.start, tick.end, dayWidth, hideWeekends)}
+      {@const kind = showWeekendHighlight ? dayKind(tick.start, holidaySet, weekend) : 'normal'}
       <div
         class="{classPrefix}-header-minor-cell"
+        class:weekend={kind === 'weekend'}
+        class:holiday={kind === 'holiday'}
         style="left: {x}px; width: {width}px;"
       >
         {tick.label}
@@ -130,5 +145,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     padding: 0 4px;
+  }
+
+  :global(.gantt-header-minor-cell.weekend) {
+    background: var(--gantt-weekend-bg, rgba(0, 0, 0, 0.06));
+  }
+
+  :global(.gantt-header-minor-cell.holiday) {
+    background: var(--gantt-holiday-header-bg, rgba(231, 76, 60, 0.14));
+    color: var(--gantt-holiday-header-color, #e74c3c);
   }
 </style>

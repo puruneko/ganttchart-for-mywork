@@ -11,6 +11,28 @@ import type { DateTime } from 'luxon';
 import type { DurationLikeObject } from 'luxon';
 
 /**
+ * 外部ドロップイベント
+ */
+export interface GanttExternalDropEvent {
+  /** ドロップが発生した DragEvent（DataTransfer へのアクセス用） */
+  originalEvent: DragEvent
+  /** ドロップ位置の日付（スナップ適用後） */
+  dropDate: DateTime
+  /** ドロップ位置の直近の GanttNode。なければ null */
+  nearestNode: GanttNode | null
+}
+
+/**
+ * 外部ドラッグオーバーイベント
+ */
+export interface GanttExternalDragOverEvent {
+  /** 現在のホバー日付（スナップ適用後） */
+  hoverDate: DateTime
+  /** ホバー位置の直近ノード */
+  nearestNode: GanttNode | null
+}
+
+/**
  * ズームレベル（majorUnit）ごとのスナップ粒度マッピング
  *
  * majorUnit（年・月・週・日）をキーとし、その単位が表示中のときの
@@ -89,6 +111,41 @@ export interface GanttNode {
 
   /** 任意のメタデータ - ライブラリは無視するが、イベント経由で渡される */
   metadata?: Record<string, unknown>;
+
+  /** タスクが完了しているかどうか。true の場合はツリーペインおよびガント表示でグレー配色になる（取消線は付与しない） */
+  completed?: boolean;
+
+  /**
+   * 期限（due）。ガント上では ◆ のマイルストンとして描画される。
+   * 一点なら ◆、期間指定なら始点と終点に ◆＋間を塗りつぶす。
+   * 値の意味（「期限」であること）はライブラリは知らない。受けて描くだけ。
+   */
+  milestone?: DateTime | { start: DateTime; end: DateTime };
+
+  /**
+   * 実施予定枠（plan）。ガント上では schedule バーを包む点線枠として描画される。
+   * バーが無い（日時未設定の）タスクでも plan だけは描画される。
+   * 値の意味（「バッファ込みの枠」であること）はライブラリは知らない。受けて描くだけ。
+   */
+  plan?: { start: DateTime; end: DateTime };
+
+  /**
+   * 仮置きかどうか。true の場合、バー・plan 枠・milestone を半透明にし「?」バッジを付与する。
+   * 値の意味（「仮置き」であること）はライブラリは知らない。受けて描くだけ。
+   */
+  tentative?: boolean;
+
+  /**
+   * ステータス文字列。'done' の場合はバーを完了配色にし ✓ バッジを付与する。
+   * 'done' 以外の値はライブラリでは特別扱いしない（色分けはホスト側の責務）。
+   */
+  status?: string;
+
+  /**
+   * バー横に描く汎用ラベル群。何を表示するかはホストが決め、ライブラリは
+   * 受け取った文字列配列を区切り文字で連結して描くだけ。
+   */
+  trailingLabels?: string[];
 }
 
 /**
@@ -123,11 +180,61 @@ export interface GanttEventHandlers {
   /** グループ全体がドラッグされたときに発火 */
   onGroupDrag?: (nodeId: string, daysDelta: number) => void;
   
-  /** セクション日付自動調整時に発火 */
-  onAutoAdjustSection?: (nodeId: string) => void;
+  /**
+   * セクション日付自動調整時に発火。
+   * `edge` は調整対象（'start' | 'end' | 'both'）。左右のリサイズハンドルをダブルクリックすると
+   * それぞれ 'start' / 'end' で発火する（issue #0026）。
+   */
+  onAutoAdjustSection?: (nodeId: string, edge: 'start' | 'end' | 'both') => void;
   
   /** ズームレベルが変更されたときに発火 */
   onZoomChange?: (zoomLevel: number) => void;
+
+  /** タイムラインのパン（右クリックドラッグスクロール）開始 */
+  onPanStart?: (startX: number, startY: number, originalEvent: MouseEvent) => void;
+
+  /** タイムラインのパン終了 */
+  onPanEnd?: (endX: number, endY: number, originalEvent: MouseEvent) => void;
+
+  /** タイムラインのスクロール位置変化 */
+  onScrollChange?: (scrollLeft: number, scrollTop: number) => void;
+
+  /** タイムライン描画領域のサイズ変化 */
+  onViewportChange?: (width: number, height: number) => void;
+
+  /** 表示日付範囲（extendedDateRange）が変化したとき */
+  onDateRangeChange?: (range: DateRange) => void;
+
+  /** 外部ドロップが発生したとき（既存バーとは異なるソース） */
+  onExternalDrop?: (event: GanttExternalDropEvent) => void;
+
+  /** 外部ドラッグがタイムライン上をホバーしているとき */
+  onExternalDragOver?: (event: GanttExternalDragOverEvent) => void;
+
+  /** 左ツリーペイン幅がドラッグリサイズで確定したときに発火（永続化はホストの責務） */
+  onPanelResize?: (width: number) => void;
+
+  /**
+   * 期間なしサブタスク行をタイムラインへドラッグして予定化したときに発火する
+   * （issue-gantt-phase004-008）。ライブラリはノードの start/end を自分で書き換えない。
+   * 書き戻しはホストの責務（onBarDragEnd と同じ一方向データフロー）。
+   */
+  onSchedule?: (nodeId: string, start: DateTime, end: DateTime) => void;
+
+  /** plan（実施予定枠）がドラッグされたときに発火する（issue #0028） */
+  onPlanDrag?: (nodeId: string, newStart: DateTime, newEnd: DateTime) => void;
+
+  /** plan のドラッグが確定したとき（mouseup）に発火。最終的な start/end を通知する（issue #0028） */
+  onPlanDragEnd?: (nodeId: string, finalStart: DateTime, finalEnd: DateTime) => void;
+
+  /**
+   * マイルストンがドラッグされたときに発火する（issue #0028）。
+   * 一点（DateTime）の場合は移動のみ、期間（{start,end}）の場合は移動・左右リサイズに対応する。
+   */
+  onMilestoneDrag?: (nodeId: string, newMilestone: DateTime | { start: DateTime; end: DateTime }) => void;
+
+  /** マイルストンのドラッグが確定したとき（mouseup）に発火する（issue #0028） */
+  onMilestoneDragEnd?: (nodeId: string, finalMilestone: DateTime | { start: DateTime; end: DateTime }) => void;
 }
 
 /**
@@ -146,6 +253,16 @@ export type GanttUserEventType =
   | 'zoomChange'
   | 'panStart'
   | 'panEnd'
+  | 'scrollChange'
+  | 'viewportChange'
+  | 'dateRangeChange'
+  | 'externalDrop'
+  | 'externalDragOver'
+  | 'schedule'
+  | 'planDrag'
+  | 'planDragEnd'
+  | 'milestoneDrag'
+  | 'milestoneDragEnd'
 
 /**
  * イベント種別ごとの detail 型マップ
@@ -159,10 +276,20 @@ export type GanttUserEventDetailMap = {
   groupDrag:         { nodeId: string; daysDelta: number }
   toggleCollapse:    { nodeId: string; newCollapsedState: boolean }
   dataChange:        { nodes: GanttNode[] }
-  autoAdjustSection: { nodeId: string }
+  autoAdjustSection: { nodeId: string; edge: 'start' | 'end' | 'both' }
   zoomChange:        { zoomLevel: number }
-  panStart:          { startX: number; startY: number }
-  panEnd:            Record<string, never>
+  panStart:          { startX: number; startY: number; originalEvent: MouseEvent }
+  panEnd:            { endX: number; endY: number; originalEvent: MouseEvent }
+  scrollChange:      { scrollLeft: number; scrollTop: number }
+  viewportChange:    { width: number; height: number }
+  dateRangeChange:   { range: DateRange }
+  externalDrop:      { originalEvent: DragEvent; dropDate: DateTime; nearestNode: GanttNode | null }
+  externalDragOver:  { hoverDate: DateTime; nearestNode: GanttNode | null }
+  schedule:          { nodeId: string; start: DateTime; end: DateTime }
+  planDrag:          { nodeId: string; newStart: DateTime; newEnd: DateTime }
+  planDragEnd:       { nodeId: string; finalStart: DateTime; finalEnd: DateTime }
+  milestoneDrag:     { nodeId: string; newMilestone: DateTime | { start: DateTime; end: DateTime } }
+  milestoneDragEnd:  { nodeId: string; finalMilestone: DateTime | { start: DateTime; end: DateTime } }
 }
 
 export type GanttUserEventDetail<T extends GanttUserEventType = GanttUserEventType> =
@@ -229,6 +356,42 @@ export interface GanttConfig {
 
   /** ベースフォントサイズ（px）。タスク名・ラベル等に適用される。デフォルト: 14 */
   fontSize?: number;
+
+  /** 土日を表示するかどうか。false の場合はタイムライン上で土日カラムを詰めて非表示にする。デフォルト: true */
+  showWeekends?: boolean;
+
+  /** 土日をグレー背景で強調表示するかどうか（showWeekends が true の場合のみ有効）。デフォルト: true */
+  weekendBackground?: boolean;
+
+  /**
+   * 祝日リスト（YYYY-MM-DD形式の文字列）。重複・順不同許容。
+   * どの日が祝日かの意味はライブラリは知らない。ヘッダ・列を赤系で塗るだけ。デフォルト: []
+   */
+  holidays?: string[];
+
+  /**
+   * 週末とみなす曜日の配列（luxon の weekday 規約: 1=月 ... 6=土, 7=日）。
+   * デフォルト: [6, 7]（土日）
+   */
+  weekend?: number[];
+
+  /**
+   * 期間なしサブタスク行をドラッグ予定化したときの既定期間長（分）。
+   * デフォルト: 60（issue-gantt-phase004-008）。
+   */
+  defaultDurationMinutes?: number;
+
+  /**
+   * 期間なしサブタスク行を日単位ズームでドラッグ予定化したときの開始時刻（時）。
+   * 時間単位ズームでは 15 分単位に丸めるため使われない。デフォルト: 9（issue-gantt-phase004-008）。
+   */
+  defaultStartHour?: number;
+
+  /**
+   * 期間（start/end）未設定のサブタスク行（type: 'task'）を表示するかどうか。
+   * false の場合、該当ノードは可視ノードから除外される。デフォルト: true（issue #0021）。
+   */
+  showUnscheduledSubtasks?: boolean;
 }
 
 /**

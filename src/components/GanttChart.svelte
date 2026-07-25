@@ -24,10 +24,12 @@
   import {
     getTickDefinitionForScale,
     getScaleFromDayWidth,
+    getSnapDays,
     ZOOM_SCALE_LIMITS,
   } from '../utils/zoom-scale';
   import { calculateXWindow, fullWindow, calculateYWindow } from '../utils/virtual-scroll';
   import { dateToX } from '../utils/timeline-calculations';
+  import { businessDayOffset, addBusinessDayOffset } from '../utils/business-days';
   import { DateTime } from 'luxon';
   import { onMount, tick } from 'svelte';
   
@@ -74,7 +76,9 @@
 
     // スクロール位置を計算
     const containerWidth = timelineWrapperElement.clientWidth;
-    const targetDays = targetDate.diff(current.start, 'days').days;
+    const targetDays = hideWeekends
+      ? businessDayOffset(targetDate, current.start)
+      : targetDate.diff(current.start, 'days').days;
     const targetContentX = targetDays * currentDayWidth;
     const newScrollLeft = targetContentX - (containerWidth / 2);
 
@@ -96,7 +100,7 @@
   function scrollToNodeBarStart(node: ComputedGanttNode): void {
     if (!timelineWrapperElement) return;
 
-    const barLeftX = dateToX(node.start, extendedDateRange, chartConfig.dayWidth);
+    const barLeftX = dateToX(node.start, extendedDateRange, chartConfig.dayWidth, hideWeekends);
     const viewLeft = timelineScrollLeft;
     const viewRight = timelineScrollLeft + timelineViewportWidth;
 
@@ -122,6 +126,23 @@
   $: extendedDateRange = $extendedDateRangeStore;
   $: chartConfig = $configStore;
   $: classPrefix = chartConfig.classPrefix;
+  $: hideWeekends = !chartConfig.showWeekends;
+
+  // 土日表示切り替え時、スクロール位置がずれて見えないよう中心日付を保持する
+  let previousHideWeekends = hideWeekends;
+  $: {
+    if (hideWeekends !== previousHideWeekends && timelineWrapperElement) {
+      const containerWidth = timelineWrapperElement.clientWidth;
+      const centerDays =
+        (timelineWrapperElement.scrollLeft / chartConfig.dayWidth) +
+        (containerWidth / chartConfig.dayWidth) / 2;
+      const centerDate = previousHideWeekends
+        ? addBusinessDayOffset(extendedDateRange.start, centerDays)
+        : extendedDateRange.start.plus({ days: centerDays });
+      previousHideWeekends = hideWeekends;
+      tick().then(() => scrollToDate(centerDate));
+    }
+  }
 
   // コンテナサイズ計算
   // ヘッダー高さ（60px + border 2px）+ 行数 × 行高さ
@@ -155,6 +176,7 @@
         chartConfig.dayWidth,
         extendedDateRange.start,
         chartConfig.xOverscanPx,
+        hideWeekends,
       )
     : fullWindow(extendedDateRange);
 
@@ -166,6 +188,12 @@
         visibleNodes.length,
       )
     : undefined;
+
+  // extendedDateRange 変化を外部に通知
+  $: if (extendedDateRange) {
+    handlers.onDateRangeChange?.(extendedDateRange);
+    store.events.emit('dateRangeChange', { range: extendedDateRange });
+  }
 
   // 初期化をonMountで実行
   onMount(() => {
@@ -219,8 +247,22 @@
     };
     window.addEventListener('pageshow', handlePageShow, { once: true });
 
+    // ビューポートサイズ変化を外部に通知
+    let resizeObserver: ResizeObserver | null = null;
+    if (timelineWrapperElement && (handlers.onViewportChange || true)) {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const { width, height } = entry.contentRect;
+          handlers.onViewportChange?.(width, height);
+          store.events.emit('viewportChange', { width, height });
+        }
+      });
+      resizeObserver.observe(timelineWrapperElement);
+    }
+
     return () => {
       window.removeEventListener('pageshow', handlePageShow);
+      resizeObserver?.disconnect();
     };
   });
   
@@ -315,6 +357,75 @@
   }
 
   /**
+   * 期間なしサブタスク行のドラッグ予定化ハンドラー（issue-gantt-phase004-008）
+   * ライブラリはノードデータを自分で書き換えない。ホストへ通知するのみ。
+   */
+  function handleSchedule(nodeId: string, start: DateTime, end: DateTime) {
+    if (handlers.onSchedule) {
+      handlers.onSchedule(nodeId, start, end);
+    }
+    store.events.emit('schedule', { nodeId, start, end });
+  }
+
+  /**
+   * plan（実施予定枠）ドラッグハンドラー（issue #0028）
+   * handleBarDrag と同じパターン。更新対象が node.start/end ではなく node.plan である点のみ異なる。
+   */
+  function handlePlanDrag(nodeId: string, newStart: DateTime, newEnd: DateTime) {
+    if (handlers.onPlanDrag) {
+      handlers.onPlanDrag(nodeId, newStart, newEnd);
+    }
+    store.events.emit('planDrag', { nodeId, newStart, newEnd });
+    const updated = store._getRawNodes().map(n =>
+      n.id === nodeId ? { ...n, plan: { start: newStart, end: newEnd } } : n
+    );
+    store.setNodes(updated);
+    if (chartConfig.mode === 'uncontrolled' && handlers.onDataChange) {
+      handlers.onDataChange(updated);
+      store.events.emit('dataChange', { nodes: updated });
+    }
+  }
+
+  /**
+   * plan ドラッグ確定ハンドラー（mouseup 時）
+   */
+  function handlePlanDragEnd(nodeId: string, finalStart: DateTime, finalEnd: DateTime) {
+    if (handlers.onPlanDragEnd) {
+      handlers.onPlanDragEnd(nodeId, finalStart, finalEnd);
+    }
+    store.events.emit('planDragEnd', { nodeId, finalStart, finalEnd });
+  }
+
+  /**
+   * マイルストンドラッグハンドラー（issue #0028）
+   * 一点（DateTime）か期間（{start,end}）かは GanttTimeline 側で組み立て済みのものを受け取る。
+   */
+  function handleMilestoneDrag(nodeId: string, newMilestone: DateTime | { start: DateTime; end: DateTime }) {
+    if (handlers.onMilestoneDrag) {
+      handlers.onMilestoneDrag(nodeId, newMilestone);
+    }
+    store.events.emit('milestoneDrag', { nodeId, newMilestone });
+    const updated = store._getRawNodes().map(n =>
+      n.id === nodeId ? { ...n, milestone: newMilestone } : n
+    );
+    store.setNodes(updated);
+    if (chartConfig.mode === 'uncontrolled' && handlers.onDataChange) {
+      handlers.onDataChange(updated);
+      store.events.emit('dataChange', { nodes: updated });
+    }
+  }
+
+  /**
+   * マイルストンドラッグ確定ハンドラー（mouseup 時）
+   */
+  function handleMilestoneDragEnd(nodeId: string, finalMilestone: DateTime | { start: DateTime; end: DateTime }) {
+    if (handlers.onMilestoneDragEnd) {
+      handlers.onMilestoneDragEnd(nodeId, finalMilestone);
+    }
+    store.events.emit('milestoneDragEnd', { nodeId, finalMilestone });
+  }
+
+  /**
    * グループドラッグハンドラー
    * Uncontrolledモードでは配下ノードをまとめて移動
    */
@@ -331,8 +442,8 @@
         if (!idsToMove.has(n.id)) return n;
         return {
           ...n,
-          start: n.start?.plus({ days: daysDelta }),
-          end: n.end?.plus({ days: daysDelta }),
+          start: n.start && (hideWeekends ? addBusinessDayOffset(n.start, daysDelta) : n.start.plus({ days: daysDelta })),
+          end: n.end && (hideWeekends ? addBusinessDayOffset(n.end, daysDelta) : n.end.plus({ days: daysDelta })),
         };
       });
       store.setNodes(updated);
@@ -372,16 +483,16 @@
   /**
    * セクション日付自動調整ハンドラー
    */
-  function handleAutoAdjustSection(nodeId: string) {
+  function handleAutoAdjustSection(nodeId: string, edge: 'start' | 'end' | 'both' = 'both') {
     // 外部ハンドラーに通知
     if (handlers.onAutoAdjustSection) {
-      handlers.onAutoAdjustSection(nodeId);
+      handlers.onAutoAdjustSection(nodeId, edge);
     }
-    store.events.emit('autoAdjustSection', { nodeId });
+    store.events.emit('autoAdjustSection', { nodeId, edge });
 
     // uncontrolledモードの場合、内部で自動調整
     if (chartConfig.mode === 'uncontrolled') {
-      const newNodes = store.autoAdjustSectionDates(nodeId);
+      const newNodes = store.autoAdjustSectionDates(nodeId, edge);
 
       // データ変更ハンドラーに通知
       if (handlers.onDataChange) {
@@ -511,6 +622,10 @@
           timelineViewportHeight = timelineWrapperElement.clientHeight;
         }
 
+        const scrollTop = timelineScrollTop;
+        handlers.onScrollChange?.(scrollLeft, scrollTop);
+        store.events.emit('scrollChange', { scrollLeft, scrollTop });
+
         const result = store.expandExtendedDateRangeIfNeeded(
           scrollLeft,
           containerWidth,
@@ -522,7 +637,14 @@
         }
       },
     );
-  
+
+  // ツリーペインの表示切り替え（{#if showTreePane}）で treeWrapperElement のDOMが
+  // 破棄・再生成されると scrollTop が 0 にリセットされ、タイムライン側とズレる（issue #0022）。
+  // 再生成時はタイムライン側の scrollTop に明示的に合わせ直す。
+  $: if (treeWrapperElement && timelineWrapperElement) {
+    treeWrapperElement.scrollTop = timelineWrapperElement.scrollTop;
+  }
+
   /**
    * 右クリックドラッグでスクロール
    */
@@ -547,7 +669,8 @@
       scrollLeft: timelineWrapperElement.scrollLeft,
       scrollTop: timelineWrapperElement.scrollTop
     };
-    store.events.emit('panStart', { startX: event.clientX, startY: event.clientY });
+    handlers.onPanStart?.(event.clientX, event.clientY, event);
+    store.events.emit('panStart', { startX: event.clientX, startY: event.clientY, originalEvent: event });
 
     window.addEventListener('mousemove', handlePanMove);
     window.addEventListener('mouseup', handlePanEnd);
@@ -580,9 +703,13 @@
     });
   }
   
-  function handlePanEnd() {
+  function handlePanEnd(event?: MouseEvent) {
     if (panState) {
-      store.events.emit('panEnd', {});
+      const endX = event?.clientX ?? 0;
+      const endY = event?.clientY ?? 0;
+      const originalEvent = event ?? new MouseEvent('mouseup');
+      handlers.onPanEnd?.(endX, endY, originalEvent);
+      store.events.emit('panEnd', { endX, endY, originalEvent });
     }
     panState = null;
     window.removeEventListener('mousemove', handlePanMove);
@@ -594,6 +721,103 @@
   
   function preventContextMenu(event: MouseEvent) {
     event.preventDefault();
+  }
+
+  /**
+   * ツリーペイン幅のDnDリサイズ
+   */
+  const TREE_PANE_MIN_WIDTH = 120;
+  const TREE_PANE_MAX_WIDTH = 600;
+
+  let treeResizeState: { startX: number; startWidth: number } | null = null;
+
+  function handleTreeResizeStart(event: MouseEvent) {
+    event.preventDefault();
+    treeResizeState = { startX: event.clientX, startWidth: chartConfig.treePaneWidth };
+    window.addEventListener('mousemove', handleTreeResizeMove);
+    window.addEventListener('mouseup', handleTreeResizeEnd);
+  }
+
+  function handleTreeResizeMove(event: MouseEvent) {
+    if (!treeResizeState) return;
+    const delta = event.clientX - treeResizeState.startX;
+    const newWidth = Math.min(
+      TREE_PANE_MAX_WIDTH,
+      Math.max(TREE_PANE_MIN_WIDTH, treeResizeState.startWidth + delta)
+    );
+    store.updateConfig({ treePaneWidth: newWidth });
+  }
+
+  function handleTreeResizeEnd() {
+    treeResizeState = null;
+    window.removeEventListener('mousemove', handleTreeResizeMove);
+    window.removeEventListener('mouseup', handleTreeResizeEnd);
+    handlers.onPanelResize?.(chartConfig.treePaneWidth);
+  }
+
+  /**
+   * ドロップ座標を日付に変換（スナップ適用）
+   */
+  function computeDropDate(event: DragEvent): DateTime {
+    if (!timelineWrapperElement) return DateTime.now();
+    const rect = timelineWrapperElement.getBoundingClientRect();
+    const contentX = event.clientX - rect.left + timelineWrapperElement.scrollLeft;
+    const days = contentX / chartConfig.dayWidth;
+    const tickDef = getTickDefinitionForScale(currentZoomScale);
+    const snapDays = getSnapDays(tickDef.majorUnit, chartConfig.snapDurationMap);
+    const snappedDays = Math.round(days / snapDays) * snapDays;
+    return hideWeekends
+      ? addBusinessDayOffset(extendedDateRange.start, snappedDays)
+      : extendedDateRange.start.plus({ days: snappedDays });
+  }
+
+  /**
+   * ドロップ位置のY座標から最近傍ノードを取得
+   */
+  function findNearestNodeAtEvent(event: DragEvent): import('../types').ComputedGanttNode | null {
+    if (!timelineWrapperElement) return null;
+    const rect = timelineWrapperElement.getBoundingClientRect();
+    const relativeY = event.clientY - rect.top + timelineWrapperElement.scrollTop;
+    const rowIndex = Math.floor(relativeY / chartConfig.rowHeight);
+    return visibleNodes.find(n => n.visualIndex === rowIndex) ?? null;
+  }
+
+  /**
+   * タイムライン領域への外部ドラッグオーバーハンドラー
+   */
+  function handleTimelineDragOver(event: DragEvent) {
+    if (!handlers.onExternalDrop && !handlers.onExternalDragOver) return;
+
+    const isInternalDrag = (event.dataTransfer?.types.includes('text/plain') ?? false)
+      && !(event.dataTransfer?.types.includes('application/x-md-task') ?? false);
+    if (isInternalDrag) return;
+
+    if (handlers.onExternalDrop) event.preventDefault();
+
+    const hoverDate = computeDropDate(event);
+    const nearestNode = findNearestNodeAtEvent(event);
+
+    handlers.onExternalDragOver?.({ hoverDate, nearestNode });
+    store.events.emit('externalDragOver', { hoverDate, nearestNode });
+  }
+
+  /**
+   * タイムライン領域への外部ドロップハンドラー
+   */
+  function handleTimelineDrop(event: DragEvent) {
+    if (!handlers.onExternalDrop) return;
+
+    const isInternalDrag = (event.dataTransfer?.types.includes('text/plain') ?? false)
+      && !(event.dataTransfer?.types.includes('application/x-md-task') ?? false);
+    if (isInternalDrag) return;
+
+    event.preventDefault();
+
+    const dropDate = computeDropDate(event);
+    const nearestNode = findNearestNodeAtEvent(event);
+
+    handlers.onExternalDrop({ originalEvent: event, dropDate, nearestNode });
+    store.events.emit('externalDrop', { originalEvent: event, dropDate, nearestNode });
   }
 </script>
 
@@ -630,6 +854,15 @@
     </button>
   </div>
   
+  <!-- 「今日」に移動するボタン（issue #0023） -->
+  <button
+    class="{classPrefix}-scroll-today-btn"
+    on:click={() => scrollToToday()}
+    title="今日に移動"
+  >
+    今日
+  </button>
+
   <!-- 設定パネル切り替えボタン -->
   <button
     class="{classPrefix}-toggle-config-btn"
@@ -682,8 +915,16 @@
           />
         </div>
       </div>
+      <!-- ツリーペイン幅のDnDリサイズハンドル -->
+      <div
+        class="{classPrefix}-tree-resizer"
+        on:mousedown={handleTreeResizeStart}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="ツリーペイン幅の調整"
+      ></div>
     {/if}
-    
+
     <!-- 右ペイン: タイムライン -->
     <div class="{classPrefix}-right-pane">
       <div 
@@ -701,14 +942,20 @@
           {classPrefix}
           zoomScale={currentZoomScale}
           {xWindow}
+          {hideWeekends}
+          weekendBackground={chartConfig.weekendBackground}
+          holidays={chartConfig.holidays}
+          weekend={chartConfig.weekend}
         />
       </div>
-      <div 
+      <div
         class="{classPrefix}-timeline-wrapper"
         bind:this={timelineWrapperElement}
         on:scroll={handleTimelineScroll}
         on:mousedown={handleMouseDown}
         on:contextmenu={handleContextMenu}
+        on:dragover={handleTimelineDragOver}
+        on:drop={handleTimelineDrop}
         role="region"
         aria-label="ガントチャートタイムライン"
       >
@@ -723,12 +970,24 @@
           renderLifecycle={lifecycle}
           {xWindow}
           {yWindow}
+          {hideWeekends}
+          weekendBackground={chartConfig.weekendBackground}
+          holidays={chartConfig.holidays}
+          weekend={chartConfig.weekend}
           onBarClick={handleBarClick}
           onBarDrag={handleBarDrag}
           onBarDragEnd={handleBarDragEnd}
           onGroupDrag={handleGroupDrag}
           onAutoAdjustSection={handleAutoAdjustSection}
           onZoomChange={handleTimelineZoom}
+          onSchedule={handleSchedule}
+          defaultDurationMinutes={chartConfig.defaultDurationMinutes}
+          defaultStartHour={chartConfig.defaultStartHour}
+          fontSize={chartConfig.fontSize}
+          onPlanDrag={handlePlanDrag}
+          onPlanDragEnd={handlePlanDragEnd}
+          onMilestoneDrag={handleMilestoneDrag}
+          onMilestoneDragEnd={handleMilestoneDragEnd}
         />
       </div>
     </div>
@@ -816,6 +1075,30 @@
     justify-content: center;
     font-size: 16px;
     transition: background 0.2s;
+  }
+
+  :global(.gantt-scroll-today-btn) {
+    position: absolute;
+    top: 8px;
+    right: 200px;
+    z-index: 10;
+    width: 40px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    transition: background 0.2s;
+  }
+
+  :global(.gantt-scroll-today-btn:hover) {
+    background: #f0f0f0;
   }
 
   :global(.gantt-toggle-config-btn:hover) {
@@ -910,6 +1193,20 @@
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+  }
+
+  :global(.gantt-tree-resizer) {
+    flex-shrink: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+    border-left: 1px solid transparent;
+    transition: background 0.15s;
+  }
+
+  :global(.gantt-tree-resizer:hover),
+  :global(.gantt-tree-resizer:active) {
+    background: rgba(74, 144, 226, 0.4);
   }
   
   :global(.gantt-tree-header) {

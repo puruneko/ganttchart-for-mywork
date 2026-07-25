@@ -16,6 +16,8 @@
   export let y: number;
   export let classPrefix: string;
   export let onMouseDown: (node: ComputedGanttNode, mode: DragMode, event: MouseEvent) => void;
+  /** グループ背景クリック時のハンドラー（issue #0024: 外部アプリ連携対応） */
+  export let onBarClick: ((node: ComputedGanttNode, event: MouseEvent) => void) | undefined = undefined;
 
   $: childNodes = visibleNodes.filter(n => {
     let current: ComputedGanttNode | undefined = n;
@@ -46,7 +48,11 @@
     height={groupHeight}
     class="{classPrefix}-group-bg {classPrefix}-group-bg--{node.type}"
     rx="6"
+    data-node-id={node.id}
+    on:click={(e) => onBarClick?.(node, e)}
     on:mousedown={(e) => onMouseDown(node, 'group-move', e)}
     style="cursor: move;"
+    role="button"
+    tabindex="0"
   />
 {/if}

@@ -8,6 +8,7 @@
 import { DateTime } from 'luxon';
 import type { Tick } from './tick-generator';
 import type { ComputedGanttNode, DateRange } from '../types';
+import { addBusinessDayOffset } from './business-days';
 
 /**
  * X 軸ウィンドウ（描画対象の日付範囲 + ピクセル範囲）
@@ -31,6 +32,7 @@ export interface XAxisWindow {
  * @param dayWidth     1日あたりの幅（px）
  * @param dateRangeStart extendedDateRange の開始日
  * @param overscanPx   オーバースキャン幅（省略時: viewportWidth × 0.5）
+ * @param hideWeekends 土日を詰めた軸で座標計算するかどうか
  */
 export function calculateXWindow(
   scrollLeft: number,
@@ -38,14 +40,19 @@ export function calculateXWindow(
   dayWidth: number,
   dateRangeStart: DateTime,
   overscanPx?: number,
+  hideWeekends = false,
 ): XAxisWindow {
   const overscan = overscanPx ?? viewportWidth * 0.5;
 
   const startPx = Math.max(0, scrollLeft - overscan);
   const endPx = scrollLeft + viewportWidth + overscan;
 
-  const startDate = dateRangeStart.plus({ days: startPx / dayWidth });
-  const endDate = dateRangeStart.plus({ days: endPx / dayWidth });
+  const startDate = hideWeekends
+    ? addBusinessDayOffset(dateRangeStart, startPx / dayWidth)
+    : dateRangeStart.plus({ days: startPx / dayWidth });
+  const endDate = hideWeekends
+    ? addBusinessDayOffset(dateRangeStart, endPx / dayWidth)
+    : dateRangeStart.plus({ days: endPx / dayWidth });
 
   return { startDate, endDate, startPx, endPx };
 }

@@ -11,6 +11,7 @@ import {
     getScaleFromDayWidth,
     ZOOM_SCALE_LIMITS,
 } from "../utils/zoom-scale"
+import { addBusinessDayOffset } from "../utils/business-days"
 import type { GanttStore } from "./gantt-store"
 
 /**
@@ -40,7 +41,10 @@ export function createZoomController(deps: ZoomControllerDeps) {
         if (!el) return null
         const centerDays =
             el.scrollLeft / currentDayWidth + el.clientWidth / currentDayWidth / 2
-        return extendedDateRangeStart.plus({ days: centerDays })
+        const hideWeekends = !deps.store._getConfig().showWeekends
+        return hideWeekends
+            ? addBusinessDayOffset(extendedDateRangeStart, centerDays)
+            : extendedDateRangeStart.plus({ days: centerDays })
     }
 
     /**

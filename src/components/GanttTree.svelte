@@ -99,8 +99,21 @@
           <span class="{classPrefix}-toggle-spacer"></span>
         {/if}
 
+        {#if node.type === 'task'}
+          <span
+            class="{classPrefix}-node-type-icon {classPrefix}-node-type-icon--task {node.completed ? classPrefix + '-node-type-icon--checked' : ''}"
+            aria-hidden="true"
+          >
+            {#if node.completed}
+              <svg class="{classPrefix}-node-type-icon-check" viewBox="0 0 16 16">
+                <path d="M3 8.5 L6.5 12 L13 4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            {/if}
+          </span>
+        {/if}
+
         <span
-          class="{classPrefix}-node-name"
+          class="{classPrefix}-node-name {node.completed ? classPrefix + '-node-name--completed' : ''}"
           on:click={(e) => handleNameClick(node, e)}
           role="button"
           tabindex="0"
@@ -151,7 +164,37 @@
     display: inline-block;
     flex-shrink: 0;
   }
-  
+
+  /* タスク種別アイコン: チェックボックス風（未完了=枠のみ、完了=チェック付き塗りつぶし） */
+  :global(.gantt-node-type-icon) {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin-right: 6px;
+    box-sizing: border-box;
+  }
+
+  :global(.gantt-node-type-icon--task) {
+    border: 1.5px solid #5ca3f3 !important;
+    border-radius: 3px;
+    background: transparent !important;
+  }
+
+  /* 完了タスク: チェックボックスを塗りつぶしてチェックマークを表示（取消線は使用しない） */
+  :global(.gantt-node-type-icon--task.gantt-node-type-icon--checked) {
+    background: #95a5a6 !important;
+    border-color: #95a5a6 !important;
+  }
+
+  :global(.gantt-node-type-icon-check) {
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+  }
+
   :global(.gantt-node-name) {
     cursor: pointer;
     flex: 1;
@@ -162,9 +205,15 @@
     color: #000;
     font-size: var(--gantt-font-size, 14px);
   }
-  
+
   :global(.gantt-node-name:hover) {
     background: rgba(0, 0, 0, 0.05);
+  }
+
+  /* 完了タスク: グレー配色（取消線は使用しない）。ホストページ/テーマ側のCSSに
+     上書きされないよう、プレフィックス付きクラス名 + !important を使用する。 */
+  :global(.gantt-node-name--completed) {
+    color: #999 !important;
   }
   
   :global(.gantt-tree-row--project .gantt-node-name) {

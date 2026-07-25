@@ -85,6 +85,17 @@ export function calculateDepth(
 }
 
 /**
+ * computeNodes / isNodeVisible の可視性計算オプション
+ */
+export interface ComputeNodesOptions {
+    /**
+     * 期間（start/end）未設定のサブタスク行（type: 'task'）を表示するかどうか。
+     * デフォルト: true（従来どおり表示）。false の場合は可視ノードから除外する（issue #0021）。
+     */
+    showUnscheduledSubtasks?: boolean
+}
+
+/**
  * ノードが表示されるべきかチェック（すべての祖先が展開されているか）
  *
  * ノードは以下の場合に表示される:
@@ -92,17 +103,30 @@ export function calculateDepth(
  * - すべての祖先ノードが展開されている（isCollapsed === false または undefined）
  *
  * 親ノードが1つでも折り畳まれていれば、このノードは非表示となる。
+ * また、`options.showUnscheduledSubtasks` が false の場合、期間未設定の
+ * type: 'task' ノードはそれ自体が非表示となる（issue #0021）。
  *
  * @param nodeId - チェックするノードのID
  * @param nodeMap - ノードマップ（高速検索用）
+ * @param options - 可視性計算オプション
  * @returns ノードが表示されるべきかどうか
  */
 export function isNodeVisible(
     nodeId: string,
     nodeMap: Map<string, GanttNode>,
+    options: ComputeNodesOptions = {},
 ): boolean {
     const node = nodeMap.get(nodeId)
     if (!node) return false
+
+    // 期間未設定サブタスク行の表示可否（issue #0021）
+    if (
+        options.showUnscheduledSubtasks === false &&
+        node.type === "task" &&
+        (!node.start || !node.end)
+    ) {
+        return false
+    }
 
     // ルートノードは常に表示
     if (node.parentId === null) return true
@@ -114,7 +138,7 @@ export function isNodeVisible(
     if (parent.isCollapsed === true) return false
 
     // 親の可視性を再帰的にチェック
-    return isNodeVisible(node.parentId, nodeMap)
+    return isNodeVisible(node.parentId, nodeMap, options)
 }
 
 /**
@@ -130,9 +154,13 @@ export function isNodeVisible(
  * - isDateUnset: 元のデータで日時が未設定だったか
  *
  * @param nodes - 元のノード配列
+ * @param options - 可視性計算オプション（showUnscheduledSubtasks 等）
  * @returns 計算済みメタデータを含むノード配列（表示順）
  */
-export function computeNodes(nodes: GanttNode[]): ComputedGanttNode[] {
+export function computeNodes(
+    nodes: GanttNode[],
+    options: ComputeNodesOptions = {},
+): ComputedGanttNode[] {
     const nodeMap = buildNodeMap(nodes)
     const hierarchyMap = buildHierarchyMap(nodes)
     const depthCache = new Map<string, number>()
@@ -155,7 +183,7 @@ export function computeNodes(nodes: GanttNode[]): ComputedGanttNode[] {
         if (!node) return
 
         const depth = calculateDepth(nodeId, nodeMap, depthCache)
-        const visible = isNodeVisible(nodeId, nodeMap)
+        const visible = isNodeVisible(nodeId, nodeMap, options)
         const childrenIds = hierarchyMap.get(nodeId) ?? []
 
         // 日時未設定の処理
@@ -225,9 +253,24 @@ export function getVisibleNodes(
 }
 
 /**
+ * ノードの milestone（due）が持つ日時をすべて列挙する
+ *
+ * 一点なら1件、期間なら start/end の2件を返す。
+ */
+function collectMilestoneDates(node: GanttNode): DateTime[] {
+    if (!node.milestone) return []
+    if ("start" in node.milestone && "end" in node.milestone) {
+        return [node.milestone.start, node.milestone.end]
+    }
+    return [node.milestone as DateTime]
+}
+
+/**
  * チャート全体の日付範囲を計算
  *
  * すべてのノードの開始日・終了日から、最小開始日と最大終了日を見つける。
+ * plan・milestone（due）の日時も算入する（issue-gantt-phase004-002/003）。
+ * 含め漏れると「データはあるのに画面外で見えない」事故になるため必ず含める。
  * 余白として終了日の翌日まで含める。
  * ノードが空の場合は、現在日から30日間をデフォルトとする。
  *
@@ -243,10 +286,19 @@ export function calculateDateRange(nodes: GanttNode[]): DateRange {
         }
     }
 
-    // 日時が設定されているノードのみを対象
-    const nodesWithDates = nodes.filter((n) => n.start && n.end)
+    // すべてのノードから、範囲計算に使う日時（start/end/plan/milestone）を集める
+    const allDates: DateTime[] = []
+    for (const node of nodes) {
+        if (node.start && node.end) {
+            allDates.push(node.start, node.end)
+        }
+        if (node.plan) {
+            allDates.push(node.plan.start, node.plan.end)
+        }
+        allDates.push(...collectMilestoneDates(node))
+    }
 
-    if (nodesWithDates.length === 0) {
+    if (allDates.length === 0) {
         const now = DateTime.now().startOf("day")
         return {
             start: now,
@@ -254,12 +306,12 @@ export function calculateDateRange(nodes: GanttNode[]): DateRange {
         }
     }
 
-    let minStart = nodesWithDates[0].start!
-    let maxEnd = nodesWithDates[0].end!
+    let minStart = allDates[0]
+    let maxEnd = allDates[0]
 
-    for (const node of nodesWithDates) {
-        if (node.start! < minStart) minStart = node.start!
-        if (node.end! > maxEnd) maxEnd = node.end!
+    for (const date of allDates) {
+        if (date < minStart) minStart = date
+        if (date > maxEnd) maxEnd = date
     }
 
     // 余白を追加(15日ずつ)
@@ -327,11 +379,14 @@ export function updateNode(
  *
  * @param nodes - 元のノード配列
  * @param nodeId - 調整するセクション/サブセクションのID
+ * @param edge - 調整対象。'start' は開始日のみ、'end' は終了日のみ、'both'（既定）は両方（issue #0026:
+ *   左右リサイズハンドルのダブルクリックでそれぞれ片側だけを調整できるようにするため追加）
  * @returns 更新された新しいノード配列
  */
 export function autoAdjustSectionDates(
     nodes: GanttNode[],
     nodeId: string,
+    edge: "start" | "end" | "both" = "both",
 ): GanttNode[] {
     const nodeMap = buildNodeMap(nodes)
     const hierarchyMap = buildHierarchyMap(nodes)
@@ -381,9 +436,15 @@ export function autoAdjustSectionDates(
         if (node.end! > maxEnd) maxEnd = node.end!
     }
 
-    // セクションの日付を更新
-    return updateNode(nodes, nodeId, {
-        start: minStart.startOf("day"),
-        end: maxEnd.endOf("day"),
-    })
+    // セクションの日付を更新（edge に応じて片側のみ、または両方）。
+    // minStart/maxEnd をそのまま使う（.startOf('day')/.endOf('day') は付与しない）。
+    // end は本ライブラリ全体で「排他的な境界（次の日の 0 時 = その前日まで含む）」として
+    // 扱われており（dateToX/durationToWidth/ドラッグリサイズ等）、.endOf('day')（23:59:59.999）を
+    // 適用すると実質的に丸1日分（約1日弱）の余分な期間が計算上・表示上に加算されてしまう
+    // （例: end=8/5 00:00 → 8/5 23:59:59.999 で、4日間の予定が約5日間に見えてしまう）。
+    const updates: Partial<GanttNode> = {}
+    if (edge === "start" || edge === "both") updates.start = minStart
+    if (edge === "end" || edge === "both") updates.end = maxEnd
+
+    return updateNode(nodes, nodeId, updates)
 }

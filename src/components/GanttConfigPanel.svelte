@@ -122,7 +122,7 @@
     <label class="{classPrefix}-config-row">
       <span>行の高さ <em>{config.rowHeight}px</em></span>
       <input
-        type="range" min="24" max="80" step="4"
+        type="range" min="20" max="80" step="0.5"
         value={config.rowHeight}
         on:input={(e) => onConfigChange({ rowHeight: Number(e.currentTarget.value) })}
       />
@@ -156,6 +156,15 @@
     </label>
 
     <label class="{classPrefix}-config-row">
+      <span>期間未設定のサブタスク行を表示</span>
+      <input
+        type="checkbox"
+        checked={config.showUnscheduledSubtasks}
+        on:change={(e) => onConfigChange({ showUnscheduledSubtasks: e.currentTarget.checked })}
+      />
+    </label>
+
+    <label class="{classPrefix}-config-row">
       <span>X オーバースキャン <em>{config.xOverscanPx}px</em></span>
       <input
         type="range" min="0" max="2000" step="100"
@@ -170,6 +179,30 @@
         type="range" min="10" max="20" step="1"
         value={config.fontSize}
         on:input={(e) => onConfigChange({ fontSize: Number(e.currentTarget.value) })}
+      />
+    </label>
+  </div>
+
+  <!-- 土日表示 -->
+  <div class="{classPrefix}-config-section">
+    <div class="{classPrefix}-config-section-title">土日表示</div>
+
+    <label class="{classPrefix}-config-row">
+      <span>土日を表示</span>
+      <input
+        type="checkbox"
+        checked={config.showWeekends}
+        on:change={(e) => onConfigChange({ showWeekends: e.currentTarget.checked })}
+      />
+    </label>
+
+    <label class="{classPrefix}-config-row" class:disabled={!config.showWeekends}>
+      <span>土日をグレー背景で強調</span>
+      <input
+        type="checkbox"
+        checked={config.weekendBackground}
+        disabled={!config.showWeekends}
+        on:change={(e) => onConfigChange({ weekendBackground: e.currentTarget.checked })}
       />
     </label>
   </div>
@@ -238,6 +271,11 @@
     flex: 1;
     color: #444;
     white-space: nowrap;
+  }
+
+  :global(.gantt-config-row.disabled) {
+    opacity: 0.5;
+    cursor: default;
   }
 
   :global(.gantt-config-row em) {

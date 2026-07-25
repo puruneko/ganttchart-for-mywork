@@ -76,6 +76,7 @@ describe('GanttEventEmitter', () => {
             expect(zoomHandler).toHaveBeenCalledOnce()
             expect(panHandler).not.toHaveBeenCalled()
         })
+
     })
 
     // --- on() の購読解除 ---
@@ -127,7 +128,7 @@ describe('GanttEventEmitter', () => {
             const handler = vi.fn()
             emitter.onAny(handler)
             emitter.emit('zoomChange', { zoomLevel: 1.0 })
-            emitter.emit('panStart', { startX: 100, startY: 200 })
+            emitter.emit('panStart', { startX: 100, startY: 200, originalEvent: new MouseEvent('mousedown') })
             expect(handler).toHaveBeenCalledTimes(2)
         })
 
@@ -217,20 +218,26 @@ describe('GanttEventEmitter', () => {
             expect(detail.finalEnd).toBe(finalEnd)
         })
 
-        it('panStart: startX / startY が渡される', () => {
+        it('panStart: startX / startY / originalEvent が渡される', () => {
             const handler = vi.fn()
             emitter.on('panStart', handler)
-            emitter.emit('panStart', { startX: 123, startY: 456 })
+            const originalEvent = new MouseEvent('mousedown')
+            emitter.emit('panStart', { startX: 123, startY: 456, originalEvent })
             const detail = handler.mock.calls[0][0].detail
             expect(detail.startX).toBe(123)
             expect(detail.startY).toBe(456)
+            expect(detail.originalEvent).toBe(originalEvent)
         })
 
-        it('panEnd: detail は空オブジェクト', () => {
+        it('panEnd: endX / endY / originalEvent が渡される', () => {
             const handler = vi.fn()
             emitter.on('panEnd', handler)
-            emitter.emit('panEnd', {})
-            expect(handler).toHaveBeenCalledOnce()
+            const originalEvent = new MouseEvent('mouseup')
+            emitter.emit('panEnd', { endX: 200, endY: 300, originalEvent })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.endX).toBe(200)
+            expect(detail.endY).toBe(300)
+            expect(detail.originalEvent).toBe(originalEvent)
         })
 
         it('toggleCollapse: nodeId / newCollapsedState が渡される', () => {
@@ -263,6 +270,80 @@ describe('GanttEventEmitter', () => {
             emitter.on('autoAdjustSection', handler)
             emitter.emit('autoAdjustSection', { nodeId: 's1' })
             expect(handler.mock.calls[0][0].detail.nodeId).toBe('s1')
+        })
+
+        it('scrollChange: scrollLeft / scrollTop が渡される', () => {
+            const handler = vi.fn()
+            emitter.on('scrollChange', handler)
+            emitter.emit('scrollChange', { scrollLeft: 100, scrollTop: 50 })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.scrollLeft).toBe(100)
+            expect(detail.scrollTop).toBe(50)
+        })
+
+        it('viewportChange: width / height が渡される', () => {
+            const handler = vi.fn()
+            emitter.on('viewportChange', handler)
+            emitter.emit('viewportChange', { width: 800, height: 600 })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.width).toBe(800)
+            expect(detail.height).toBe(600)
+        })
+
+        it('dateRangeChange: range が渡される', () => {
+            const handler = vi.fn()
+            emitter.on('dateRangeChange', handler)
+            const range = {
+                start: DateTime.fromISO('2024-01-01'),
+                end: DateTime.fromISO('2024-12-31'),
+            }
+            emitter.emit('dateRangeChange', { range })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.range).toBe(range)
+        })
+
+        it('externalDrop: originalEvent / dropDate / nearestNode が渡される', () => {
+            const handler = vi.fn()
+            emitter.on('externalDrop', handler)
+            const dragEvent = { type: 'drop' } as unknown as DragEvent
+            const dropDate = DateTime.fromISO('2024-06-15')
+            const nodeObj = makeNode()
+            emitter.emit('externalDrop', { originalEvent: dragEvent, dropDate, nearestNode: nodeObj })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.originalEvent).toBe(dragEvent)
+            expect(detail.dropDate).toBe(dropDate)
+            expect(detail.nearestNode).toBe(nodeObj)
+        })
+
+        it('externalDrop: nearestNode が null のとき null が渡される', () => {
+            const handler = vi.fn()
+            emitter.on('externalDrop', handler)
+            const dragEvent = { type: 'drop' } as unknown as DragEvent
+            const dropDate = DateTime.fromISO('2024-06-15')
+            emitter.emit('externalDrop', { originalEvent: dragEvent, dropDate, nearestNode: null })
+            expect(handler.mock.calls[0][0].detail.nearestNode).toBeNull()
+        })
+
+        it('externalDragOver: hoverDate / nearestNode が渡される', () => {
+            const handler = vi.fn()
+            emitter.on('externalDragOver', handler)
+            const hoverDate = DateTime.fromISO('2024-06-20')
+            emitter.emit('externalDragOver', { hoverDate, nearestNode: null })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.hoverDate).toBe(hoverDate)
+            expect(detail.nearestNode).toBeNull()
+        })
+
+        it('schedule: nodeId / start / end が渡される（issue-gantt-phase004-008）', () => {
+            const handler = vi.fn()
+            emitter.on('schedule', handler)
+            const start = DateTime.fromISO('2026-08-02T09:00')
+            const end = DateTime.fromISO('2026-08-02T10:00')
+            emitter.emit('schedule', { nodeId: 'sub-1', start, end })
+            const detail = handler.mock.calls[0][0].detail
+            expect(detail.nodeId).toBe('sub-1')
+            expect(detail.start).toBe(start)
+            expect(detail.end).toBe(end)
         })
     })
 })

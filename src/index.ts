@@ -21,6 +21,8 @@ export type {
     GanttUserEventType,
     GanttUserEventDetail,
     GanttUserEventDetailMap,
+    GanttExternalDropEvent,
+    GanttExternalDragOverEvent,
 } from "./types"
 
 // ライフサイクルイベント（ライブラリユーザー向け）
@@ -55,3 +57,7 @@ export type { GanttStore } from "./core/gantt-store"
 
 // ズームスケールユーティリティ
 export { getTickDefinitionForScale, getSnapDays } from "./utils/zoom-scale"
+
+// 日種別（週末・祝日）判定ユーティリティ
+export { dayKind, buildHolidaySet, DEFAULT_WEEKEND_DAYS } from "./utils/day-kind"
+export type { DayKind } from "./utils/day-kind"

@@ -7,6 +7,7 @@
 
 import { DateTime, Duration } from "luxon"
 import type { DateRange } from "../types"
+import { businessDayOffset } from "./business-days"
 
 /**
  * タイムライン上の日付のX座標を計算
@@ -16,17 +17,21 @@ import type { DateRange } from "../types"
  * @param date - X座標を求める日付
  * @param dateRange - タイムラインの日付範囲
  * @param dayWidth - 1日あたりの幅（ピクセル）
+ * @param hideWeekends - true の場合、土日分の幅を詰めた軸で計算する
  * @returns X座標（ピクセル）
  */
 export function dateToX(
     date: DateTime,
     dateRange: DateRange,
     dayWidth: number,
+    hideWeekends = false,
 ): number {
     if (!date || !dateRange || !dateRange.start) {
         return 0
     }
-    const diffDays = date.diff(dateRange.start, "days").days
+    const diffDays = hideWeekends
+        ? businessDayOffset(date, dateRange.start)
+        : date.diff(dateRange.start, "days").days
     if (isNaN(diffDays)) {
         return 0
     }
@@ -55,17 +60,21 @@ export function rowToY(rowIndex: number, rowHeight: number): number {
  * @param start - 開始日時
  * @param end - 終了日時
  * @param dayWidth - 1日あたりの幅（ピクセル）
+ * @param hideWeekends - true の場合、土日分の幅を詰めた軸で計算する
  * @returns バーの幅（ピクセル、最小1セル分）
  */
 export function durationToWidth(
     start: DateTime,
     end: DateTime,
     dayWidth: number,
+    hideWeekends = false,
 ): number {
     if (!start || !end) {
         return dayWidth // 無効な場合は最小幅を返す
     }
-    const diffDays = end.diff(start, "days").days
+    const diffDays = hideWeekends
+        ? businessDayOffset(end, start)
+        : end.diff(start, "days").days
     if (isNaN(diffDays)) {
         return dayWidth
     }
@@ -135,16 +144,20 @@ export function generateDateTicks(
  *
  * @param dateRange - タイムラインの日付範囲
  * @param dayWidth - 1日あたりの幅（ピクセル）
+ * @param hideWeekends - true の場合、土日分の幅を詰めた軸で計算する
  * @returns タイムライン全体の幅（ピクセル）
  */
 export function calculateTimelineWidth(
     dateRange: DateRange,
     dayWidth: number,
+    hideWeekends = false,
 ): number {
     if (!dateRange || !dateRange.start || !dateRange.end) {
         return 0
     }
-    const days = dateRange.end.diff(dateRange.start, "days").days
+    const days = hideWeekends
+        ? businessDayOffset(dateRange.end, dateRange.start)
+        : dateRange.end.diff(dateRange.start, "days").days
     if (isNaN(days)) {
         return 0
     }

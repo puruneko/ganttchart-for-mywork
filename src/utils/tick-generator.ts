@@ -8,6 +8,7 @@
 import { DateTime, Duration } from "luxon"
 import type { DateRange } from "../types"
 import type { TickDefinition } from "./zoom-scale"
+import { isWeekendDay } from "./business-days"
 
 /**
  * Tick情報（単一のtick）
@@ -39,6 +40,7 @@ function generateTicks(
     unit: "year" | "month" | "week" | "day" | "hour",
     format: string,
     interval?: Duration,
+    hideWeekends = false,
 ): Tick[] {
     const ticks: Tick[] = []
     let current = dateRange.start.startOf(unit as any)
@@ -52,6 +54,9 @@ function generateTicks(
         }
     }
 
+    // 土日非表示時、日/時間単位の tick は土日分を軸から取り除くため生成しない
+    const shouldSkipWeekends = hideWeekends && (unit === "day" || unit === "hour")
+
     while (current <= dateRange.end) {
         let next: DateTime
         if (interval) {
@@ -60,11 +65,13 @@ function generateTicks(
             next = current.plus({ [unit + "s"]: 1 })
         }
 
-        ticks.push({
-            start: current,
-            end: next,
-            label: current.toFormat(format),
-        })
+        if (!(shouldSkipWeekends && isWeekendDay(current))) {
+            ticks.push({
+                start: current,
+                end: next,
+                label: current.toFormat(format),
+            })
+        }
 
         current = next
     }
@@ -77,22 +84,26 @@ function generateTicks(
  *
  * @param dateRange - タイムラインの日付範囲
  * @param def - TickDefinition（zoom-scale.tsで定義）
+ * @param hideWeekends - true の場合、日/時間単位の tick から土日を除外する
  */
 export function generateTwoLevelTicks(
     dateRange: DateRange,
     def: TickDefinition,
+    hideWeekends = false,
 ): TwoLevelTicks {
     const majorTicks = generateTicks(
         dateRange,
         def.majorUnit,
         def.majorFormat,
         def.majorInterval,
+        hideWeekends,
     )
     const minorTicks = generateTicks(
         dateRange,
         def.minorUnit,
         def.minorFormat,
         def.minorInterval,
+        hideWeekends,
     )
 
     return {
